@@ -152,7 +152,10 @@ void DisplayerToolHOCR::setSelection(const QRect& rect, const QRect& minRect) {
 	}
 	m_selection->setAnchorAndPoint(r.topLeft(), r.bottomRight());
 	m_selection->setMinimumRect(mr);
-	m_displayer->ensureVisible(m_selection);
+	if (!mr.contains(r)) {
+		// Don't jump to page center when zoomed.
+		m_displayer->ensureVisible(m_selection);
+	}
 }
 
 QImage DisplayerToolHOCR::getSelection(const QRect& rect) const {

@@ -77,7 +77,7 @@ void HOCRDocument::addSpellingActions(QMenu* menu, const QModelIndex& index) {
 				m_spell->addWordToDictionary(trimmedWord);
 				resetMisspelled(index);
 			});
-			menu->addAction(_("Ignore word"), menu, [this, trimmedWord, index] {
+			menu->addAction(_("Ignore spelling"), menu, [this, trimmedWord, index] {
 				m_spell->ignoreWord(trimmedWord);
 				resetMisspelled(index);
 			});

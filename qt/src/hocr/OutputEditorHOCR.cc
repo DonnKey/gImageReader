@@ -814,8 +814,9 @@ void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
 				actionSplit = menu.addAction(_("Split from parent"));
 			}
 		}
-		if(nIndices == 2) { // Swapping allowed
-			actionSwap = menu.addAction(_("Swap"));
+		actionSwap = menu.addAction(_("Swap two"));
+		if(nIndices != 2) { // Swapping allowed
+			actionSwap->setEnabled(false);
 		}
 
 		QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
@@ -858,6 +859,14 @@ void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
 	QAction* actionRemove = nullptr;
 	QAction* actionExpand = nullptr;
 	QAction* actionCollapse = nullptr;
+	QAction* actionMoveUp = nullptr;
+	QAction* actionMoveDown = nullptr;
+	QAction* nonActionMultiple = nullptr;
+
+	nonActionMultiple = menu.addAction(_("Multiple Selection Menu"));
+	nonActionMultiple->setEnabled(false);
+	menu.addSeparator();
+
 	QString itemClass = item->itemClass();
 	if(itemClass == "ocr_page") {
 		actionAddGraphic = menu.addAction(_("Add graphic region"));

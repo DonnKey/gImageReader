@@ -64,7 +64,7 @@ signals:
 	void displayedSourceChanged();
 	void bboxDrawn(QRect rect, int action);
 	void bboxChanged(QRect rect, bool affectsChildren);
-	void positionPicked(QPoint pos);
+	void positionPicked(QPoint pos, QMouseEvent* event);
 	void actionChanged(int action);
 
 private:
@@ -73,6 +73,7 @@ private:
 	bool m_pressed = false;
 	QLabel *m_helpBox = nullptr;
 	int m_mouseMoves = 0;
+	QPoint m_mousePressPoint;
 
 private slots:
 	void selectionChanged(QRectF rect, bool affectsChildren);

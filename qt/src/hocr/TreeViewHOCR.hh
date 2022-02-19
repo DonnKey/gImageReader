@@ -40,6 +40,9 @@ public:
         }
         QTreeView::keyPressEvent(event);
     }
+    void focusOutEvent(QFocusEvent *event) override {
+        // override to stop clearning multiple select
+    }
 
 private:
 	// Disable auto tab handling

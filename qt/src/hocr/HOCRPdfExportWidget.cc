@@ -164,7 +164,7 @@ HOCRPdfExportWidget::HOCRPdfExportWidget(DisplayerToolHOCR* displayerTool, const
 
 	m_preview = new QGraphicsPixmapItem();
 	m_preview->setTransformationMode(Qt::SmoothTransformation);
-	m_preview->setZValue(2);
+	m_preview->setZValue(3);
 	updatePreview();
 	MAIN->getDisplayer()->scene()->addItem(m_preview);
 }

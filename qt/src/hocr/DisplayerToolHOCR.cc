@@ -46,6 +46,7 @@ QList<QImage> DisplayerToolHOCR::getOCRAreas() {
 
 void DisplayerToolHOCR::mousePressEvent(QMouseEvent* event) {
 	m_pressed = true;
+	m_mousePressPoint = event->pos();
 	if(event->button() == Qt::LeftButton && m_currentAction >= ACTION_DRAW_GRAPHIC_RECT && m_currentAction <= ACTION_DRAW_WORD_RECT) {
 		clearSelection();
 		m_selection = new DisplayerSelection(this,  m_displayer->mapToSceneClamped(event->pos()));
@@ -84,8 +85,10 @@ void DisplayerToolHOCR::mouseReleaseEvent(QMouseEvent* event) {
 		}
 		event->accept();
 	} else {
-		QPoint p = m_displayer->mapToSceneClamped(event->pos()).toPoint();
-		emit positionPicked(p);
+		if ((event->pos() - m_mousePressPoint).manhattanLength() < QApplication::startDragDistance()) {
+			QPoint p = m_displayer->mapToSceneClamped(event->pos()).toPoint();
+			emit positionPicked(p, event);
+		}
 	}
 	setAction(ACTION_NONE, false);
 }

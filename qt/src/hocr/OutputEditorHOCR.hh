@@ -32,6 +32,7 @@ class HOCRItem;
 class HOCRPage;
 class HOCRProofReadWidget;
 class QGraphicsPixmapItem;
+class TreeViewHOCR;
 
 enum class NewWordMode { CurrentLine, NearestLine, NewLine };
 
@@ -64,6 +65,7 @@ public:
 	bool crashSave(const QString& filename) const override;
 
 	void keyPressEvent(QKeyEvent* event) override;
+	void showSelections(const QItemSelection& selected, const QItemSelection& deselected);
  
 	HOCRDocument* getDocument() const { return m_document; }
 	DisplayerToolHOCR* getTool() const { return m_tool; }
@@ -100,6 +102,7 @@ private:
 	DisplayerToolHOCR* m_tool;
 	QWidget* m_widget;
 	QGraphicsPixmapItem* m_preview = nullptr;
+	QGraphicsPixmapItem* m_selectedItems = nullptr;
 	HOCRProofReadWidget* m_proofReadWidget = nullptr;
 	QTimer m_previewTimer;
 	UI_OutputEditorHOCR ui;
@@ -129,6 +132,7 @@ private:
 	void doReplace(bool force);
 	QDomElement newLine(QDomDocument &doc, const QRect& bbox, QMap<QString, QMap<QString, QSet<QString>>>& propAttrs);
 	QModelIndex pickLine(const QPoint& point);
+	void deselectChildren(QItemSelectionModel *model, QModelIndex& index);
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);
@@ -149,7 +153,7 @@ private slots:
 	void navigatePrev() {
 		navigateNextPrev(false);
 	}
-	void pickItem(const QPoint& point);
+	void pickItem(const QPoint& point, QMouseEvent* event);
 	void setFont();
 	void setInsertMode(QAction* action);
 	void setModified();
@@ -172,7 +176,7 @@ private slots:
 class HOCRAttributeEditor : public QLineEdit {
 	Q_OBJECT
 public:
-	HOCRAttributeEditor(const QString& value, HOCRDocument* doc, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass);
+    HOCRAttributeEditor(const QString& value, HOCRDocument* doc, const TreeViewHOCR *treeView, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass);
 
 protected:
 	void focusOutEvent(QFocusEvent* ev);
@@ -184,6 +188,7 @@ private:
 	QString m_attrName;
 	QString m_origValue;
 	QString m_attrItemClass;
+	const TreeViewHOCR* m_treeView;
 	bool m_edited;
 	QLabel* m_note;
 
@@ -196,13 +201,14 @@ private slots:
 class HOCRAttributeCheckbox : public QCheckBox {
 	Q_OBJECT
 public:
-	HOCRAttributeCheckbox(Qt::CheckState value, HOCRDocument* doc, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass);
+	HOCRAttributeCheckbox(Qt::CheckState value, HOCRDocument* doc, const TreeViewHOCR *treeView, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass);
 
 private:
 	HOCRDocument* m_doc;
 	QModelIndex m_itemIndex;
 	QString m_attrName;
 	QString m_attrItemClass;
+	const TreeViewHOCR *m_treeView;
 
 private slots:
 	void updateValue(const QModelIndex& itemIndex, const QString& name, const QString& value);
@@ -212,13 +218,14 @@ private slots:
 class HOCRAttributeLangCombo : public QComboBox {
 	Q_OBJECT
 public:
-	HOCRAttributeLangCombo(const QString& value, bool multiple, HOCRDocument* doc, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass);
+	HOCRAttributeLangCombo(const QString& value, bool multiple, HOCRDocument* doc, const TreeViewHOCR *treeView, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass);
 
 private:
 	HOCRDocument* m_doc;
 	QModelIndex m_itemIndex;
 	QString m_attrName;
 	QString m_attrItemClass;
+	const TreeViewHOCR *m_treeView;
 
 private slots:
 	void updateValue(const QModelIndex& itemIndex, const QString& name, const QString& value);

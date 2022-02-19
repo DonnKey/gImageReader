@@ -118,8 +118,9 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 
-HOCRAttributeEditor::HOCRAttributeEditor(const QString& value, HOCRDocument* doc, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass)
-	: QLineEdit(value), m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_origValue(value), m_attrItemClass(attrItemClass), m_edited(false) {
+HOCRAttributeEditor::HOCRAttributeEditor(const QString& value, HOCRDocument* doc, const TreeViewHOCR *treeView, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass)
+	: QLineEdit(value), m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_origValue(value), m_attrItemClass(attrItemClass), m_edited(false), m_treeView(treeView) {
+
 	setFrame(false);
 	m_note = nullptr;
 	if (m_attrName == "title:bbox") {
@@ -130,6 +131,11 @@ HOCRAttributeEditor::HOCRAttributeEditor(const QString& value, HOCRDocument* doc
 		const HOCRItem* item = m_doc->itemAtIndex(itemIndex);
 		QString note = QString("(%2x%3)").arg(item->bbox().width()-1).arg(item->bbox().height()-1);
 		m_note->setText(note);
+		if (m_treeView->selectionModel()->selectedRows().count() > 1) {
+			// it's nonsense to change more than one bbox to the same thing
+			setReadOnly(true);
+			setStyleSheet("background-color: lightGray;");
+		}
 	}
 
 	connect(m_doc, &HOCRDocument::itemAttributeChanged, this, 
@@ -183,7 +189,10 @@ void HOCRAttributeEditor::validateChanges(bool force) {
 		if(validator() && validator()->validate(newValue, pos) != QValidator::Acceptable) {
 			setText(m_origValue);
 		} else {
-			m_doc->editItemAttribute(m_itemIndex, m_attrName, newValue, m_attrItemClass);
+			QModelIndexList indices = m_treeView->selectionModel()->selectedRows();
+			for (QModelIndex i:indices) {
+				m_doc->editItemAttribute(i, m_attrName, newValue, m_attrItemClass);
+			}
 			m_origValue = newValue;
 		}
 	}
@@ -191,8 +200,8 @@ void HOCRAttributeEditor::validateChanges(bool force) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-HOCRAttributeCheckbox::HOCRAttributeCheckbox(Qt::CheckState value, HOCRDocument* doc, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass)
-	: m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_attrItemClass(attrItemClass) {
+HOCRAttributeCheckbox::HOCRAttributeCheckbox(Qt::CheckState value, HOCRDocument* doc, const TreeViewHOCR *model, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass)
+	: m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_attrItemClass(attrItemClass), m_treeView(model){
 	setCheckState(value);
 	connect(m_doc, &HOCRDocument::itemAttributeChanged, this, &HOCRAttributeCheckbox::updateValue);
 	connect(this, &HOCRAttributeCheckbox::stateChanged, this, &HOCRAttributeCheckbox::valueChanged);
@@ -207,14 +216,17 @@ void HOCRAttributeCheckbox::updateValue(const QModelIndex& itemIndex, const QStr
 }
 
 void HOCRAttributeCheckbox::valueChanged() {
-	m_doc->editItemAttribute(m_itemIndex, m_attrName, isChecked() ? "1" : "0", m_attrItemClass);
+	QModelIndexList indices = m_treeView->selectionModel()->selectedRows();
+	for (QModelIndex i:indices) {
+		m_doc->editItemAttribute(i, m_attrName, isChecked() ? "1" : "0", m_attrItemClass);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 
-HOCRAttributeLangCombo::HOCRAttributeLangCombo(const QString& value, bool multiple, HOCRDocument* doc, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass)
-	: m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_attrItemClass(attrItemClass) {
+HOCRAttributeLangCombo::HOCRAttributeLangCombo(const QString& value, bool multiple, HOCRDocument* doc, const TreeViewHOCR* treeView, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass)
+	: m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_attrItemClass(attrItemClass), m_treeView(treeView) {
 	if(multiple) {
 		addItem(_("Multiple values"));
 		setCurrentIndex(0);
@@ -241,7 +253,10 @@ void HOCRAttributeLangCombo::updateValue(const QModelIndex& itemIndex, const QSt
 }
 
 void HOCRAttributeLangCombo::valueChanged() {
-	m_doc->editItemAttribute(m_itemIndex, m_attrName, currentData().toString(), m_attrItemClass);
+	QModelIndexList indices = m_treeView->selectionModel()->selectedRows();
+	for (QModelIndex i:indices) {
+		m_doc->editItemAttribute(i, m_attrName, currentData().toString(), m_attrItemClass);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -328,9 +343,14 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 
 	m_preview = new QGraphicsPixmapItem();
 	m_preview->setTransformationMode(Qt::SmoothTransformation);
-	m_preview->setZValue(2);
+	m_preview->setZValue(3);
 	MAIN->getDisplayer()->scene()->addItem(m_preview);
 	m_previewTimer.setSingleShot(true);
+
+	m_selectedItems = new QGraphicsPixmapItem();
+	m_selectedItems->setTransformationMode(Qt::SmoothTransformation);
+	m_selectedItems->setZValue(2);
+	MAIN->getDisplayer()->scene()->addItem(m_selectedItems);
 
 	ui.actionOutputReplaceKey->setShortcut(Qt::CTRL | Qt::Key_F);
 	ui.actionOutputSaveHOCR->setShortcut(Qt::CTRL | Qt::Key_S);
@@ -390,7 +410,11 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.searchFrame, &SearchReplaceFrame::applySubstitutions, this, &OutputEditorHOCR::applySubstitutions);
 	connect(ConfigSettings::get<FontSetting>("customoutputfont"), &FontSetting::changed, this, &OutputEditorHOCR::setFont);
 	connect(ConfigSettings::get<SwitchSetting>("systemoutputfont"), &FontSetting::changed, this, &OutputEditorHOCR::setFont);
-	connect(ui.treeViewHOCR->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &OutputEditorHOCR::showItemProperties);
+	// Defer running showItemProperties until the selectionModel updates the row count, because we need to know when
+	// the row count is more than one.
+	connect(ui.treeViewHOCR->selectionModel(), &QItemSelectionModel::currentRowChanged, this, 
+		[this] (const QModelIndex& index,const QModelIndex& prev) { QTimer::singleShot(0, [this, index, prev] {showItemProperties(index,prev);} ); } ); 
+	connect(ui.treeViewHOCR->selectionModel(), &QItemSelectionModel::selectionChanged, this, &OutputEditorHOCR::showSelections);
 	connect(ui.treeViewHOCR, &QTreeView::customContextMenuRequested, this, &OutputEditorHOCR::showTreeWidgetContextMenu);
 	connect(this, &OutputEditorHOCR::customContextMenuRequested2, this, &OutputEditorHOCR::showTreeWidgetContextMenu_inner);
 	connect(ui.tabWidgetProps, &QTabWidget::currentChanged, this, &OutputEditorHOCR::updateSourceText);
@@ -427,6 +451,7 @@ OutputEditorHOCR::~OutputEditorHOCR() {
 	delete m_preview;
 	delete m_proofReadWidget;
 	delete m_widget;
+	delete m_selectedItems;
 }
 
 void OutputEditorHOCR::setFont() {
@@ -526,8 +551,6 @@ void OutputEditorHOCR::addPage(const QString& hocrText, HOCRReadSessionData data
 	expandCollapseChildren(index, true);
 	MAIN->setOutputPaneVisible(true);
 	m_modified = true;
-
-	selectPage(data.insertIndex);
 }
 
 int OutputEditorHOCR::positionOf(const QString& source, int sourcePage) const {
@@ -694,7 +717,6 @@ void OutputEditorHOCR::showItemProperties(const QModelIndex& index, const QModel
 	}
 
 	ui.plainTextEditOutput->setPlainText(currentItem->toHtml());
-	ui.treeViewHOCR->setCurrentIndex(index);
 
 	if(newPage(page)) {
 		// Minimum bounding box
@@ -719,8 +741,8 @@ QWidget* OutputEditorHOCR::createAttrWidget(const QModelIndex& itemIndex, const 
 	};
 	auto it = attrLineEdits.find(attrName);
 	if(it != attrLineEdits.end()) {
-		QLineEdit* lineEdit = new HOCRAttributeEditor(attrValue, m_document, itemIndex, attrName, attrItemClass);
-		lineEdit->setValidator(new QRegularExpressionValidator(QRegularExpression(it.value())));
+		QLineEdit* lineEdit = new HOCRAttributeEditor(attrValue, m_document, ui.treeViewHOCR, itemIndex, attrName, attrItemClass);
+		lineEdit->setValidator(new QRegExpValidator(QRegExp(it.value())));
 		if(multiple) {
 			lineEdit->setPlaceholderText(_("Multiple values"));
 		}
@@ -728,7 +750,7 @@ QWidget* OutputEditorHOCR::createAttrWidget(const QModelIndex& itemIndex, const 
 	} else if(attrName == "title:x_font") {
 		QFontComboBox* combo = new QFontComboBox();
 		combo->setCurrentIndex(-1);
-		QLineEdit* edit = new HOCRAttributeEditor(attrValue, m_document, itemIndex, attrName, attrItemClass);
+		QLineEdit* edit = new HOCRAttributeEditor(attrValue, m_document, ui.treeViewHOCR, itemIndex, attrName, attrItemClass);
 		edit->blockSignals(true); // Because the combobox alters the text as soon as setLineEdit is called...
 		combo->setLineEdit(edit);
 		edit->setText(attrValue);
@@ -738,11 +760,11 @@ QWidget* OutputEditorHOCR::createAttrWidget(const QModelIndex& itemIndex, const 
 		}
 		return combo;
 	} else if(attrName == "lang") {
-		HOCRAttributeLangCombo* combo = new HOCRAttributeLangCombo(attrValue, multiple, m_document, itemIndex, attrName, attrItemClass);
+		HOCRAttributeLangCombo* combo = new HOCRAttributeLangCombo(attrValue, multiple, m_document, ui.treeViewHOCR, itemIndex, attrName, attrItemClass);
 		return combo;
 	} else if(attrName == "bold" || attrName == "italic") {
 		Qt::CheckState value = multiple ? Qt::PartiallyChecked : attrValue == "1" ? Qt::Checked : Qt::Unchecked;
-		return new HOCRAttributeCheckbox(value, m_document, itemIndex, attrName, attrItemClass);
+		return new HOCRAttributeCheckbox(value, m_document, ui.treeViewHOCR, itemIndex, attrName, attrItemClass);
 	} else {
 		QLineEdit* lineEdit = new QLineEdit(attrValue);
 		lineEdit->setFrame(false);
@@ -1383,7 +1405,8 @@ void OutputEditorHOCR::keyPressEvent(QKeyEvent *event) {
 	ui.treeViewHOCR->keyPressEvent(event);
 }
 
-void OutputEditorHOCR::pickItem(const QPoint& point) {
+static const QModelIndex emptyIndex = QModelIndex();
+void OutputEditorHOCR::pickItem(const QPoint& point, QMouseEvent* event) {
 	int pageNr;
 	QString filename = MAIN->getDisplayer()->getCurrentImage(pageNr);
 	QModelIndex pageIndex = m_document->searchPage(filename, pageNr);
@@ -1402,13 +1425,55 @@ void OutputEditorHOCR::pickItem(const QPoint& point) {
 		MAIN->getDisplayer()->setFocus();
 		return;
 	}
-	ui.treeViewHOCR->setCurrentIndex(index);
 	const HOCRItem* item = m_document->itemAtIndex(index);
 	if(item->itemClass() == "ocrx_word") {
-		ui.treeViewHOCR->setCurrentIndex(index);
-	} else {
-		MAIN->getDisplayer()->setFocus();
+		QItemSelectionModel* sel = ui.treeViewHOCR->selectionModel();
+		QModelIndex origIndex = index;
+		QModelIndex parentIndex = index.parent();
+		QModelIndex oldParent = emptyIndex;
+
+		while (parentIndex != emptyIndex) {
+			if (sel->isSelected(parentIndex)) {
+				index = parentIndex;
+				parentIndex = parentIndex.parent();
+				break;
+			}
+			parentIndex = parentIndex.parent();
+		}
+		if (parentIndex == emptyIndex || parentIndex.parent() == emptyIndex) {
+			// It's useless to select the whole page here.
+			oldParent = index;
+			index = origIndex;
+			parentIndex = index.parent();
+		}
+
+		if((event->modifiers() & Qt::ControlModifier) != 0) {
+			if((event->modifiers() & Qt::ShiftModifier) != 0) {
+				sel->select(index, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
+				sel->select(oldParent, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
+				sel->select(parentIndex, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+				deselectChildren(sel, parentIndex);
+				index = parentIndex;
+			} else if(origIndex == index) {
+				sel->select(index, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
+			} else {
+				// "explode" instead of toggle since we don't have any other way to remember it.
+				sel->select(index, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
+				const HOCRItem* parentItem = m_document->itemAtIndex(index);
+				for (HOCRItem* childItem: parentItem->children()) {
+					sel->select(m_document->indexAtItem(childItem), QItemSelectionModel::Select | QItemSelectionModel::Rows);
+				}
+			} 
+			ui.treeViewHOCR->scrollTo(index, QAbstractItemView::PositionAtCenter);
+		} else {
+			if((event->modifiers() & Qt::ShiftModifier) != 0) {
+				ui.treeViewHOCR->setCurrentIndex(parentIndex);
+			} else {
+				ui.treeViewHOCR->setCurrentIndex(origIndex);
+			}
+		}
 	}
+	MAIN->getDisplayer()->setFocus();
 }
 
 QModelIndex OutputEditorHOCR::pickLine(const QPoint& point) {
@@ -1426,6 +1491,15 @@ QModelIndex OutputEditorHOCR::pickLine(const QPoint& point) {
 	QPoint newPoint( scale * (point.x() * std::cos(alpha) - point.y() * std::sin(alpha)),
 	                 scale * (point.x() * std::sin(alpha) + point.y() * std::cos(alpha)) );
     return m_document->lineAboveCanvasPos(pageIndex, newPoint);
+}
+
+void OutputEditorHOCR::deselectChildren(QItemSelectionModel *model, QModelIndex& index) {
+	const HOCRItem* parentItem = m_document->itemAtIndex(index);
+	for (HOCRItem* childItem: parentItem->children()) {
+		QModelIndex childIndex =m_document->indexAtItem(childItem);
+		model->select(childIndex, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
+		deselectChildren(model, childIndex);
+	}
 }
 
 void OutputEditorHOCR::toggleWConfColumn() {
@@ -1851,7 +1925,7 @@ void OutputEditorHOCR::showPreview(bool invert) {
 	int pageDpi = page->resolution();
 
 	QImage image(bbox.size(), QImage::Format_ARGB32);
-	image.fill(QColor(255, 255, 255, 127));
+	image.fill(QColor(255, 255, 255, 63));
 	image.setDotsPerMeterX(pageDpi / 0.0254); // 1 in = 0.0254 m
 	image.setDotsPerMeterY(pageDpi / 0.0254);
 	QPainter painter(&image);
@@ -1918,6 +1992,37 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 		for(HOCRItem* childItem : item->children()) {
 			drawPreview(painter, childItem);;
 		}
+	}
+}
+
+void OutputEditorHOCR::showSelections(const QItemSelection& selected, const QItemSelection& deselected) {
+	QItemSelectionModel* model = ui.treeViewHOCR->selectionModel();
+	QModelIndexList selections = model->selectedRows();
+	if(!selections.empty()) {
+		const HOCRItem* item = m_document->itemAtIndex(selections.first());
+		const HOCRPage* page = item->page();
+		const QRect& bbox = page->bbox();
+		int pageDpi = page->resolution();
+
+		QImage image(bbox.size(), QImage::Format_ARGB32);
+		image.fill(QColor(255, 255, 255, 63));
+		image.setDotsPerMeterX(pageDpi / 0.0254); // 1 in = 0.0254 m
+		image.setDotsPerMeterY(pageDpi / 0.0254);
+		QPainter painter(&image);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		QColor c = QPalette().highlight().color();
+		painter.setBrush(QColor(c.red(), c.green(), c.blue(), 31));
+
+		for(QModelIndex sel : selections) {
+			if (sel != model->currentIndex()) {
+				const HOCRItem* item = m_document->itemAtIndex(sel);
+				painter.drawRect(item->bbox());
+			}
+		}
+		m_selectedItems->setPixmap(QPixmap::fromImage(image));
+		m_selectedItems->setPos(-0.5 * bbox.width(), -0.5 * bbox.height());
+		m_selectedItems->setVisible(true);
 	}
 }
 

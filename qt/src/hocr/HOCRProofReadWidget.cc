@@ -362,17 +362,21 @@ private:
 		}
 		QLineEdit::keyReleaseEvent(ev);
 	}
+	void mousePressEvent(QMouseEvent* ev) override {
+		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
+		m_proofReadWidget->documentTree()->setCurrentIndex(document->indexAtItem(m_wordItem));
+		QLineEdit::mousePressEvent(ev);
+	}
 	void focusInEvent(QFocusEvent* ev) override {
+		m_proofReadWidget->show();
 		if(m_wordItem != nullptr && m_wordItem->itemClass() == "ocrx_word") {
 			HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
-			m_proofReadWidget->documentTree()->setCurrentIndex(document->indexAtItem(m_wordItem));
+			// Don't setCurrentIndex (don't clear multiple select)
 			QMap<QString,QString> attrs = m_wordItem->getTitleAttributes();
 			QMap<QString,QString>::iterator i = attrs.find("x_wconf");
 			if(i != attrs.end()) {
 				m_proofReadWidget->setConfidenceLabel(i.value().toInt());
 			}
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			m_proofReadWidget->documentTree()->setCurrentIndex(index);
 		}
 		QLineEdit::focusInEvent(ev);
 		if(ev->reason() != Qt::MouseFocusReason) {
@@ -628,8 +632,6 @@ void HOCRProofReadWidget::repositionWidget() {
 			QPoint bottomRight = displayer->mapFromScene(sceneBBox.bottomRight());
 			// Factor weighted by length
 			QFont actualFont = lineEdit->item()->fontFamily();
-			//QFont actualFont = lineEdit->font();
-			//actualFont.setPointSizeF(ft.pointSizeF());
 			QFontMetrics fm(actualFont);
 			double factor = (bottomRight.x() - bottomLeft.x()) / double(fm.horizontalAdvance(lineEdit->text()));
 			avgFactor += lineEdit->text().length() * factor;
@@ -710,6 +712,9 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>&lt;print&gt;</td>"           "<td>D</td> <td>T</td> <td> </td> <td>Search to item beginning with &lt;print&gt;</td></tr>"
 							   "<tr><td>L-Click</td>"                 "<td>D</td> <td>T</td> <td>E</td> <td>Select</td></tr>"
 							   "<tr><td>L-2Click</td>"                "<td> </td> <td>T</td> <td>E</td> <td>Expand/Open for edit</td></tr>"
+							   "<tr><td>Shift+L-Click</td>"           "<td>D</td> <td> </td> <td> </td> <td>Select/toggle Enclosing HOCR</td></tr>"
+							   "<tr><td>Ctrl+L-Click</td>"            "<td>D</td> <td> </td> <td> </td> <td>Multi-Select/toggle</td></tr>"
+							   "<tr><td>Ctrl+Shift+L-Click</td>"      "<td>D</td> <td> </td> <td> </td> <td>Multi-Select/toggle Enclosing HOCR</td></tr>"
 							   "<tr><td>R-Click</td>"                 "<td> </td> <td>T</td> <td> </td> <td>Open context menu</td></tr>"
 							   "<tr><td>M-Mouse Drag</td>"            "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"
 							   "<tr><td>L-Mouse Drag Box Edge</td>"   "<td>D</td> <td> </td> <td> </td> <td>Resize Box</td></tr>"

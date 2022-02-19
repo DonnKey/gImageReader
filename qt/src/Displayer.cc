@@ -572,7 +572,7 @@ void Displayer::mousePressEvent(QMouseEvent* event) {
 
 	event->ignore();
 	QGraphicsView::mousePressEvent(event);
-	if(!event->isAccepted() && m_tool && m_currentSource) {
+	if(m_tool && m_currentSource) {
 		m_tool->mousePressEvent(event);
 	}
 }
@@ -591,7 +591,7 @@ void Displayer::mouseMoveEvent(QMouseEvent* event) {
 		(event->buttons() & Qt::LeftButton) == Qt::LeftButton &&
 		(event->modifiers() & Qt::KeyboardModifierMask) == Qt::NoModifier) {
 		QPoint delta = event->pos() - m_panPos;
-		if (m_cursor != Qt::BlankCursor || delta.manhattanLength() > 1) {
+		if (m_cursor != Qt::BlankCursor || delta.manhattanLength() > QApplication::startDragDistance()) {
 			if (m_cursor == Qt::BlankCursor) {
 				m_cursor = Qt::ClosedHandCursor;
 				QApplication::setOverrideCursor(m_cursor);
@@ -846,9 +846,15 @@ void DisplayerSelection::hoverLeaveEvent(QGraphicsSceneHoverEvent* event) {
 }
 
 void DisplayerSelection::mousePressEvent(QGraphicsSceneMouseEvent* event) {
+	m_resizeHandlers.clear();
+
+	if ((event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier)) != 0) {
+		event->ignore();
+		return;
+	}
+
 	QPointF p = event->pos();
 	double tol = 10.0 / m_tool->getDisplayer()->getCurrentScale();
-	m_resizeHandlers.clear();
 	m_mouseMoveOffset = QPointF(0.0, 0.0);
 	if(std::abs(m_point.x() - p.x()) < tol) { // pointx
 		m_resizeHandlers.append(resizePointX);
@@ -864,15 +870,14 @@ void DisplayerSelection::mousePressEvent(QGraphicsSceneMouseEvent* event) {
 		m_resizeHandlers.append(resizeAnchorY);
 		m_mouseMoveOffset.setY(event->pos().y() - m_anchor.y());
 	}
-	if(!m_resizeHandlers.empty()) {
-		event->accept();
-	} else if (event->button() == Qt::LeftButton) {
+	if(m_resizeHandlers.empty() && event->button() == Qt::LeftButton) {
 		m_translating = true;
 		m_mouseMoveOffset = QPointF(p.x(), p.y());
-		event->accept();
-	} else {
-		event->ignore();
 	}
+
+	// Neither accept() nor ignore() here:
+	// accept() blocks simple clicks from being processed (no press event reaches DisplayerToolHOCR).
+	// ignore() causes subsequent move events to be ignored too.
 }
 
 void DisplayerSelection::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {

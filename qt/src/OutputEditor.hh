@@ -73,6 +73,8 @@ public:
 	virtual bool containsSource(const QString& source, int sourcePage) const { return false; }
 	virtual bool crashSave(const QString& filename) const = 0;
 	virtual int positionOf(const QString& source, int sourcePage) const { return -1; }
+	virtual int speckleSize() const { return 0; }
+	virtual double fontStretch() const { return 100.0; }
 	virtual QRectF getWidgetGeometry() {
 		return QRectF();
 	}

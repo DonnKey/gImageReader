@@ -87,6 +87,22 @@ class PreferenceChoice {
 		QString name = "normalizeFlatten_" + m_instance;
 	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
 	}
+	bool getDespeckle() {
+		QString name = "normalizeDespeckle_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
+	bool getClean() {
+		QString name = "normalizecleanTextlines_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
+	bool getAdjust() {
+		QString name = "normalizeadjustToFont_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
+	bool getLevelBaseline() {
+		QString name = "normalizelevelBaseline_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
 	const QString getTitle() {
 		QString name = "normalizeTitle_" + m_instance;
 	    return ConfigSettings::get<LineEditSetting>(name)->getValue();
@@ -114,6 +130,10 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent
 	ADD_SETTING(SwitchSetting("normalizeApplySubst_0", ui.applySubst_0, false));
 	ADD_SETTING(SwitchSetting("normalizeSort_0", ui.applySort_0, false));
 	ADD_SETTING(SwitchSetting("normalizeFlatten_0", ui.applyFlatten_0, false));
+	ADD_SETTING(SwitchSetting("normalizeDespeckle_0", ui.applyDespeckle_0, false));
+	ADD_SETTING(SwitchSetting("normalizecleanTextlines_0", ui.cleanTextlines_0, false));
+	ADD_SETTING(SwitchSetting("normalizeadjustToFont_0", ui.adjustToFont_0, false));
+	ADD_SETTING(SwitchSetting("normalizelevelBaseline_0", ui.levelBaseline_0, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_0", ui.setBold_0, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_0", ui.setItalic_0, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_0", ui.title_0));
@@ -142,6 +162,10 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent
 	ADD_SETTING(SwitchSetting("normalizeApplySubst_1", ui.applySubst_1, false));
 	ADD_SETTING(SwitchSetting("normalizeSort_1", ui.applySort_1, false));
 	ADD_SETTING(SwitchSetting("normalizeFlatten_1", ui.applyFlatten_1, false));
+	ADD_SETTING(SwitchSetting("normalizeDespeckle_1", ui.applyDespeckle_1, false));
+	ADD_SETTING(SwitchSetting("normalizecleanTextlines_1", ui.cleanTextlines_1, false));
+	ADD_SETTING(SwitchSetting("normalizeadjustToFont_1", ui.adjustToFont_1, false));
+	ADD_SETTING(SwitchSetting("normalizelevelBaseline_1", ui.levelBaseline_1, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_1", ui.setBold_1, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_1", ui.setItalic_1, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_1", ui.title_1));
@@ -170,6 +194,10 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent
 	ADD_SETTING(SwitchSetting("normalizeApplySubst_2", ui.applySubst_2, false));
 	ADD_SETTING(SwitchSetting("normalizeSort_2", ui.applySort_2, false));
 	ADD_SETTING(SwitchSetting("normalizeFlatten_2", ui.applyFlatten_2, false));
+	ADD_SETTING(SwitchSetting("normalizeDespeckle_2", ui.applyDespeckle_2, false));
+	ADD_SETTING(SwitchSetting("normalizecleanTextlines_2", ui.cleanTextlines_2, false));
+	ADD_SETTING(SwitchSetting("normalizeadjustToFont_2", ui.adjustToFont_2, false));
+	ADD_SETTING(SwitchSetting("normalizelevelBaseline_2", ui.levelBaseline_2, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_2", ui.setBold_2, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_2", ui.setItalic_2, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_2", ui.title_2));
@@ -198,6 +226,10 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent
 	ADD_SETTING(SwitchSetting("normalizeApplySubst_3", ui.applySubst_3, false));
 	ADD_SETTING(SwitchSetting("normalizeSort_3", ui.applySort_3, false));
 	ADD_SETTING(SwitchSetting("normalizeFlatten_3", ui.applyFlatten_3, false));
+	ADD_SETTING(SwitchSetting("normalizeDespeckle_3", ui.applyDespeckle_3, false));
+	ADD_SETTING(SwitchSetting("normalizecleanTextlines_3", ui.cleanTextlines_3, false));
+	ADD_SETTING(SwitchSetting("normalizeadjustToFont_3", ui.adjustToFont_3, false));
+	ADD_SETTING(SwitchSetting("normalizelevelBaseline_3", ui.levelBaseline_3, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_3", ui.setBold_3, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_3", ui.setItalic_3, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_3", ui.title_3));
@@ -304,13 +336,31 @@ void HOCRNormalize::normalizeSelection(PreferenceChoice *pref, bool substituteOn
 	}
 	m_doc->beginLayoutChange();
 	bool success = Utils::busyTask([this, pref, substituteOnly] {
+		m_doc->blockSignals(true);
 		for (HOCRItem* item:*m_items) {
-			if (!substituteOnly && pref->getFlatten()) {
-				QModelIndex index = m_doc->indexAtItem(item);
-				m_doc->flatten(index);
+			if(pref->getLevelBaseline()) {
+				m_baselineAngle = m_doc->meanBaselineAngle(item->page(), nullptr); 
+			} 
+			if (!substituteOnly) {
+				if (pref->getDespeckle()) {
+					QModelIndex index = m_doc->indexAtItem(item);
+					int specSize = MAIN->getOutputEditor()->speckleSize();
+					m_doc->despeckle(specSize, index);
+				}
+				if (pref->getFlatten()) {
+					QModelIndex index = m_doc->indexAtItem(item);
+					m_doc->flatten(index);
+				}
 			}
 			normalizeItem(item, pref, substituteOnly);
+			if (!substituteOnly) {
+				if(pref->getClean()) {
+					QModelIndex index = m_doc->indexAtItem(item);
+					m_doc->cleanEmptyItems(index);
+				}
+			}
 		}
+		m_doc->blockSignals(false);
 		return true;
 	}, _("Normalizing ..."));
 	m_doc->endLayoutChange();
@@ -360,21 +410,32 @@ void HOCRNormalize::normalizeItem(const HOCRItem* item, PreferenceChoice *pref, 
 		if(pref->getSetItalic() != Qt::PartiallyChecked) {
 			m_doc->editItemAttribute(index, "italic", pref->getSetItalic() == Qt::Checked ? "1" : "0", itemClass);
 		}
-		if(pref->getTrimHeight() && item->isOverheight(true)) {
-			m_doc->fitToFont(index);
-		}
 		return;
-	} else {
-		if (pref->getSortAll()) {
-			if(itemClass == "ocr_line") {
-				m_doc->raw_sortOnX(index);
-			} else {
-				m_doc->raw_sortOnY(index);
-			}
-		}
 	}
 
 	for(int i = 0, n = item->children().size(); i < n; ++i) {
 		normalizeItem(item->children()[i], pref, substituteOnly);
+	}
+
+	if(itemClass == "ocrx_word") {
+		// nothing
+	} else if(itemClass == "ocr_line") {
+		if(pref->getLevelBaseline()) {
+			m_doc->setBaselineAngle(index, m_baselineAngle);
+		}
+		if(pref->getTrimHeight()) {
+			m_doc->fitLineToFont(index);
+		}
+		if(pref->getAdjust()) {
+			double fontStretch = MAIN->getOutputEditor()->fontStretch();
+			m_doc->fitExactWords(fontStretch, index);
+		}
+		if (pref->getSortAll()) {
+			m_doc->raw_sortOnX(index);
+		}
+	} else {
+		if (pref->getSortAll()) {
+			m_doc->raw_sortOnY(index);
+		}
 	}
 }

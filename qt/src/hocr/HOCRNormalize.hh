@@ -63,6 +63,7 @@ private:
 	HOCRNormalizeDialog* m_dialog;
 	HOCRDocument* m_doc;
 	QList<HOCRItem*>* m_items;
+	double m_baselineAngle;
 
 	PreferenceChoice *m_preferences[4];
 };

@@ -78,15 +78,11 @@ void HOCRDocument::addSpellingActions(QMenu* menu, const QModelIndex& index) {
 	QStringList suggestions;
 	QString trimmedWord;
 	bool valid = getItemSpellingSuggestions(index, trimmedWord, suggestions, 16);
-	for(const QString& suggestion : suggestions) {
-		menu->addAction(suggestion, menu, [this, suggestion, index] { setData(index, suggestion, Qt::EditRole); });
-	}
 	if(!trimmedWord.isEmpty()) {
 		if(suggestions.isEmpty()) {
 			menu->addAction(_("No suggestions"))->setEnabled(false);
 		}
 		if(!valid) {
-			menu->addSeparator();
 			menu->addAction(_("&Add to dictionary"), menu, [this, trimmedWord, index] {
 				m_spell->addWordToDictionary(trimmedWord);
 				dictionaryChanged();
@@ -95,7 +91,11 @@ void HOCRDocument::addSpellingActions(QMenu* menu, const QModelIndex& index) {
 				m_spell->ignoreWord(trimmedWord);
 				dictionaryChanged();
 			});
+			menu->addSeparator();
 		}
+	}
+	for(const QString& suggestion : suggestions) {
+		menu->addAction(suggestion, menu, [this, suggestion, index] { setData(index, suggestion, Qt::EditRole); });
 	}
 }
 
@@ -524,9 +524,10 @@ void HOCRDocument::flatten(const QModelIndex& idx) {
 }
 
 void HOCRDocument::cleanEmptyItems(const QModelIndex& idx) {
-	beginResetModel();
-
 	HOCRItem* top = mutableItemAtIndex(idx);
+	if (top->itemClass() == "ocrx_word") {
+		return;
+	}
 
 	std::function<void (HOCRItem*)> sweep = [&] (HOCRItem* source) {
 		QVector<HOCRItem*> empties;
@@ -549,10 +550,181 @@ void HOCRDocument::cleanEmptyItems(const QModelIndex& idx) {
 		empties.clear();
 	};
 
+	beginResetModel();
+	sweep(top);
+	endResetModel();
+
+	if (top->m_childItems.size() <= 0) {
+		HOCRItem* parent = top->parent();
+		removeItem(idx);
+		top = parent;
+	}
+	if (top != nullptr) {
+		recomputeBBoxes(top);
+	}
+}
+
+void HOCRDocument::despeckle(int specSize, const QModelIndex& idx) {
+	beginResetModel();
+
+	HOCRItem* top = mutableItemAtIndex(idx);
+
+	std::function<void (HOCRItem*)> sweep = [&] (HOCRItem* source) {
+		QVector<HOCRItem*> empties;
+		for(HOCRItem* child : source->m_childItems) {
+			if (child->itemClass() == "ocrx_word") {
+				QRectF bbox = child->bbox();
+				if (bbox.width() <= specSize && bbox.height() <= specSize) {
+					empties.append(child);
+				}
+			}
+			else {
+				sweep(child);
+			}
+		}
+
+		for(HOCRItem* item : empties) {
+			source->removeChild(item);
+		}
+		empties.clear();
+	};
+
 	sweep(top);
 	recomputeBBoxes(top);
 
 	endResetModel();
+}
+
+void HOCRDocument::fitExactWords(double fontStretch, const QModelIndex& index) {
+	HOCRItem* item = mutableItemAtIndex(index);
+	if (item->itemClass() == "ocrx_word") {
+		int pageDpi = item->page()->resolution();
+		QFont font;
+		if(!item->fontFamily().isEmpty()) {
+			font.setFamily(item->fontFamily());
+		}
+		font.setBold(item->fontBold());
+		font.setItalic(item->fontItalic());
+		font.setPointSizeF(item->fontSize());
+		QFontMetricsF fm(font);
+
+		double scaleFactor = pageDpi/(100.0 *(100.0/fontStretch));
+		double advance = fm.horizontalAdvance(item->text())*scaleFactor;
+		double fontHeight = qRound((fm.capHeight())*scaleFactor); // capHeight is "the usual" height
+
+		QRectF bbox = item->bbox();
+		QRectF parentBbox = item->parent()->bbox();
+		double newTop, newBottom;
+		if (fontHeight > parentBbox.height()) {
+			// split the difference
+			int need = fontHeight - parentBbox.height();
+			newTop = parentBbox.top() - (need/2);
+			newBottom = newTop + fontHeight;
+		} else {
+			newBottom = bbox.bottom();
+			newTop = bbox.top();
+			if (parentBbox.top() < newBottom - fontHeight) {
+				newTop = newBottom - fontHeight;
+			} 
+			if (parentBbox.bottom() > newTop + fontHeight) {
+				newBottom = newTop + fontHeight;
+			}
+		}
+
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(qRound(newTop)).arg(qRound(bbox.left()+advance)).arg(qRound(newBottom));
+		editItemAttribute(index,"title:bbox", bboxstr);
+		emit itemAttributeChanged(index, "title:bbox", bboxstr);
+	} else {
+		for (auto child:item->children()) {
+			fitExactWords(fontStretch, indexAtItem(child));
+		}
+		if (item->itemClass() == "ocr_line") {
+			recomputeBBoxes(item);
+		}
+	}
+}
+
+void HOCRDocument::fitToGuideWord(const QModelIndex& index) {
+	HOCRItem* item = mutableItemAtIndex(index);
+	Q_ASSERT(item->itemClass() == "ocrx_word");
+	int oldLeadBottom = item->bbox().bottom();
+	HOCRItem* line = item->parent();
+
+	int pageDpi = line->page()->resolution();
+	QFont font;
+	if(!item->fontFamily().isEmpty()) {
+		font.setFamily(item->fontFamily());
+	}
+	font.setBold(item->fontBold());
+	font.setItalic(item->fontItalic());
+	font.setPointSizeF(item->fontSize());
+	QFontMetricsF fm(font);
+
+	QPair<double, double> baseline = line->baseLine();
+	for (auto child : line->children()) {
+		QRect childBbox = child->bbox();
+		int newTop = oldLeadBottom + (childBbox.center().x() - childBbox.x()) * baseline.first - childBbox.height();
+		QString bboxstr = QString("%1 %2 %3 %4").arg(childBbox.left()).arg(newTop).arg(childBbox.right()).arg(newTop+childBbox.height());
+		QModelIndex i = indexAtItem(child);
+		editItemAttribute(i,"title:bbox", bboxstr);
+		emit itemAttributeChanged(i, "title:bbox", bboxstr);
+	}
+	recomputeBBoxes(line);
+}
+
+double HOCRDocument::meanBaselineAngle(const HOCRItem* item, const HOCRItem* exclude) {
+	HOCRPage* page = item->page();
+	double total = 0;
+	int count = 0;
+	double max = std::numeric_limits<double>::min();
+	double min = std::numeric_limits<double>::max();
+
+	std::function<void (const HOCRItem*, const HOCRItem*)> sweep = [&] (const HOCRItem* item, const HOCRItem* exclude) {
+		for (auto child : item->children()) {
+			if (child->itemClass() == "ocr_line") {
+				if (child == exclude) {
+					continue;
+				}	
+				total += child->baseLine().first;
+				count++;
+				if (child->baseLine().first > max) {
+					max = child->baseLine().first;
+				}
+				if (child->baseLine().first < min) {
+					min = child->baseLine().first;
+				}
+			}
+			else {
+				sweep(child, exclude);
+			}
+		}
+	};
+
+	sweep(page, exclude);
+	if (count > 8) {
+		// discard outliers
+		count -= 2;
+		total -= min;
+		total -= max;
+	}
+	return total/count;
+}
+
+void HOCRDocument::setBaselineAngle(QModelIndex index, double angle) {
+	HOCRItem* item = mutableItemAtIndex(index);
+	QPair<double, double> baseline = item->baseLine();
+	QString baselineStr = QString("%1 %2").arg(angle,0,'f',3).arg(baseline.second);
+	editItemAttribute(indexAtItem(item),"title:baseline", baselineStr);
+	emit itemAttributeChanged(indexAtItem(item), "title:baseline", baselineStr);
+	recomputeBBoxes(item);
+}
+
+void HOCRDocument::levelBaseline(const QModelIndex& index) {
+	HOCRItem* item = mutableItemAtIndex(index);
+	if (item->itemClass() == "ocr_line") {
+		double angle = meanBaselineAngle(item, item);
+		setBaselineAngle(index, angle);
+	}
 }
 
 bool HOCRDocument::toggleEnabledCheckbox(const QModelIndex& index) {
@@ -950,6 +1122,9 @@ void HOCRDocument::recomputeBBoxes(const QModelIndex& index) {
 }
 void HOCRDocument::recomputeBBoxes(HOCRItem* item) {
 	// Update parent bboxes (except page)
+	if (item == nullptr || item->children().size() <= 0) {
+		return;
+	}
 	while(item && item->parent()) {
 		QRect bbox;
 		for(const HOCRItem* child : item->children()) {
@@ -1103,12 +1278,15 @@ void HOCRDocument::setAttributes(const QString& name, const QString& value, cons
 	emit itemAttributeChanged(index, name, value);
 }
 
-void HOCRDocument::fitToFont(const QModelIndex& index) {
+double HOCRDocument::fitToFont(const QModelIndex& index) {
 	HOCRItem* item = mutableItemAtIndex(index);
+	Q_ASSERT(item->itemClass() == "ocrx_word");
+	double diff = 0.0;
 	if (!item->isOverheight()) {
-		return;
+		return diff;
 	}
 	int pageDpi = item->page()->resolution();
+	double scale = pageDpi/100.0;
 
 	QFont font;
 	if(!item->fontFamily().isEmpty()) {
@@ -1119,10 +1297,12 @@ void HOCRDocument::fitToFont(const QModelIndex& index) {
 	font.setPointSizeF(item->fontSize());
 	QFontMetricsF fm(font);
 
-	double fontHeight = (fm.capHeight())*pageDpi/72.0; // capHeight is "the usual" height
-	double fontDescent = (fm.descent())*pageDpi/72.0;
+	double fontHeight = fm.capHeight()*scale;
+	double fontDescent = fm.descent()*scale;
+	double fontAscent = fm.ascent()*scale;
 
 	const HOCRItem *parent = item->parent();
+	int parentBottom = parent->bbox().bottom();
 
 	// A properly formed ocrx_word bbox will have the baseline intersect the bbox height near the font descent 
 	// above the bottom edge, and not extend above the font height. In addition, the baseline's offset should not
@@ -1130,13 +1310,28 @@ void HOCRDocument::fitToFont(const QModelIndex& index) {
 
 	QPair<double, double> baseline = parent->baseLine();
 	QRect bbox = item->bbox();
+	int absBaseline = parentBottom + baseline.second;
+
+	if (bbox.bottom() > absBaseline+fontDescent) {
+		// the bbox extends below a reasonable value
+		bbox.setBottom(qRound(absBaseline+fontDescent));
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+		editItemAttribute(index,"title:bbox", bboxstr);
+		emit itemAttributeChanged(index, "title:bbox", bboxstr);
+	}
+	if (bbox.top() < absBaseline-fontAscent) {
+		// the bbox extends above a reasonable value
+		bbox.setTop(qRound(absBaseline-fontAscent));
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+		editItemAttribute(index,"title:bbox", bboxstr);
+		emit itemAttributeChanged(index, "title:bbox", bboxstr);
+	}
+	recomputeBBoxes(item);
 
 	if(-baseline.second > fontDescent) {
 		// The baseline is wrong... trim the bottom and adjust the baseline
-		double diff = -baseline.second-fontDescent;
-		QString baselineStr = QString("%1 %2").arg(baseline.first, 0, 'f', 3).arg(baseline.second+diff);
-		editItemAttribute(indexAtItem(parent),"title:baseline", baselineStr);
-		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(qRound(bbox.bottom()-diff-fontHeight)).arg(bbox.right()).arg(qRound(bbox.bottom()-diff));
+		diff = -baseline.second-fontDescent;
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(qRound(bbox.bottom()-fontHeight)).arg(bbox.right()).arg(bbox.bottom());
 		editItemAttribute(index,"title:bbox", bboxstr);
 		emit itemAttributeChanged(index, "title:bbox", bboxstr);
 	} else {
@@ -1146,6 +1341,37 @@ void HOCRDocument::fitToFont(const QModelIndex& index) {
 		emit itemAttributeChanged(index, "title:bbox", bboxstr);
 	}
 	(void)item->isOverheight(true);
+	return diff;
+}
+
+void HOCRDocument::fitWordToFont(const QModelIndex& index) {
+	HOCRItem* item = mutableItemAtIndex(index);
+	Q_ASSERT(item->itemClass() == "ocrx_word");
+	double diff = fitToFont(index);
+	if (diff != 0) {
+		HOCRItem* parent = item->parent();
+		QPair<double, double> baseline = parent->baseLine();
+		QString newBaseline = QString("%1 %2").arg(baseline.first, 0, 'f', 3).arg(baseline.second+diff);
+		editItemAttribute(indexAtItem(parent),"title:baseline", newBaseline);
+	}
+}
+
+void HOCRDocument::fitLineToFont(const QModelIndex& index) {
+	// When doing lines, don't change the baseline until all entries done.
+	HOCRItem* item = mutableItemAtIndex(index);
+	Q_ASSERT(item->itemClass() == "ocr_line");
+	double offset = 0;
+	for (HOCRItem* child:item->children()) {
+		double d = fitToFont(indexAtItem(child));
+		if (d != 0) {
+			offset = d;
+		}
+	}
+	if (offset != 0) {
+		QPair<double, double> baseline = item->baseLine();
+		QString newBaseline = QString("%1 %2").arg(baseline.first, 0, 'f', 3).arg(baseline.second+offset);
+		editItemAttribute(index,"title:baseline", newBaseline);
+	} 
 }
 
 ///////////////////////////////////////////////////////////////////////////////

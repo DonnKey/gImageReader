@@ -48,7 +48,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Font and font size for all children&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set word item's font to selected one.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="accessibleName">
      <string>Apply &amp;Font</string>
@@ -66,6 +66,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New font to be used (if checked).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Font &amp;Name</string>
     </property>
@@ -79,6 +82,9 @@
       <height>21</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Change Font Size to selected value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Apply &amp;Size</string>
     </property>
@@ -90,32 +96,17 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>70</y>
+      <y>60</y>
       <width>111</width>
-      <height>21</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale bounding box to exactly fit new font size. Center of left margin does not move.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>&amp;Bounding Box</string>
-    </property>
-   </widget>
-   <widget class="QDialogButtonBox" name="buttonBoxApply_0">
-    <property name="geometry">
-     <rect>
-      <x>410</x>
-      <y>160</y>
-      <width>81</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-    <property name="standardButtons">
-     <set>QDialogButtonBox::Apply</set>
+     <string>&amp;Bounding
+Box</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="setBold_0">
@@ -159,23 +150,24 @@
    <widget class="QCheckBox" name="trimHeight_0">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>70</y>
+      <x>180</x>
+      <y>60</y>
       <width>101</width>
-      <height>21</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>Trim overheight words to font (heuristic)</string>
     </property>
     <property name="text">
-     <string>Trim &amp;Height</string>
+     <string>Trim
+&amp;Height</string>
     </property>
    </widget>
    <widget class="QPushButton" name="openSubst_0">
     <property name="geometry">
      <rect>
-      <x>280</x>
+      <x>380</x>
       <y>70</y>
       <width>111</width>
       <height>23</height>
@@ -191,7 +183,7 @@
    <widget class="QCheckBox" name="applySubst_0">
     <property name="geometry">
      <rect>
-      <x>260</x>
+      <x>360</x>
       <y>70</y>
       <width>16</width>
       <height>21</height>
@@ -210,14 +202,18 @@
    <widget class="QCheckBox" name="applySort_0">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>100</y>
-      <width>121</width>
-      <height>21</height>
+      <x>90</x>
+      <y>90</y>
+      <width>71</width>
+      <height>41</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sort by Y for non-words, X for words. (Into natural reading order.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="text">
-     <string>Sort by &amp;Position</string>
+     <string>Sort by
+&amp;Position</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applyFlatten_0">
@@ -229,8 +225,11 @@
       <height>21</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Move all textlines to a single paragraph.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="text">
-     <string>&amp;Flatten</string>
+     <string>F&amp;latten</string>
     </property>
    </widget>
    <widget class="QPushButton" name="buttonApply_0">
@@ -255,11 +254,80 @@
       <height>24</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New font size for all words, if checked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Font Si&amp;ze</string>
     </property>
     <property name="minimum">
      <number>1</number>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="levelBaseline_0">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>90</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust baseline angle to mean angle for the current page.  Excludes outliers in mean calculation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Le&amp;vel
+Baseline</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applyDespeckle_0">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>70</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove very small items (speckles).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>&amp;Despeckle</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cleanTextlines_0">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>100</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove empty empty container groups.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>&amp;Clean</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="adjustToFont_0">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>90</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust bounding box to match current font.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Ad&amp;just
+to Font</string>
     </property>
    </widget>
   </widget>
@@ -506,7 +574,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Font and font size for all children&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set word item's font to selected one.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="accessibleName">
      <string>Apply &amp;Font</string>
@@ -524,6 +592,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New font to be used (if checked).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Font &amp;Name</string>
     </property>
@@ -537,6 +608,9 @@
       <height>21</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Change Font Size to selected value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Apply &amp;Size</string>
     </property>
@@ -548,32 +622,17 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>70</y>
+      <y>60</y>
       <width>111</width>
-      <height>21</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale bounding box to exactly fit new font size. Center of left margin does not move.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>&amp;Bounding Box</string>
-    </property>
-   </widget>
-   <widget class="QDialogButtonBox" name="buttonBoxApply_1">
-    <property name="geometry">
-     <rect>
-      <x>410</x>
-      <y>160</y>
-      <width>81</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-    <property name="standardButtons">
-     <set>QDialogButtonBox::Apply</set>
+     <string>&amp;Bounding
+Box</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="setBold_1">
@@ -617,23 +676,24 @@
    <widget class="QCheckBox" name="trimHeight_1">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>70</y>
+      <x>180</x>
+      <y>60</y>
       <width>101</width>
-      <height>21</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>Trim overheight words to font (heuristic)</string>
     </property>
     <property name="text">
-     <string>Trim &amp;Height</string>
+     <string>Trim
+&amp;Height</string>
     </property>
    </widget>
    <widget class="QPushButton" name="openSubst_1">
     <property name="geometry">
      <rect>
-      <x>280</x>
+      <x>380</x>
       <y>70</y>
       <width>111</width>
       <height>23</height>
@@ -649,7 +709,7 @@
    <widget class="QCheckBox" name="applySubst_1">
     <property name="geometry">
      <rect>
-      <x>260</x>
+      <x>360</x>
       <y>70</y>
       <width>16</width>
       <height>21</height>
@@ -668,14 +728,18 @@
    <widget class="QCheckBox" name="applySort_1">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>100</y>
-      <width>121</width>
-      <height>21</height>
+      <x>90</x>
+      <y>90</y>
+      <width>71</width>
+      <height>41</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sort by Y for non-words, X for words. (Into natural reading order.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="text">
-     <string>Sort by &amp;Position</string>
+     <string>Sort by
+&amp;Position</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applyFlatten_1">
@@ -687,8 +751,11 @@
       <height>21</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Move all textlines to a single paragraph.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="text">
-     <string>&amp;Flatten</string>
+     <string>F&amp;latten</string>
     </property>
    </widget>
    <widget class="QPushButton" name="buttonApply_1">
@@ -713,11 +780,80 @@
       <height>24</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New font size for all words, if checked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Font Si&amp;ze</string>
     </property>
     <property name="minimum">
      <number>1</number>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="levelBaseline_1">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>90</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust baseline angle to mean angle for the current page.  Excludes outliers in mean calculation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Le&amp;vel
+Baseline</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applyDespeckle_1">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>70</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove very small items (speckles).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>&amp;Despeckle</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cleanTextlines_1">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>100</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove empty empty container groups.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>&amp;Clean</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="adjustToFont_1">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>90</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust bounding box to match current font.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Ad&amp;just
+to Font</string>
     </property>
    </widget>
   </widget>
@@ -752,7 +888,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Font and font size for all children&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set word item's font to selected one.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="accessibleName">
      <string>Apply &amp;Font</string>
@@ -770,6 +906,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New font to be used (if checked).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Font &amp;Name</string>
     </property>
@@ -783,6 +922,9 @@
       <height>21</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Change Font Size to selected value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Apply &amp;Size</string>
     </property>
@@ -794,32 +936,17 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>70</y>
+      <y>60</y>
       <width>111</width>
-      <height>21</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale bounding box to exactly fit new font size. Center of left margin does not move.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>&amp;Bounding Box</string>
-    </property>
-   </widget>
-   <widget class="QDialogButtonBox" name="buttonBoxApply_2">
-    <property name="geometry">
-     <rect>
-      <x>410</x>
-      <y>160</y>
-      <width>81</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-    <property name="standardButtons">
-     <set>QDialogButtonBox::Apply</set>
+     <string>&amp;Bounding
+Box</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="setBold_2">
@@ -863,23 +990,24 @@
    <widget class="QCheckBox" name="trimHeight_2">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>70</y>
+      <x>180</x>
+      <y>60</y>
       <width>101</width>
-      <height>21</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>Trim overheight words to font (heuristic)</string>
     </property>
     <property name="text">
-     <string>Trim &amp;Height</string>
+     <string>Trim
+&amp;Height</string>
     </property>
    </widget>
    <widget class="QPushButton" name="openSubst_2">
     <property name="geometry">
      <rect>
-      <x>280</x>
+      <x>380</x>
       <y>70</y>
       <width>111</width>
       <height>23</height>
@@ -895,7 +1023,7 @@
    <widget class="QCheckBox" name="applySubst_2">
     <property name="geometry">
      <rect>
-      <x>260</x>
+      <x>360</x>
       <y>70</y>
       <width>16</width>
       <height>21</height>
@@ -914,14 +1042,18 @@
    <widget class="QCheckBox" name="applySort_2">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>100</y>
-      <width>121</width>
-      <height>21</height>
+      <x>90</x>
+      <y>90</y>
+      <width>71</width>
+      <height>41</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sort by Y for non-words, X for words. (Into natural reading order.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="text">
-     <string>Sort by &amp;Position</string>
+     <string>Sort by
+&amp;Position</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applyFlatten_2">
@@ -933,8 +1065,11 @@
       <height>21</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Move all textlines to a single paragraph.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="text">
-     <string>&amp;Flatten</string>
+     <string>F&amp;latten</string>
     </property>
    </widget>
    <widget class="QPushButton" name="buttonApply_2">
@@ -959,6 +1094,9 @@
       <height>24</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New font size for all words, if checked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Font Si&amp;ze</string>
     </property>
@@ -966,12 +1104,78 @@
      <number>1</number>
     </property>
    </widget>
+   <widget class="QCheckBox" name="levelBaseline_2">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>90</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust baseline angle to mean angle for the current page.  Excludes outliers in mean calculation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Le&amp;vel
+Baseline</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applyDespeckle_2">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>70</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove very small items (speckles).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>&amp;Despeckle</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cleanTextlines_2">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>100</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove empty empty container groups.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>&amp;Clean</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="adjustToFont_2">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>90</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust bounding box to match current font.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Ad&amp;just
+to Font</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_3">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>550</y>
+     <y>560</y>
      <width>501</width>
      <height>131</height>
     </rect>
@@ -998,7 +1202,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Font and font size for all children&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set word item's font to selected one.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="accessibleName">
      <string>Apply &amp;Font</string>
@@ -1016,6 +1220,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New font to be used (if checked).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Font &amp;Name</string>
     </property>
@@ -1029,6 +1236,9 @@
       <height>21</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Change Font Size to selected value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Apply &amp;Size</string>
     </property>
@@ -1040,32 +1250,17 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>70</y>
+      <y>60</y>
       <width>111</width>
-      <height>21</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale bounding box to exactly fit new font size. Center of left margin does not move.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>&amp;Bounding Box</string>
-    </property>
-   </widget>
-   <widget class="QDialogButtonBox" name="buttonBoxApply_3">
-    <property name="geometry">
-     <rect>
-      <x>410</x>
-      <y>160</y>
-      <width>81</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-    <property name="standardButtons">
-     <set>QDialogButtonBox::Apply</set>
+     <string>&amp;Bounding
+Box</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="setBold_3">
@@ -1109,23 +1304,24 @@
    <widget class="QCheckBox" name="trimHeight_3">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>70</y>
+      <x>180</x>
+      <y>60</y>
       <width>101</width>
-      <height>21</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>Trim overheight words to font (heuristic)</string>
     </property>
     <property name="text">
-     <string>Trim &amp;Height</string>
+     <string>Trim
+&amp;Height</string>
     </property>
    </widget>
    <widget class="QPushButton" name="openSubst_3">
     <property name="geometry">
      <rect>
-      <x>280</x>
+      <x>380</x>
       <y>70</y>
       <width>111</width>
       <height>23</height>
@@ -1141,7 +1337,7 @@
    <widget class="QCheckBox" name="applySubst_3">
     <property name="geometry">
      <rect>
-      <x>260</x>
+      <x>360</x>
       <y>70</y>
       <width>16</width>
       <height>21</height>
@@ -1160,14 +1356,18 @@
    <widget class="QCheckBox" name="applySort_3">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>100</y>
-      <width>121</width>
-      <height>21</height>
+      <x>90</x>
+      <y>90</y>
+      <width>71</width>
+      <height>41</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sort by Y for non-words, X for words. (Into natural reading order.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="text">
-     <string>Sort by &amp;Position</string>
+     <string>Sort by
+&amp;Position</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applyFlatten_3">
@@ -1179,8 +1379,11 @@
       <height>21</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Move all textlines to a single paragraph.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="text">
-     <string>&amp;Flatten</string>
+     <string>F&amp;latten</string>
     </property>
    </widget>
    <widget class="QPushButton" name="buttonApply_3">
@@ -1205,11 +1408,80 @@
       <height>24</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New font size for all words, if checked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <property name="accessibleName">
      <string>Font Si&amp;ze</string>
     </property>
     <property name="minimum">
      <number>1</number>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="levelBaseline_3">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>90</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust baseline angle to mean angle for the current page.  Excludes outliers in mean calculation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Le&amp;vel
+Baseline</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applyDespeckle_3">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>70</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove very small items (speckles).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>&amp;Despeckle</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cleanTextlines_3">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>100</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove empty empty container groups.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>&amp;Clean</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="adjustToFont_3">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>90</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust bounding box to match current font.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Ad&amp;just
+to Font</string>
     </property>
    </widget>
   </widget>
@@ -1224,11 +1496,15 @@
   <tabstop>setBold_0</tabstop>
   <tabstop>setItalic_0</tabstop>
   <tabstop>normalizeBBox_0</tabstop>
+  <tabstop>applyDespeckle_0</tabstop>
   <tabstop>trimHeight_0</tabstop>
   <tabstop>applySubst_0</tabstop>
   <tabstop>openSubst_0</tabstop>
   <tabstop>applyFlatten_0</tabstop>
   <tabstop>applySort_0</tabstop>
+  <tabstop>cleanTextlines_0</tabstop>
+  <tabstop>adjustToFont_0</tabstop>
+  <tabstop>levelBaseline_0</tabstop>
   <tabstop>buttonApply_0</tabstop>
   <tabstop>pushButton_1</tabstop>
   <tabstop>title_1</tabstop>
@@ -1239,11 +1515,15 @@
   <tabstop>setBold_1</tabstop>
   <tabstop>setItalic_1</tabstop>
   <tabstop>normalizeBBox_1</tabstop>
+  <tabstop>applyDespeckle_1</tabstop>
   <tabstop>trimHeight_1</tabstop>
   <tabstop>applySubst_1</tabstop>
   <tabstop>openSubst_1</tabstop>
   <tabstop>applyFlatten_1</tabstop>
   <tabstop>applySort_1</tabstop>
+  <tabstop>cleanTextlines_1</tabstop>
+  <tabstop>adjustToFont_1</tabstop>
+  <tabstop>levelBaseline_1</tabstop>
   <tabstop>buttonApply_1</tabstop>
   <tabstop>pushButton_2</tabstop>
   <tabstop>title_2</tabstop>
@@ -1254,11 +1534,15 @@
   <tabstop>setBold_2</tabstop>
   <tabstop>setItalic_2</tabstop>
   <tabstop>normalizeBBox_2</tabstop>
+  <tabstop>applyDespeckle_2</tabstop>
   <tabstop>trimHeight_2</tabstop>
   <tabstop>applySubst_2</tabstop>
   <tabstop>openSubst_2</tabstop>
   <tabstop>applyFlatten_2</tabstop>
   <tabstop>applySort_2</tabstop>
+  <tabstop>cleanTextlines_2</tabstop>
+  <tabstop>adjustToFont_2</tabstop>
+  <tabstop>levelBaseline_2</tabstop>
   <tabstop>buttonApply_2</tabstop>
   <tabstop>pushButton_3</tabstop>
   <tabstop>title_3</tabstop>
@@ -1269,11 +1553,15 @@
   <tabstop>setBold_3</tabstop>
   <tabstop>setItalic_3</tabstop>
   <tabstop>normalizeBBox_3</tabstop>
+  <tabstop>applyDespeckle_3</tabstop>
   <tabstop>trimHeight_3</tabstop>
   <tabstop>applySubst_3</tabstop>
   <tabstop>openSubst_3</tabstop>
   <tabstop>applyFlatten_3</tabstop>
   <tabstop>applySort_3</tabstop>
+  <tabstop>cleanTextlines_3</tabstop>
+  <tabstop>adjustToFont_3</tabstop>
+  <tabstop>levelBaseline_3</tabstop>
   <tabstop>buttonApply_3</tabstop>
  </tabstops>
  <resources>

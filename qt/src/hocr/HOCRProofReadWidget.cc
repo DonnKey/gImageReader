@@ -215,10 +215,12 @@ private:
 		} else if(ev->key() == Qt::Key_P && ev->modifiers() == Qt::ControlModifier) {
 			// show widget settings
 			emit m_proofReadWidget->m_settingsButton->click();
+			/* to be deleted in later change
 		} else if(ev->key() == Qt::Key_T && ev->modifiers() == Qt::ControlModifier) {
 			// Trim
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			m_document->fitToFont(index);
+			*/
 		} else if((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && ev->modifiers() & Qt::ControlModifier) {
 			// Adjust bbox top/bottom
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
@@ -287,11 +289,11 @@ private:
 
 				QModelIndex uncle = parent.sibling(parent.row() + 1, 0);
 				if (uncle.isValid()) {
-					HOCRProofReadWidget* widget = m_proofReadWidget;
 					QModelIndex newLine = m_document->mergeItems(grandparent, parent.row(), uncle.row());
 					m_document->sortOnX(newLine);
 					const HOCRItem* item = m_document->itemAtIndex(newLine);
 					QModelIndex first = m_document->indexAtItem(item->children().first());
+					m_document->fitToGuideWord(first);
 					widget->documentTree()->clearSelection();
 					widget->documentTree()->setCurrentIndex(first);
 					widget->updateWidget(true);

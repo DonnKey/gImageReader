@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>245</height>
+    <height>227</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,10 +16,10 @@
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>200</y>
-     <width>341</width>
-     <height>32</height>
+     <x>270</x>
+     <y>190</y>
+     <width>121</width>
+     <height>21</height>
     </rect>
    </property>
    <property name="focusPolicy">
@@ -87,7 +87,7 @@
     <string>Highlight words that are inconsistent with the font size.&lt;br&gt;Right click Output tree item and select &quot;Trim&quot; to fix. See also Normalize. (Ctrl-T)</string>
    </property>
    <property name="text">
-    <string>Highlight oversi&amp;ze boxes</string>
+    <string>Highlight &amp;oversize boxes</string>
    </property>
   </widget>
   <widget class="QDoubleSpinBox" name="doubleSpinBox_Stretch">
@@ -121,7 +121,7 @@
      <x>90</x>
      <y>160</y>
      <width>201</width>
-     <height>16</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -147,6 +147,38 @@
     <string>On rescan, &amp;replace existing scan</string>
    </property>
   </widget>
+  <widget class="QSpinBox" name="spinBox_speckleSize">
+   <property name="geometry">
+    <rect>
+     <x>160</x>
+     <y>190</y>
+     <width>51</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="suffix">
+    <string> px</string>
+   </property>
+   <property name="minimum">
+    <number>1</number>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>190</y>
+     <width>151</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Speckle si&amp;ze to remove:</string>
+   </property>
+   <property name="buddy">
+    <cstring>spinBox_speckleSize</cstring>
+   </property>
+  </widget>
  </widget>
  <tabstops>
   <tabstop>checkBox_Preview</tabstop>
@@ -155,6 +187,8 @@
   <tabstop>checkBox_Overheight</tabstop>
   <tabstop>checkBox_ReplaceScan</tabstop>
   <tabstop>doubleSpinBox_Stretch</tabstop>
+  <tabstop>spinBox_speckleSize</tabstop>
+  <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources>
   <include location="gimagereader.qrc"/>
@@ -167,12 +201,12 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
+     <x>390</x>
+     <y>210</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
-     <y>274</y>
+     <y>226</y>
     </hint>
    </hints>
   </connection>
@@ -183,12 +217,12 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
+     <x>390</x>
+     <y>210</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
-     <y>274</y>
+     <y>226</y>
     </hint>
    </hints>
   </connection>

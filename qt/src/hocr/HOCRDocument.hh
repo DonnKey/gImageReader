@@ -99,12 +99,17 @@ public:
 	}
 	bool toggleEnabledCheckbox(const QModelIndex& index);
 	void setAttributes(const QString& name, const QString& value, const QString& attrItemClass, const QModelIndex &index);
-	void fitToFont(const QModelIndex& index);
+	void fitWordToFont(const QModelIndex& index);
+	void fitLineToFont(const QModelIndex& index);
 	void sortOnX(const QModelIndex& index);
 	void sortOnY(const QModelIndex& index);
 	void flatten(const QModelIndex& index);
 	void cleanEmptyItems(const QModelIndex& index);
+	void despeckle(int specSize, const QModelIndex& index);
 	void recomputeBBoxes(const QModelIndex& index);
+	void fitExactWords(double fontStretch, const QModelIndex& index);
+	void fitToGuideWord(const QModelIndex& index);
+	void levelBaseline(const QModelIndex& index);
 
 signals:
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);
@@ -120,6 +125,8 @@ protected:
 	void endLayoutChange() {
 		emit layoutChanged();
 	}
+	void setBaselineAngle(QModelIndex index, const double angle);
+	double meanBaselineAngle(const HOCRItem* item, const HOCRItem* exclude);
 
 private:
 	int m_pageIdCounter = 0;
@@ -141,6 +148,7 @@ private:
 	QList<QModelIndex> recheckItemSpelling(const QModelIndex& index) const;
 	void recomputeBBoxes(HOCRItem* item);
 	QModelIndex searchAtCanvasPos_inner(const QModelIndex& pageIndex, const QPoint& pos, int fuzz, int parentUB, int parentLB) const;
+	double fitToFont(const QModelIndex& index);
 };
 
 

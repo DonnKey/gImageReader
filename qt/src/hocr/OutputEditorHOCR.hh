@@ -150,6 +150,8 @@ private:
 	QRectF getWidgetGeometry() override;
 	QRectF getVisibleText(const HOCRPage* page);
 	QRectF getVisibleText() override;
+	int speckleSize() const override;
+	double fontStretch() const override;
 	void bulkOperation(QModelIndex& index, const std::function<void()>& op);
 	bool isFullyExpanded(const QModelIndex& index) const;
 	void doPreferences(FocusableMenu *keyParent);

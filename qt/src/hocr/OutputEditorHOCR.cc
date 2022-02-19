@@ -543,6 +543,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	ADD_SETTING(SwitchSetting("displayoverheight", ui.outputDialogUi.checkBox_Overheight, true));
 	ADD_SETTING(SwitchSetting("displaynonascii", ui.outputDialogUi.checkBox_NonAscii, true));
 	ADD_SETTING(DoubleSpinSetting("previewfontstretch", ui.outputDialogUi.doubleSpinBox_Stretch, 100.0));
+	ADD_SETTING(SpinSetting("specklesize", ui.outputDialogUi.spinBox_speckleSize, 1));
 
 	setFont();
 
@@ -1222,9 +1223,9 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 			font.setItalic(item->fontItalic());
 			font.setPointSizeF(item->fontSize());
 			QFontMetricsF fm(font);
-			// These report in 1/96 inch pixels (afaict), even though we're mostly thinking in points.
-			int len = qRound((fm.horizontalAdvance(text)) * currentItem->page()->resolution()/96.);
-			int hei = qRound((fm.capHeight()) * currentItem->page()->resolution()/96.);
+			const int scale = 100.;
+			int len = qRound((fm.horizontalAdvance(text)) * currentItem->page()->resolution()/scale);
+			int hei = qRound((fm.capHeight()) * currentItem->page()->resolution()/scale);
 			int x1 = bbox.left();
 			int y1 = bbox.top();
 			if (bbox.height() == 0 && QSettings().value("fitNewWord").toBool()) {
@@ -1301,6 +1302,7 @@ void OutputEditorHOCR::bulkOperation(/*inout*/ QModelIndex &index, const std::fu
 	} else {
 		expandCollapseChildren(index, oldExpanded);
 	}
+	ui.treeViewHOCR->setCurrentIndex(QModelIndex()); // Force currentIndex refresh
 	ui.treeViewHOCR->setCurrentIndex(index);
 	ui.treeViewHOCR->scrollTo(index, QAbstractItemView::PositionAtCenter);
 }
@@ -1385,6 +1387,8 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		}
 		ui.treeViewHOCR->selectionModel()->blockSignals(false);
 		// Nothing else is allowed with multiple items selected
+		m_proofReadWidget->updateWidget(true);
+		showPreview(OutputEditorHOCR::showMode::resume);
 		return;
 	}
 
@@ -1410,10 +1414,15 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QAction* actionCollapse = nullptr;
 	QAction* actionMoveUp = nullptr;
 	QAction* actionMoveDown = nullptr;
-	QAction* actionFit = nullptr;
+	QAction* actionFitWord = nullptr;
+	QAction* actionFitLine = nullptr;
 	QAction* actionSortX = nullptr;
 	QAction* actionSortY = nullptr;
 	QAction* actionFlatten = nullptr;
+	QAction* actionDespeckle = nullptr;
+	QAction* actionFitExactWords = nullptr;
+	QAction* actionFitGuideWord = nullptr;
+	QAction* actionLevelBaseline = nullptr;
 	QAction* actionClean = nullptr;
 	QAction* nonActionMultiple = nullptr;
 
@@ -1431,16 +1440,18 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		actionAddLine = menu.addAction(_("Add &line"));
 	} else if(itemClass == "ocr_line") {
 		actionAddWord = menu.addAction(_("Add &word"));
-	} else if(itemClass == "ocrx_word") {
-		m_document->addSpellingActions(&menu, index);
 	}
 	if(!menu.actions().isEmpty()) {
 		menu.addSeparator();
 	}
 	actionNormalize = menu.addAction(_("&Normalize"));
 	if(itemClass == "ocrx_word" && item->isOverheight()) {
-		actionFit = menu.addAction(_("Trim &height"));
-		actionFit->setToolTip(_("Heuristic trim overheight word to font size"));
+		actionFitWord = menu.addAction(_("Trim word &height"));
+		actionFitWord->setToolTip(_("Heuristic trim overheight word to font size; whole line variant usually preferred."));
+	}
+	if(itemClass == "ocr_line") {
+		actionFitLine = menu.addAction(_("Trim word &heights (whole line)"));
+		actionFitLine->setToolTip(_("Heuristic trim overheight words to font size; more accurate than word-only version."));
 	}
 	if(itemClass == "ocr_par" || itemClass == "ocr_line" || itemClass == "ocrx_word") {
 		actionSplit = menu.addAction(_("&Split from parent"));
@@ -1464,11 +1475,28 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	if(itemClass == "ocr_line") {
 		actionSortX = menu.addAction(_("Sort immediate children on &X position"));
 	}
+	if(itemClass != "ocr_word") {
+		actionDespeckle = menu.addAction(_("Despec&kle"));
+	}
 	if(itemClass == "ocr_page" || itemClass == "ocr_carea") {
 		actionFlatten = menu.addAction(_("&Flatten"));
 	}
+	if(itemClass == "ocrx_word") {
+		actionFitGuideWord = menu.addAction(_("Adjust &Parent Line to Word"));
+	}
+	if (itemClass != "ocr_graphic") {
+		actionFitExactWords = menu.addAction(_("Ad&just Box(es) to Font"));
+	}
+	if(itemClass == "ocr_line") {
+		actionLevelBaseline = menu.addAction(_("&Level the baseline"));
+	}
 	if(itemClass == "ocr_page" || itemClass == "ocr_carea" || itemClass == "ocr_par") {
 		actionClean = menu.addAction(_("&Clean empty items"));
+	}
+	if(itemClass == "ocrx_word") {
+		menu.addSeparator();
+		// Below uses &A and &I on ocrx_words only
+		m_document->addSpellingActions(&menu, index);
 	}
 
 	QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
@@ -1506,8 +1534,12 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		moveUpDown(index,-1);
 	} else if(clickedAction == actionMoveDown) {
 		moveUpDown(index,+1);
-	} else if(clickedAction == actionFit) {
-		m_document->fitToFont(index);
+	} else if(clickedAction == actionFitWord) {
+		m_document->fitWordToFont(index);
+	} else if(clickedAction == actionFitLine) {
+		m_document->fitLineToFont(index);
+		ui.treeViewHOCR->setCurrentIndex(QModelIndex()); // above changed bbox (thus displayer selection); restore
+		ui.treeViewHOCR->setCurrentIndex(index);
 	} else if(clickedAction == actionSortX) {
 		bool oldExpanded = ui.treeViewHOCR->isExpanded(index);
 		m_document->sortOnX(index);
@@ -1518,9 +1550,30 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		expandCollapseChildren(index, oldExpanded);
 	} else if(clickedAction == actionFlatten) {
 		bulkOperation(index, [this, index]() {m_document->flatten(index);});
+	} else if(clickedAction == actionDespeckle) {
+		int specSize = ui.outputDialogUi.spinBox_speckleSize->value();
+		bulkOperation(index, [this, specSize, index]() {m_document->despeckle(specSize, index);});
+		m_proofReadWidget->clear(); // random items could be deleted
+	} else if(clickedAction == actionFitExactWords) {
+		m_document->fitExactWords(ui.outputDialogUi.doubleSpinBox_Stretch->value(), index);
+		ui.treeViewHOCR->setCurrentIndex(QModelIndex()); // above changed bbox (thus displayer selection); restore
+		ui.treeViewHOCR->setCurrentIndex(index);
+	} else if(clickedAction == actionFitGuideWord) {
+		m_document->fitToGuideWord(index);
+		ui.treeViewHOCR->setCurrentIndex(m_document->parent(index));
+	} else if(clickedAction == actionLevelBaseline) {
+		m_document->levelBaseline(index);
 	} else if(clickedAction == actionClean) {
+		QModelIndex parent = index.parent();
 		bulkOperation(index, [this, index]() {m_document->cleanEmptyItems(index);});
+		if (!index.isValid()) {
+			// It might delete itself
+			index = parent;
+		}
+		ui.treeViewHOCR->setCurrentIndex(index);
 	}
+	m_proofReadWidget->updateWidget(true);
+	showPreview(OutputEditorHOCR::showMode::resume);
 	menu.setAttribute(Qt::WA_DeleteOnClose, true);
 }
 
@@ -2297,6 +2350,7 @@ void OutputEditorHOCR::updatePreview() {
 
 static const QString *useDefaultFlag = new QString();
 void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
+	const double scale = 100.;
 	if(!item->isEnabled()) {
 		return;
 	}
@@ -2378,18 +2432,18 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 				// Using the lineRect.bottom() for the whole line gives much more readable results on horizontal text.
 				x = wordRect.x();
 				y = lineRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second
-				    + (-doc.size().height()+fm.descent())*m_pageDpi/96.;
+				    + (-doc.size().height()+fm.descent())*m_pageDpi/scale;
 			} else {
 				// ... but wordRect.bottom is more accurate; for nonzero angles we'll choose that.
 				// The only actual value seen here has been 90.
 				x = wordRect.x()+(wordRect.right()-wordRect.left())*std::sin(textangle/180.0 * M_PI)
-				    + (-doc.size().height()+fm.descent())*m_pageDpi/96.;
+				    + (-doc.size().height()+fm.descent())*m_pageDpi/scale;
 				y = wordRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second;
 			}
 
 			painter.translate(x,y);
 			painter.rotate(-textangle);
-			painter.scale((m_pageDpi/96.)*(ui.outputDialogUi.doubleSpinBox_Stretch->value()/100.), m_pageDpi/96.);
+			painter.scale((m_pageDpi/scale)*(ui.outputDialogUi.doubleSpinBox_Stretch->value()/100.), m_pageDpi/scale);
 			doc.drawContents(&painter);
 			painter.restore();
 		}
@@ -2472,4 +2526,12 @@ QRectF OutputEditorHOCR::getVisibleText(const HOCRPage* page) {
 		bbox = bbox.united(child->bbox());
 	}
 	return bbox;
+}
+
+int OutputEditorHOCR::speckleSize() const {
+	return ui.outputDialogUi.spinBox_speckleSize->value();
+}
+
+double OutputEditorHOCR::fontStretch() const {
+	return ui.outputDialogUi.doubleSpinBox_Stretch->value();
 }

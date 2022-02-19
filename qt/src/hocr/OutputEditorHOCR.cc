@@ -121,6 +121,17 @@ private:
 HOCRAttributeEditor::HOCRAttributeEditor(const QString& value, HOCRDocument* doc, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass)
 	: QLineEdit(value), m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_origValue(value), m_attrItemClass(attrItemClass), m_edited(false) {
 	setFrame(false);
+	m_note = nullptr;
+	if (m_attrName == "title:bbox") {
+		m_note = new QLabel(this);
+		m_note->setFocusPolicy(Qt::NoFocus);
+		m_note->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+		m_note->setStyleSheet("background-color: transparent; color:grey");
+		const HOCRItem* item = m_doc->itemAtIndex(itemIndex);
+		QString note = QString("(%2x%3)").arg(item->bbox().width()-1).arg(item->bbox().height()-1);
+		m_note->setText(note);
+	}
+
 	connect(m_doc, &HOCRDocument::itemAttributeChanged, this, 
 		[this] (const QModelIndex& index, const QString& name, const QString& value) {
 			m_edited = false;
@@ -137,6 +148,13 @@ void HOCRAttributeEditor::testForPick() {
 	}
 }
 
+void HOCRAttributeEditor::resizeEvent(QResizeEvent *event) {
+	if(m_note != nullptr) {
+		m_note->resize(width()/2, height());
+		m_note->move(QPoint(width()/2,0));
+	}
+}
+
 void HOCRAttributeEditor::focusOutEvent(QFocusEvent* ev) {
 	QLineEdit::focusOutEvent(ev);
 	validateChanges();
@@ -145,6 +163,11 @@ void HOCRAttributeEditor::focusOutEvent(QFocusEvent* ev) {
 void HOCRAttributeEditor::updateValue(const QModelIndex& itemIndex, const QString& name, const QString& value) {
 	if(itemIndex == m_itemIndex && name == m_attrName) {
 		blockSignals(true);
+		if (name == "title:bbox") {
+			const HOCRItem* item = m_doc->itemAtIndex(itemIndex);
+			QString note = QString("(%2x%3)").arg(item->bbox().width()-1).arg(item->bbox().height()-1);
+			m_note->setText(note);
+		}
 		setText(value);
 		blockSignals(false);
 	}

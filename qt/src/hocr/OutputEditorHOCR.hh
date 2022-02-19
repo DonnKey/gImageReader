@@ -175,6 +175,7 @@ public:
 
 protected:
 	void focusOutEvent(QFocusEvent* ev);
+	void resizeEvent(QResizeEvent *event) override;
 
 private:
 	HOCRDocument* m_doc;
@@ -183,6 +184,7 @@ private:
 	QString m_origValue;
 	QString m_attrItemClass;
 	bool m_edited;
+	QLabel* m_note;
 
 private slots:
 	void updateValue(const QModelIndex& itemIndex, const QString& name, const QString& value);

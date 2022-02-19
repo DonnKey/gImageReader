@@ -435,7 +435,8 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	ui.comboBoxNavigate->addItem(_("Misspelled word"), "ocrx_word_bad");
 	ui.comboBoxNavigate->addItem(_("Low confidence word"), "ocrx_word_lowconf");
 
-	QShortcut* shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), m_widget);
+	QShortcut* shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui.treeViewHOCR);
+	shortcut->setContext(Qt::WidgetWithChildrenShortcut);
 	QObject::connect(shortcut, &QShortcut::activated, this, &OutputEditorHOCR::removeCurrentItem);
 
 	ui.actionInsertModeAppend->setData(static_cast<int>(InsertMode::Append));
@@ -1376,6 +1377,10 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		QAction* actionSplit = nullptr;
 		QAction* actionSwap = nullptr;
 		QAction* actionNormalize = nullptr;
+		QAction* actionRemove = nullptr;
+		if(sameClass) { // Removal allowed
+			actionRemove = menu.addAction(_("&Remove all selected"));
+		}
 		if(consecutive && !graphics && !pages && sameClass) { // Merging allowed
 			actionMerge = menu.addAction(_("&Merge"));
 			if(firstItem->itemClass() != "ocr_carea") {
@@ -1412,6 +1417,12 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			bulkOperation(newIndex, [this, &items]() {
 				HOCRNormalize().normalizeTree(m_document, &items, m_keyParent);
 			});
+		} else if(clickedAction == actionRemove) {
+			std::sort(indices.begin(), indices.end(), std::less<QModelIndex>());
+			for(QModelIndexList::const_reverse_iterator i = indices.rbegin(); i != indices.rend(); i++) {
+				removeItem(*i);
+			}
+			newIndex = ui.treeViewHOCR->currentIndex(); // removeItem figured this out
 		}
 		if(newIndex.isValid()) {
 			ui.treeViewHOCR->selectionModel()->blockSignals(true);
@@ -1494,7 +1505,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		actionSplit = menu.addAction(_("&Split from parent"));
 	}
 	actionRemove = menu.addAction(_("&Remove"));
-	actionRemove->setShortcut(QKeySequence(Qt::Key_Delete));
+	actionRemove->setShortcut(QKeySequence(Qt::Key_Delete));  // redundant, no discernable effect
 	if(m_document->rowCount(index) > 0) {
 		actionExpand = menu.addAction(_("&Expand item"));
 		actionCollapse = menu.addAction(_("&Collapse item"));
@@ -1562,7 +1573,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			});
 		showItemProperties(index);
 	} else if(clickedAction == actionRemove) {
-		m_document->removeItem(ui.treeViewHOCR->selectionModel()->currentIndex());
+		removeCurrentItem();
 	} else if(clickedAction == actionExpand) {
 		expandCollapseChildren(index, true);
 	} else if(clickedAction == actionCollapse) {
@@ -2285,7 +2296,21 @@ void OutputEditorHOCR::applySubstitutions(const QMap<QString, QString>& substitu
 }
 
 void OutputEditorHOCR::removeCurrentItem() {
-	m_document->removeItem(ui.treeViewHOCR->selectionModel()->currentIndex());
+	removeItem(ui.treeViewHOCR->selectionModel()->currentIndex());
+}
+
+void OutputEditorHOCR::removeItem(QModelIndex index) {
+	QModelIndex parent = index.parent();
+	int row = index.row();
+	if (row != 0) {
+		QModelIndex sib = index.siblingAtRow(row+1);
+		if (!sib.isValid()) {
+			row = row-1;
+		}
+	} 
+	m_document->removeItem(index);
+	QModelIndex newIndex = m_document->index(row, 0, parent);
+	ui.treeViewHOCR->setCurrentIndex(newIndex);
 }
 
 void OutputEditorHOCR::removePageByPosition(int position) {

@@ -310,14 +310,17 @@ private:
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			m_document->mergeItemText(index, true, "_");
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == (Qt::ControlModifier|Qt::ShiftModifier)) {
-			QPersistentModelIndex index = m_document->indexAtItem(m_wordItem);
-			int currPage = m_wordItem->page()->pageNr();
-            QPersistentModelIndex newIndex = m_document->prevOrNextIndex(true, index, "ocrx_word");
-			if (m_document->itemAtIndex(newIndex)->page()->pageNr() != currPage) {
-				newIndex = m_document->prevOrNextIndex(false, index, "ocrx_word");
+			if (m_wordItem->itemClass() == "ocrx_word" || m_wordItem->itemClass() == "ocr_graphic") {
+				// Removing non-leaf requires more housekeeping.
+				QPersistentModelIndex index = m_document->indexAtItem(m_wordItem);
+				int currPage = m_wordItem->page()->pageNr();
+				QPersistentModelIndex newIndex = m_document->prevOrNextIndex(true, index, "ocrx_word");
+				if (m_document->itemAtIndex(newIndex)->page()->pageNr() != currPage) {
+					newIndex = m_document->prevOrNextIndex(false, index, "ocrx_word");
+				}
+				widget->documentTree()->setCurrentIndex(newIndex);
+				m_document->removeItem(index); // must be last!
 			}
-			widget->documentTree()->setCurrentIndex(newIndex);
-			m_document->removeItem(index); // must be last!
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == Qt::ControlModifier) {
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			m_document->toggleEnabledCheckbox(index);

@@ -96,6 +96,7 @@ public slots:
 	bool exportToPDF();
 	bool exportToText();
 	bool exportToIndentedText();
+	void removeItem(QModelIndex index);
 	void removeCurrentItem();
 
 protected:

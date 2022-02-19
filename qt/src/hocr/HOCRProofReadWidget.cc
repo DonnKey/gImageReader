@@ -480,7 +480,11 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+-</td><td>Decrease font size</td></tr>"
 	                           "</table>"
 	                       ));
-	QMessageBox(QMessageBox::NoIcon, _("Keyboard Shortcuts"), text, QMessageBox::Close, MAIN).exec();
+	QMessageBox* box = new QMessageBox(QMessageBox::NoIcon, _("Keyboard Shortcuts"), text, QMessageBox::Close, MAIN);
+	box->setAttribute(Qt::WA_DeleteOnClose, true);
+	box->setModal(false);
+	box->show();
+	box->setFocusPolicy(Qt::NoFocus);
 }
 
 QString HOCRProofReadWidget::confidenceStyle(int wconf) const {

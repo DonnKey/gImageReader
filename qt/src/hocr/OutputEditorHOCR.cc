@@ -263,18 +263,27 @@ void HOCRAttributeLangCombo::valueChanged() {
 
 class HOCRTextDelegate : public QStyledItemDelegate {
 public:
-	using QStyledItemDelegate::QStyledItemDelegate;
+	HOCRTextDelegate(TreeViewHOCR* parent) : m_treeView(parent) {
+		QStyledItemDelegate(static_cast<QObject*>(parent));
+	}
 
 	QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& /* option */, const QModelIndex& /* index */) const {
-		return new QLineEdit(parent);
+		m_currentEditor = new QLineEdit(parent);
+		return m_currentEditor;
 	}
 	void setEditorData(QWidget* editor, const QModelIndex& index) const {
 		m_currentIndex = index;
 		m_currentEditor = static_cast<QLineEdit*>(editor);
-		static_cast<QLineEdit*>(editor)->setText(index.model()->data(index, Qt::EditRole).toString());
+		m_currentEditor->setText(index.model()->data(index, Qt::EditRole).toString());
+		
 	}
 	void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const {
-		model->setData(index, static_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
+		QString newText = static_cast<QLineEdit*>(editor)->text();
+		QString oldText = index.model()->data(index, Qt::EditRole).toString();
+		if (newText != oldText) {
+			// Don't change things unnecessarily: data modifications cause side effects
+			model->setData(index, newText, Qt::EditRole);
+		}
 	}
 	const QModelIndex& getCurrentIndex() const {
 		return m_currentIndex;
@@ -282,10 +291,48 @@ public:
 	QLineEdit* getCurrentEditor() const {
 		return m_currentEditor;
 	}
+	void setText(QString text) {
+		m_currentEditor->setText(text);
+	}
+	void setSelection(int start, int len) {
+		m_start = start;
+		m_len = len;
+		m_currentEditor->setSelection(m_start, m_len);
+	}
+	void reSetSelection() {
+		if (m_currentIndex == m_treeView->currentIndex()) {
+			if (m_currentEditor == nullptr) {
+				// If the editor was destroyed by the tree (e.g. on defocus), 
+				/// the QPointer will be nulled... rebuild.
+				if (!m_currentIndex.isValid()) {
+					// There's nothing to edit
+					return;
+				}
+				m_treeView->edit(m_currentIndex);
+				m_currentEditor->setSelection(m_start, m_len);
+			}
+			m_currentEditor->setFocus();
+		} else {
+			m_currentIndex = QModelIndex();
+			m_treeView->setFocus();
+		}
+	}
+	const QString text() {
+		return m_currentEditor->text();
+	}
+	const QString selectedText() {
+		return m_currentEditor->selectedText();
+	}
+	int selectionStart() {
+		return m_currentEditor->selectionStart();
+	}
 
 private:
+	TreeViewHOCR* m_treeView;
 	mutable QModelIndex m_currentIndex;
 	mutable QPointer<QLineEdit> m_currentEditor;
+	mutable int m_start=0;
+	mutable int m_len=0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -306,13 +353,13 @@ void OutputEditorHOCR::HOCRBatchProcessor::writeHeader(QIODevice* dev, tesseract
 void OutputEditorHOCR::HOCRBatchProcessor::writeFooter(QIODevice* dev) const {
 	dev->write("</body></html>\n");
 }
-
+		
 void OutputEditorHOCR::HOCRBatchProcessor::appendOutput(QIODevice* dev, tesseract::TessBaseAPI* tess, const PageInfo& pageInfos, bool /*firstArea*/) const {
 	char* text = tess->GetHOCRText(pageInfos.page);
 	QDomDocument doc;
 	doc.setContent(QString::fromUtf8(text));
 	delete[] text;
-
+		
 	QDomElement pageDiv = doc.firstChildElement("div");
 	QMap<QString, QString> attrs = HOCRItem::deserializeAttrGroup(pageDiv.attribute("title"));
 	// This works because in batch mode the output is created next to the source image
@@ -967,6 +1014,9 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 		const HOCRItem* foundItem = m_document->itemAtIndex(foundLine);
 		
 		if (bbox.height() == 0) {
+			// CTRL-W: take location from current mouse
+			foundLine = pickLine(bbox.topLeft());
+			foundItem = m_document->itemAtIndex(foundLine);
 			if(!foundItem) {
 				return;
 			}
@@ -1364,27 +1414,55 @@ bool OutputEditorHOCR::eventFilter(QObject* obj, QEvent* ev) {
 	// This is where we coordinate focus and keystrokes between the displayer
 	// view and the tree view of the scanned image.
 	Displayer* displayer = MAIN->getDisplayer();
-	if (obj == displayer) {
-		if(ev->type() == QEvent::Enter) {
-			if (displayer->focusProxy() != nullptr) {
-				displayer->setFocus();
-			} else {
-				ui.treeViewHOCR->setFocus();
-			}
+	if(ev->type() == QEvent::FocusIn) {
+		// Particularly for the first click after startup!
+		QFocusEvent* fe = static_cast<QFocusEvent*>(ev);
+		if (fe->reason() == Qt::MouseFocusReason) {
+			m_proofReadWidget->showWidget(true);
 		}
 		return false;
 	}
-	if (obj == ui.treeViewHOCR) {
-		if(ev->type() == QEvent::Enter) {
-			ui.treeViewHOCR->setFocus();
-			m_proofReadWidget->showWidget(false);
-			return true;
+	if(ev->type() == QEvent::Enter) {
+		// N.B. Enter events frequently occur when the mouse is in a window and something on the keyboard
+		// causes the enter -- without the mouse being moved!
+		if (obj == displayer) {
+			// Don't steal focus except from tree view.
+			QWidget* widget = qApp->focusWidget();
+			if(widget == nullptr) {
+				widget = ui.treeViewHOCR;
+			}
+			while (widget!=nullptr) {
+				if (widget == ui.treeViewHOCR) {
+					break;
+				}
+				widget = widget->parentWidget();
+			}
+
+			if (widget == ui.treeViewHOCR) {
+				m_proofReadWidget->showWidget(true);
+				displayer->setFocus(); // note: proxy likely from proofReadWidget
+				return true;
+			}
 		}
-		if(ev->type() == QEvent::Leave) {
-			m_proofReadWidget->showWidget(true);
-			return true;
+		else if (obj == ui.treeViewHOCR) {
+			// Don't steal focus except from displayer
+			HOCRTextDelegate* delegate = static_cast<HOCRTextDelegate*>(ui.treeViewHOCR->itemDelegateForColumn(0));
+			QWidget* widget = qApp->focusWidget();
+			if(widget == nullptr) {
+				widget = displayer;
+			}
+			while (widget!=nullptr) {
+				if (widget == displayer) {
+					break;
+				}
+				widget = widget->parentWidget();
+			}
+			if (widget == displayer) {
+				m_proofReadWidget->showWidget(false);
+				delegate->reSetSelection();
+				return true;
+			}
 		}
-		return false;
 	}
 	// Self
 	// To be deleted in future version...
@@ -1781,26 +1859,25 @@ bool OutputEditorHOCR::findReplaceInItem(const QModelIndex& index, const QString
 	HOCRTextDelegate* delegate = static_cast<HOCRTextDelegate*>(ui.treeViewHOCR->itemDelegateForColumn(0));
 	// If the item is already in edit mode, continue searching inside the text
 	if(delegate->getCurrentIndex() == index && delegate->getCurrentEditor()) {
-		QLineEdit* editor = delegate->getCurrentEditor();
-		bool matchesSearch = editor->selectedText().compare(searchstr, cs) == 0;
-		int selStart = editor->selectionStart();
+		bool matchesSearch = delegate->selectedText().compare(searchstr, cs) == 0;
+		int selStart = delegate->selectionStart();
 		if(matchesSearch && replace) {
-			QString oldText = editor->text();
-			editor->setText(oldText.left(selStart) + replacestr + oldText.mid(selStart + searchstr.length()));
-			editor->setSelection(selStart, replacestr.length());
+			QString oldText = delegate->text();
+			delegate->setText(oldText.left(selStart) + replacestr + oldText.mid(selStart + searchstr.length()));
+			delegate->setSelection(selStart, replacestr.length());
 			return true;
 		}
-		bool matchesReplace = editor->selectedText().compare(replacestr, cs) == 0;
+		bool matchesReplace = delegate->selectedText().compare(replacestr, cs) == 0;
 		int pos = -1;
 		if(backwards) {
 			pos = selStart - 1;
-			pos = pos < 0 ? -1 : editor->text().lastIndexOf(searchstr, pos, cs);
+			pos = pos < 0 ? -1 : delegate->text().lastIndexOf(searchstr, pos, cs);
 		} else {
 			pos = matchesSearch ? selStart + searchstr.length() : matchesReplace ? selStart + replacestr.length() : selStart;
-			pos = editor->text().indexOf(searchstr, pos, cs);
+			pos = delegate->text().indexOf(searchstr, pos, cs);
 		}
 		if(pos != -1) {
-			editor->setSelection(pos, searchstr.length());
+			delegate->setSelection(pos, searchstr.length());
 			return true;
 		}
 		currentSelectionMatchesSearch = matchesSearch;
@@ -1811,8 +1888,7 @@ bool OutputEditorHOCR::findReplaceInItem(const QModelIndex& index, const QString
 	if(pos != -1) {
 		ui.treeViewHOCR->setCurrentIndex(index);
 		ui.treeViewHOCR->edit(index);
-		Q_ASSERT(delegate->getCurrentIndex() == index && delegate->getCurrentEditor());
-		delegate->getCurrentEditor()->setSelection(pos, searchstr.length());
+		delegate->setSelection(pos, searchstr.length());
 		return true;
 	}
 	return false;
@@ -1968,7 +2044,6 @@ void OutputEditorHOCR::updatePreview() {
 	m_preview->setPixmap(QPixmap::fromImage(image));
 	m_preview->setPos(-0.5 * bbox.width(), -0.5 * bbox.height());
 	m_preview->setVisible(true);
-	m_proofReadWidget->showWidget(true);
 }
 
 static const QString *useDefaultFlag = new QString();

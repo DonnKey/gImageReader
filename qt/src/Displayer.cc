@@ -695,6 +695,11 @@ void Displayer::setBlockAutoscale(bool block) {
 }
 
 void Displayer::scaleImage() {
+	if (m_scale == m_oldScale) {
+		// This makes a substantial performance improvement when using the proof-read widget at scale.
+		return;
+	}
+	m_oldScale = m_scale;
 	int page = m_currentSource->page;
 	double resolution = m_scale * m_currentSource->resolution;
 	int brightness = m_currentSource->brightness;

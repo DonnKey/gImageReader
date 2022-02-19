@@ -20,6 +20,7 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPointer>
 #include <QVBoxLayout>
 
 #include "Displayer.hh"
@@ -43,9 +44,9 @@ public:
 		connect(document, &HOCRDocument::dataChanged, this, &LineEdit::onModelDataChanged);
 		connect(document, &HOCRDocument::itemAttributeChanged, this, &LineEdit::onAttributeChanged);
 
-		QModelIndex index = document->indexAtItem(m_wordItem);
 		setReadOnly(!m_wordItem->isEnabled());
-		setStyleSheet( getStyle( document->indexIsMisspelledWord(index), m_wordItem->isEnabled() ) );
+		setStyle(document);
+		home(false);
 
 		QFont ft = m_wordItem->fontFamily();
 		ft.setBold(m_wordItem->fontBold());
@@ -66,21 +67,34 @@ public:
 		Q_ASSERT(this == m_proofReadWidget->m_stub);
 		m_wordItem = item;
 	}
+	void setStyle(const HOCRDocument *document, bool current = false) {
+		QModelIndex index = document->indexAtItem(m_wordItem);
+		setStyleSheet( getStyle( document->indexIsMisspelledWord(index), m_wordItem->isEnabled(), current ) );
+	}
+
+public:
+	int m_computedWidth = 0;
 
 private:
 	// Disable auto tab handling
 	bool focusNextPrevChild(bool) override { return false; }
 
 	HOCRProofReadWidget* m_proofReadWidget = nullptr;
-	const HOCRItem* m_wordItem = nullptr;
+	QPointer<const HOCRItem> m_wordItem = nullptr;
 	bool m_blockSetText = false;
+	static int m_savedCursor;
+	static const HOCRItem* m_currentEditedItem;
+	HOCRDocument* m_document;
 
-	QString getStyle(bool misspelled, bool enabled) const {
+	QString getStyle(bool misspelled, bool enabled, bool current) const {
 		QStringList styles;
 		if(!enabled) {
 			styles.append( "color: grey;" );
 		} else if(misspelled) {
 			styles.append( "color: red;" );
+		}
+		if (current) {
+			styles.append("background-color: rgba(255,255,255,164);");
 		}
 		return styles.isEmpty() ? "" : QString("QLineEdit {%1}").arg(styles.join(" "));
 	}
@@ -93,6 +107,7 @@ private:
 		m_blockSetText = true;
 		document->setData(index, text(), Qt::EditRole);
 		m_blockSetText = false;
+		m_proofReadWidget->repositionPointer();
 	}
 	void onModelDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles) {
 		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
@@ -103,13 +118,14 @@ private:
 				setText(m_wordItem->text());
 			}
 			if(roles.contains(Qt::ForegroundRole)) {
-				setStyleSheet( getStyle( document->indexIsMisspelledWord(index), m_wordItem->isEnabled() ) );
+				setStyle(document);
 			}
 			if(roles.contains(Qt::CheckStateRole)) {
 				// setEnabled doesn't do the right thing, unfortunately
 				setReadOnly(!m_wordItem->isEnabled());
-				setStyleSheet( getStyle( document->indexIsMisspelledWord(index), m_wordItem->isEnabled() ) );
+				setStyle(document);
 			}
+			m_proofReadWidget->repositionWidget();
 		}
 	}
 	void onAttributeChanged(const QModelIndex& index, const QString& name, const QString& /*value*/) {
@@ -131,6 +147,7 @@ private:
 				move(bottomLeft.x() - frameX, 0);
 				setFixedWidth(bottomRight.x() - bottomLeft.x() + 8); // 8: border + padding
 			}
+			m_proofReadWidget->repositionPointer();
 		}
 	}
 	typedef enum {OCR_none, OCR_page, OCR_carea, OCR_par, OCR_line, OCRX_word} ClassOrdinal;
@@ -143,24 +160,29 @@ private:
 		return OCR_none;
 	}
 	void moveToClass(ClassOrdinal target) {
-		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
 		ClassOrdinal depth = classNumber(m_wordItem);
 		if (depth > target) {
-			QModelIndex newIndex = document->indexAtItem(m_wordItem->parent());
+			QModelIndex newIndex = m_document->indexAtItem(m_wordItem->parent());
 			for (int d = depth-1; d > target; d--) {
 				newIndex = newIndex.parent();
 			}
 			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
 			m_proofReadWidget->repositionWidget();
 		} else if (depth != target) {
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			QModelIndex newIndex = document->prevOrNextIndex(true, index, classNames[target]);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			QModelIndex newIndex = m_document->prevOrNextIndex(true, index, classNames[target]);
 			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
 			m_proofReadWidget->repositionWidget();
 		}
 	}
 	void keyPressEvent(QKeyEvent* ev) override {
-		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
+		if (m_wordItem == nullptr) {
+			MAIN->getDisplayer()->keyPressEvent(ev);
+			return;
+		}
+
+		m_document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
+		HOCRProofReadWidget* widget = m_proofReadWidget; // some ops change 'this', and we need the widget after
 
 		bool atWord = m_wordItem->itemClass() == "ocrx_word";
 		enum actions {none, prevLine, prevWhole, nextLine, beginCurrent, nextWord, prevWord} action = actions::none;
@@ -196,25 +218,25 @@ private:
 
 		if (action != none) {
 			bool next = false;
-			QModelIndex index = document->indexAtItem(m_wordItem);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			switch(action) {
 			case nextLine:
 				// Move to first word of next line
-				index = document->prevOrNextIndex(true, index, "ocr_line");
-				index = document->prevOrNextIndex(true, index, "ocrx_word");
+				index = m_document->prevOrNextIndex(true, index, "ocr_line");
+				index = m_document->prevOrNextIndex(true, index, "ocrx_word");
 				break;
 			case prevLine:
 				// Move to last word of prev line (from a word within this line)
-				index = document->prevOrNextIndex(false, index, "ocr_line");
-				index = document->prevOrNextIndex(false, index, "ocrx_word");
+				index = m_document->prevOrNextIndex(false, index, "ocr_line");
+				index = m_document->prevOrNextIndex(false, index, "ocrx_word");
 				break;
 			case prevWhole:
 				// Move to last word of prev line (from something enclosing)
 			case prevWord:
-				index = document->prevOrNextIndex(false, index, "ocrx_word");
+				index = m_document->prevOrNextIndex(false, index, "ocrx_word");
 				break;
 			case nextWord:
-				index = document->prevOrNextIndex(true, index, "ocrx_word");
+				index = m_document->prevOrNextIndex(true, index, "ocrx_word");
 				break;
 			case beginCurrent: {
 				// Move to first word below any parent items.
@@ -222,35 +244,36 @@ private:
 				while (item->children().size() > 0 && item->itemClass() != "ocrx_word") {
 					item = item->children().first();
 				}
-				index = document->indexAtItem(item);
+				index = m_document->indexAtItem(item);
 				break;
 			} 
 			}
-			m_proofReadWidget->documentTree()->setCurrentIndex(index);
+			widget->documentTree()->setCurrentIndex(index);
+			widget->repositionWidget();
 		} else if(ev->key() == Qt::Key_Space && ev->modifiers() == Qt::ControlModifier) {
 			// Spelling menu
-			QModelIndex index = document->indexAtItem(m_wordItem);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			QMenu menu;
-			document->addSpellingActions(&menu, index);
+			m_document->addSpellingActions(&menu, index);
 			menu.exec(mapToGlobal(QPoint(0, -menu.sizeHint().height())));
 		} else if((ev->key() == Qt::Key_Enter || ev->key() == Qt::Key_Return) && ev->modifiers() & Qt::ControlModifier) {
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			document->addWordToDictionary(index);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			m_document->addWordToDictionary(index);
 		} else if(ev->key() == Qt::Key_B && ev->modifiers() == Qt::ControlModifier) {
 			// Bold
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			document->editItemAttribute(index, "bold", m_wordItem->fontBold() ? "0" : "1");
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			m_document->editItemAttribute(index, "bold", m_wordItem->fontBold() ? "0" : "1");
 		} else if(ev->key() == Qt::Key_I && ev->modifiers() == Qt::ControlModifier) {
 			// Italic
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			document->editItemAttribute(index, "italic", m_wordItem->fontItalic() ? "0" : "1");
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			m_document->editItemAttribute(index, "italic", m_wordItem->fontItalic() ? "0" : "1");
 		} else if(ev->key() == Qt::Key_T && ev->modifiers() == Qt::ControlModifier) {
 			// Trim
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			document->fitToFont(index);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			m_document->fitToFont(index);
 		} else if((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && ev->modifiers() & Qt::ControlModifier) {
 			// Adjust bbox top/bottom
-			QModelIndex index = document->indexAtItem(m_wordItem);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			QRect bbox = m_wordItem->bbox();
 			if(ev->modifiers() & Qt::ShiftModifier) {
 				bbox.setBottom(bbox.bottom() + (ev->key() == Qt::Key_Up ? -1 : 1));
@@ -258,10 +281,10 @@ private:
 				bbox.setTop(bbox.top() + (ev->key() == Qt::Key_Up ? -1 : 1));
 			}
 			QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
-			document->editItemAttribute(index, "title:bbox", bboxstr);
+			m_document->editItemAttribute(index, "title:bbox", bboxstr);
 		} else if((ev->key() == Qt::Key_Left || ev->key() == Qt::Key_Right) && ev->modifiers() & Qt::ControlModifier) {
 			// Adjust bbox left/right
-			QModelIndex index = document->indexAtItem(m_wordItem);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			QRect bbox = m_wordItem->bbox();
 			if(ev->modifiers() & Qt::ShiftModifier) {
 				bbox.setRight(bbox.right() + (ev->key() == Qt::Key_Left ? -1 : 1));
@@ -269,30 +292,30 @@ private:
 				bbox.setLeft(bbox.left() + (ev->key() == Qt::Key_Left ? -1 : 1));
 			}
 			QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
-			document->editItemAttribute(index, "title:bbox", bboxstr);
+			m_document->editItemAttribute(index, "title:bbox", bboxstr);
 		} else if((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down || ev->key() == Qt::Key_Left || ev->key() == Qt::Key_Right) && ev->modifiers() & Qt::AltModifier) {
 			// Move bbox 
 			QModelIndex index;
 			if ((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && m_wordItem->itemClass() == "ocrx_word") {
-				m_wordItem = m_wordItem->parent();
-				index = document->indexAtItem(m_wordItem);
-				m_proofReadWidget->documentTree()->setCurrentIndex(index);
+				HOCRItem* parent = m_wordItem->parent();
+				index = m_document->indexAtItem(parent);
+				widget->documentTree()->setCurrentIndex(index);
 			} else {
-				index = document->indexAtItem(m_wordItem);
+				index = m_document->indexAtItem(m_wordItem);
 			}
 
 			switch(ev->key()) {
 			case Qt::Key_Up:
-				document->xlateItem(index, -1, 0);
+				m_document->xlateItem(index, -1, 0);
 				break;
 			case Qt::Key_Down:
-				document->xlateItem(index, +1, 0);
+				m_document->xlateItem(index, +1, 0);
 				break;
 			case Qt::Key_Left: 
-				document->xlateItem(index, 0, -1);
+				m_document->xlateItem(index, 0, -1);
 				break;
-			case Qt::Key_Right: 
-				document->xlateItem(index, 0, +1);
+			case Qt::Key_Right:
+				m_document->xlateItem(index, 0, +1);
 				break;
 			}
 		} else if(ev->key() == Qt::Key_W && ev->modifiers() == Qt::ControlModifier) {
@@ -301,24 +324,24 @@ private:
 			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->addWordAtCursor();
 		} else if(ev->key() == Qt::Key_D && ev->modifiers() == Qt::ControlModifier) {
 			// Divide
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			document->splitItemText(index, cursorPosition());
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			m_document->splitItemText(index, cursorPosition());
 		} else if(ev->key() == Qt::Key_M && ev->modifiers() & Qt::ControlModifier) {
 			// Merge
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			document->mergeItemText(index, (ev->modifiers() & Qt::ShiftModifier) != 0);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			m_document->mergeItemText(index, (ev->modifiers() & Qt::ShiftModifier) != 0);
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == (Qt::ControlModifier|Qt::ShiftModifier)) {
-			QPersistentModelIndex index = document->indexAtItem(m_wordItem);
+			QPersistentModelIndex index = m_document->indexAtItem(m_wordItem);
 			int currPage = m_wordItem->page()->pageNr();
-            QPersistentModelIndex newIndex = document->prevOrNextIndex(true, index, "ocrx_word");
-			if (document->itemAtIndex(newIndex)->page()->pageNr() != currPage) {
-				newIndex = document->prevOrNextIndex(false, index, "ocrx_word");
+            QPersistentModelIndex newIndex = m_document->prevOrNextIndex(true, index, "ocrx_word");
+			if (m_document->itemAtIndex(newIndex)->page()->pageNr() != currPage) {
+				newIndex = m_document->prevOrNextIndex(false, index, "ocrx_word");
 			}
-			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
-			document->removeItem(index); // must be last!
+			widget->documentTree()->setCurrentIndex(newIndex);
+			m_document->removeItem(index); // must be last!
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == Qt::ControlModifier) {
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			document->toggleEnabledCheckbox(index);
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			m_document->toggleEnabledCheckbox(index);
 		} else if(ev->key() == Qt::Key_1 && ev->modifiers() & Qt::KeypadModifier) {
 			moveToClass(OCRX_word);
 		} else if(ev->key() == Qt::Key_2 && ev->modifiers() & Qt::KeypadModifier) {
@@ -328,14 +351,13 @@ private:
 		} else if(ev->key() == Qt::Key_4 && ev->modifiers() & Qt::KeypadModifier) {
 			moveToClass(OCR_carea);
 		} else if(ev->key() == Qt::Key_5 && ev->modifiers() & Qt::KeypadModifier) {
-			QModelIndex newIndex = document->indexAtItem(m_wordItem->page());
-			HOCRProofReadWidget* widget = m_proofReadWidget; // some ops change 'this', and we need the widget after
-			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
+			QModelIndex newIndex = m_document->indexAtItem(m_wordItem->page());
+			widget->documentTree()->setCurrentIndex(newIndex);
 			widget->repositionWidget();
 		} else if(ev->key() == Qt::Key_Plus && ev->modifiers() & Qt::ControlModifier) {
-			m_proofReadWidget->adjustFontSize(+1);
+			widget->adjustFontSize(+1);
 		} else if((ev->key() == Qt::Key_Minus || ev->key() == Qt::Key_Underscore) && ev->modifiers() & Qt::ControlModifier) {
-			m_proofReadWidget->adjustFontSize(-1);
+			widget->adjustFontSize(-1);
 		} else {
 			if(m_wordItem->itemClass() == "ocrx_word") {
 				// Tab/Backtab here just goes to the next widget (the next bbox!) by default,
@@ -367,17 +389,40 @@ private:
 			deselect();
 			setCursorPosition(0);
 		}
+		if (m_currentEditedItem == m_wordItem) {
+			// The editor might be recreated... the wordItem is unique
+			setCursorPosition(m_savedCursor);
+		}
+	}
+	void focusOutEvent(QFocusEvent* ev) override {
+		m_currentEditedItem = m_wordItem;
+		m_savedCursor = cursorPosition();
+		QLineEdit::focusOutEvent(ev);
 	}
 };
+
+const HOCRItem* HOCRProofReadWidget::LineEdit::m_currentEditedItem = nullptr;
+int HOCRProofReadWidget::LineEdit::m_savedCursor = 0;
 
 bool HOCRProofReadWidget::eventFilter(QObject* target, QEvent* ev) {
 	if(ev->type() != QEvent::KeyPress && ev->type() != QEvent::KeyRelease) {
 		return false;
 	}
+	QPoint p = QCursor::pos();
+	OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
+
+	if (!MAIN->getDisplayer()->underMouse() && !m_treeView->underMouse()) {
+		return false;
+	}
+	if (dynamic_cast<Displayer*>(target) == nullptr && dynamic_cast<TreeViewHOCR*>(target) == nullptr) {
+		// for popups in the preview area
+		return false;
+	}
+
 	QKeyEvent* kev = static_cast<QKeyEvent*>(ev);
 	if(kev->modifiers() == Qt::KeypadModifier && kev->key() == Qt::Key_Enter) {
 		if(!kev->isAutoRepeat()) {
-			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(
+			editor->showPreview(
 				kev->type() == QEvent::KeyPress 
 				? OutputEditorHOCR::showMode::invert
 				: OutputEditorHOCR::showMode::show);
@@ -540,6 +585,9 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 
 	m_pointer = new PointerWidget(parent);
 	m_lineMap = new LineMap;
+	m_updateTimer.setSingleShot(true);
+	m_widgetTimer.setSingleShot(true);
+	m_pointerTimer.setSingleShot(true);
 
 	setObjectName("proofReadWidget");
 	setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
@@ -547,7 +595,7 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 
 	setStyleSheet("QLineEdit { border: 1px solid #ddd; }");
 
-	connect(m_treeView->selectionModel(), &QItemSelectionModel::currentRowChanged, this, [this] { updateWidget(); });
+	connect(m_treeView->selectionModel(), &QItemSelectionModel::currentRowChanged, this, [this] { updateWidget(true); });
 
 	HOCRDocument* document = static_cast<HOCRDocument*>(m_treeView->model());
 
@@ -555,14 +603,19 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 	connect(document, &HOCRDocument::rowsAboutToBeRemoved, this, &HOCRProofReadWidget::clear);
 	connect(document, &HOCRDocument::rowsAboutToBeInserted, this, &HOCRProofReadWidget::clear);
 	connect(document, &HOCRDocument::rowsAboutToBeMoved, this, &HOCRProofReadWidget::clear);
-	connect(document, &HOCRDocument::rowsRemoved, this, [this] { updateWidget(); });
-	connect(document, &HOCRDocument::rowsInserted, this, [this] { updateWidget(); });
-	connect(document, &HOCRDocument::rowsMoved, this, [this] { updateWidget(); });
-	connect(MAIN->getDisplayer(), &Displayer::imageChanged, this, [this] { updateWidget(true); });
-	connect(MAIN->getDisplayer(), &Displayer::viewportChanged, this, &HOCRProofReadWidget::repositionWidget);
+	connect(document, &HOCRDocument::layoutAboutToBeChanged, this, &HOCRProofReadWidget::clear);
+	connect(document, &HOCRDocument::rowsRemoved, this, [this] { updateWidget(true); });
+	connect(document, &HOCRDocument::rowsInserted, this, [this] { updateWidget(true); });
+	connect(document, &HOCRDocument::rowsMoved, this, [this] { updateWidget(true); });
+	connect(document, &HOCRDocument::layoutChanged, this, [this] { updateWidget(); });
+	connect(MAIN->getDisplayer(), &Displayer::imageChanged, this, [this] { updateWidget(); });
+	connect(MAIN->getDisplayer(), &Displayer::viewportChanged, this, [this] { updateWidget(); });
 	connect(m_spinLinesBefore, qOverload<int>(&QSpinBox::valueChanged), this, [this] { updateWidget(true); });
 	connect(m_spinLinesAfter, qOverload<int>(&QSpinBox::valueChanged), this, [this] { updateWidget(true); });
 	connect(m_gapWidth, qOverload<int>(&QSpinBox::valueChanged), this, [this] { updateWidget(true); });
+	connect(&m_updateTimer, &QTimer::timeout, this, &HOCRProofReadWidget::innerUpdateWidget);
+	connect(&m_widgetTimer, &QTimer::timeout, this, &HOCRProofReadWidget::innerRepositionWidget);
+	connect(&m_pointerTimer, &QTimer::timeout, this, [this] { repositionPointer(false);});
 
 	ADD_SETTING(SpinSetting("proofReadLinesBefore", m_spinLinesBefore, 1));
 	ADD_SETTING(SpinSetting("proofReadLinesAfter", m_spinLinesAfter, 1));
@@ -576,9 +629,17 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 void HOCRProofReadWidget::showEvent(QShowEvent *event) {
 	QFrame::showEvent(event);
 	m_pointer->show();
+	LineEdit* focusLineEdit = static_cast<LineEdit*>(MAIN->getDisplayer()->focusProxy());
+	if (focusLineEdit != nullptr) {
+		focusLineEdit->setFocus();
+	}
 }
 
 void HOCRProofReadWidget::hideEvent(QHideEvent *event) {
+	LineEdit* focusLineEdit = static_cast<LineEdit*>(MAIN->getDisplayer()->focusProxy());
+	if (focusLineEdit != nullptr) {
+		focusLineEdit->clearFocus();
+	}
 	m_pointer->hide();
 	QFrame::hideEvent(event);
 }
@@ -587,10 +648,14 @@ void HOCRProofReadWidget::showWidget(bool showit) {
 	if(showit) {
 		m_hidden = false;
 		updateWidget();
-		show();
+		if (m_currentLine != nullptr) {
+			show();
+			QModelIndex current = m_treeView->currentIndex();
+			HOCRDocument* document = static_cast<HOCRDocument*>(m_treeView->model());
+			const HOCRItem* item = document->itemAtIndex(current);
+		}
 	} else {
 		m_hidden = true;
-		hide();
 		clear();
 	}
 }
@@ -605,25 +670,53 @@ void HOCRProofReadWidget::setProofreadEnabled(bool enabled) {
 }
 
 void HOCRProofReadWidget::clear() {
+	m_updateTimer.stop();
+	m_widgetTimer.stop();
+	m_pointerTimer.stop();
+	if (m_currentLine == nullptr) {
+		return;
+	}
+	m_currentLine = nullptr;
 	for (auto ii:(*m_lineMap)) {
 		qDeleteAll(*(ii.second));
 		delete ii.second;
 		delete ii.first;
 	}
 	m_lineMap->clear();
-	m_currentLine = nullptr;
+	while (m_linesLayout->count() > 0) {
+		QLayoutItem* child = m_linesLayout->takeAt(0);
+		if (child->widget() != nullptr) {
+			delete child->widget();
+		}
+		delete child;
+	}
 	m_confidenceLabel->setText("");
 	m_confidenceLabel->setStyleSheet("");
 	MAIN->getDisplayer()->setFocusProxy(nullptr);
 	if (MAIN->focusWidget() == nullptr) {
 		// We might have just deleted the focus item (see end of updateWidget)
-		// so focus on the displayer. (Happens with page down key into unscanned window.)
+		// so focus on the displayer. (Happens, e.g., with page down key into unscanned window.)
 		MAIN->getDisplayer()->setFocus();
 	}
 	hide();
 }
 
 void HOCRProofReadWidget::updateWidget(bool force) {
+	// We use restarting timers (3 places) because we need the prior step to have been painted
+	// because we "read" screen positions. Also there are many repeated calls that would just
+	// waste time (we've seen as many as 80), so just do one last one using the timer.
+	m_force |= force;
+	m_updateTimer.start(10);
+	m_widgetTimer.stop();
+	m_pointerTimer.stop();
+}
+
+void HOCRProofReadWidget::innerUpdateWidget() {
+	if (m_hidden) {
+		return;
+	}
+	bool force = m_force;
+	m_force = false;
 	QModelIndex current = m_treeView->currentIndex();
 	int nrLinesBefore = m_spinLinesBefore->value();
 	int nrLinesAfter = m_spinLinesAfter->value();
@@ -695,38 +788,50 @@ void HOCRProofReadWidget::updateWidget(bool force) {
 		delete m_lineMap;
 		m_lineMap = newLines;
 		m_currentLine = lineItem;
-		repositionWidget();
-	} else {
-		int unused;
-		repositionPointer(unused);
 	}
+	repositionWidget();
 
 	LineEdit* focusLineEdit;
 	if(item->itemClass() == "ocr_line") {
 		focusLineEdit = m_stub;
 	} else {
 		// Select selected word or first item of middle line
-		focusLineEdit = m_lineMap->size() > 0
-			? (wordItem ? (*(*m_lineMap)[lineItem].second)[wordItem] : (*(*m_lineMap)[lineItem].second)[lineItem->children().at(0)] )
-			: static_cast<LineEdit*>((*m_lineMap)[lineItem].first);
+		const HOCRItem* currentWord = wordItem ? wordItem : lineItem->children().at(0);
+		focusLineEdit = (*(*m_lineMap)[m_currentLine].second)[currentWord];
 	}
 	if(focusLineEdit) {
 		MAIN->getDisplayer()->setFocusProxy(focusLineEdit);
-		if(!m_treeView->hasFocus()) {
-			focusLineEdit->setFocus();
-		}
+		focusLineEdit->setFocus();
 	}
 }
 
 void HOCRProofReadWidget::repositionWidget() {
+	m_widgetTimer.start(10);
+	m_pointerTimer.stop();
+}
 
+void HOCRProofReadWidget::innerRepositionWidget() {
 	if(m_currentLine == nullptr) {
+		hide();
 		return;
 	}
 
 	const HOCRDocument* document = static_cast<HOCRDocument*>(m_treeView->model());
 	const QModelIndex current = m_treeView->currentIndex();
+    if (!current.isValid()) {
+		hide();
+		return;
+	}
 	const HOCRItem* currentItem = document->itemAtIndex(current);
+
+	if (currentItem->itemClass() == "ocr_page") {
+		// We need the stub for keys, but don't want it to show in the whole-page case.
+		// setVisible(false) (==hide()) doesn't leave it active enough.
+		m_pointer->resize(0,0);
+		move(0,0);
+		resize(0,0);
+		return;
+	}
 
 	// Position frame
 	Displayer* displayer = MAIN->getDisplayer();
@@ -779,13 +884,15 @@ void HOCRProofReadWidget::repositionWidget() {
 				lineEditEnd = bottomRight.x();
 			}
 			QFont actualFont = lineEdit->item()->fontFamily();
-			QFontMetrics fm(actualFont);
+			QFontMetricsF fm(actualFont);
 			double factor = editWidth / double(fm.horizontalAdvance(lineEdit->text()));
 			avgFactor += lineEdit->text().length() * factor;
 			nFactors += lineEdit->text().length();
 
 			lineEdit->move(bottomLeft.x() - frameXmin - cursorPadding, 0);
-			lineEdit->setFixedWidth(editWidth + editBoxPadding);
+			lineEdit->m_computedWidth = editWidth;
+			lineEdit->setFixedWidth(lineEdit->m_computedWidth + editBoxPadding);
+			lineEdit->setStyle(document);
 			frameXmax = std::max(frameXmax, lineEditEnd);
 		}
 	}
@@ -795,7 +902,7 @@ void HOCRProofReadWidget::repositionWidget() {
 	// Second pass: apply font sizes, set line heights
 	ft.setPointSizeF(ft.pointSizeF() * avgFactor);
 	ft.setPointSizeF(ft.pointSizeF() + m_fontSizeDiff);
-	QFontMetrics fm = QFontMetrics(ft);
+	QFontMetricsF fm(ft);
 	int linePos = 0;
 	for(LineMap::const_iterator lineIter = m_lineMap->begin(); lineIter != m_lineMap->end(); ++lineIter) { 
 		RowMap* row = lineIter.value().second;
@@ -808,25 +915,31 @@ void HOCRProofReadWidget::repositionWidget() {
 		}
 		QWidget* lineWidget = lineIter->first;
 		lineWidget->setFixedHeight(fm.height() + 10);
-		// Bug workaround: line positions not always correct without this, causing repositionPointer
-		// to get incorrect top/bottom. Occurs rarely but repeatably. updateGeometry() doesn't help.
-		lineWidget->move(lineWidget->x(), linePos * (fm.height() + editLineSpacing));
 		linePos++;
 	}
-	updateGeometry();
+	// Nothing short of show() is completely reliable in getting the sizes right.
+	blockSignals(true);
+	show();
+	blockSignals(false);
 	setMinimumWidth(2*clipMargin);
 	resize(frameXmax - frameXmin + widgetMargins + 2 * layout()->spacing(), 
 		m_lineMap->size() * (fm.height() + editLineSpacing) + 2 * layout()->spacing() + m_controlsWidget->sizeHint().height());
 
-	int frameY;
-	repositionPointer(frameY);
+	Q_ASSERT(m_currentLine != nullptr);
+	int frameY = repositionPointer(true);
 	move(frameXmin - layout()->spacing(), frameY);
-	if (!m_hidden) {
-		show();
-	}
+	update();
+	repositionPointer();
 }
 
-void HOCRProofReadWidget::repositionPointer(int &frameY) {
+void HOCRProofReadWidget::repositionPointer() {
+	m_pointerTimer.start(10);
+}
+
+int HOCRProofReadWidget::repositionPointer(bool computeOnly) {
+	if (m_currentLine == nullptr) {
+		return std::numeric_limits<int>::min();
+	}
 	Displayer* displayer = MAIN->getDisplayer();
 	QPoint sceneCorner = displayer->getSceneBoundingRect().toRect().topLeft();
 	const HOCRDocument* document = static_cast<HOCRDocument*>(m_treeView->model());
@@ -834,8 +947,7 @@ void HOCRProofReadWidget::repositionPointer(int &frameY) {
 	const HOCRItem* currentItem = document->itemAtIndex(current);
 	QRectF bbox = currentItem->bbox();
 	int pageDpi = currentItem->page()->resolution();
-	QRect sceneBBox = currentItem->page()->bbox().translated(sceneCorner);
-	double maxy = displayer->mapFromScene(sceneBBox.bottomLeft()).y();
+	double maxy = displayer->viewport()->rect().bottom();
 	int gap = m_gapWidth->value()*pageDpi/100;
 
 	int editLineTop = 0;
@@ -857,7 +969,7 @@ void HOCRProofReadWidget::repositionPointer(int &frameY) {
 	QPointF base2;
 	QPointF target;
 
-	frameY = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).translated(0,gap).bottomLeft()).y();
+	int frameY = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).translated(0,gap).bottomLeft()).y();
 	if(frameY + height() > maxy) {
 		// invert
 	    frameY = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).translated(0,-gap).topLeft()).y();
@@ -875,6 +987,10 @@ void HOCRProofReadWidget::repositionPointer(int &frameY) {
 		target = QPointF(bbox.center().x(), 0);
 	}
 
+	if (computeOnly) {
+		return frameY;
+	}
+
 	m_sceneBoxLeft -= clipMargin;
 	m_sceneBoxRight += clipMargin;
 	int widgetBoxLeft = displayer->mapFromScene(QPoint(m_sceneBoxLeft+sceneCorner.x(),0)).x();
@@ -890,10 +1006,18 @@ void HOCRProofReadWidget::repositionPointer(int &frameY) {
 		RowMap* row = lineIter.value().second;
 		LineEdit *lineEdit = row->value(currentItem, nullptr);
 		if (lineEdit != nullptr) {
+			// The current item is raised, widened to show all text, and slightly transparent
 			lineEdit->raise();
-			return;
+			QFontMetricsF fm(lineEdit->font());
+			int apparentWidth = fm.horizontalAdvance(lineEdit->text());
+			int displayWidth = std::max(apparentWidth, lineEdit->m_computedWidth);
+			lineEdit->setFixedWidth(displayWidth + editBoxPadding);
+			lineEdit->setStyle(document, true);
+			break;
 		}
 	}
+	m_pointer->update();
+	return 0;
 }
 
 void HOCRProofReadWidget::showShortcutsDialog() {
@@ -911,8 +1035,9 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+W</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Insert new word/line at cursor</td></tr>"
 	                           "<tr><td>Ctrl+T</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Trim word height (heuristic)</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Delete current character</td></tr>"
+	                           "<tr><td>Delete</td>"                  "<td> </td> <td>T</td> <td> </td> <td>(Hard) delete current item</td></tr>"
 	                           "<tr><td>Ctrl+Delete</td>"             "<td>D</td> <td>T</td> <td>E</td> <td>Toggle Disable current item</td></tr>"
-	                           "<tr><td>Ctrl+Shift+Delete</td>"       "<td>D</td> <td>T</td> <td>E</td> <td>(Hard) delete current item</td></tr>"
+	                           "<tr><td>Ctrl+Shift+Delete</td>"       "<td>D</td> <td> </td> <td> </td> <td>(Hard) delete current item</td></tr>"
 	                           "<tr><td>Ctrl+{Left,Right}</td>"       "<td> </td> <td> </td> <td>E</td> <td>Adjust left bounding box edge</td></tr>"
 	                           "<tr><td>Ctrl+Shift+{Left,Right}</td>" "<td> </td> <td> </td> <td>E</td> <td>Adjust right bounding box edge</td></tr>"
 	                           "<tr><td>Ctrl+{Up,Down}</td>"          "<td> </td> <td> </td> <td>E</td> <td>Adjust top bounding box edge</td></tr>"
@@ -927,7 +1052,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+S</td>"                  "<td>D</td> <td>T</td> <td>F</td> <td>Open Save HOCR</td></tr>"
 	                           "<tr><td>F3, Shift+F3</td>"            "<td>D</td> <td>T</td> <td>F</td> <td>Next/Prev Page/Paragraph/Line in Tree</td></tr>"
 	                           "<tr><td></td>"                        "<td> </td> <td> </td> <td> </td> <td>(see Output dropdown)</td></tr>"
-	                           "<tr><td>Enter+Keypad (hold)</td>"     "<td>D</td> <td> </td> <td> </td> <td>Toggle preview state</td></tr>"
+	                           "<tr><td>Keypad+Enter (hold)</td>"     "<td>D</td> <td> </td> <td> </td> <td>Toggle preview state</td></tr>"
 	                           "<tr><td>&lt;print&gt;</td>"           "<td> </td> <td> </td> <td>E</td> <td>Insert the character</td></tr>"
 	                           "<tr><td>&lt;print&gt;</td>"           "<td>D</td> <td>T</td> <td> </td> <td>Search to item beginning with &lt;print&gt;</td></tr>"
 							   "<tr><td>L-Click</td>"                 "<td>D</td> <td>T</td> <td>E</td> <td>Select</td></tr>"

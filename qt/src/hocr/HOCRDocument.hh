@@ -126,7 +126,8 @@ private:
 };
 
 
-class HOCRItem {
+class HOCRItem : public QObject {
+	Q_OBJECT
 public:
 	// attrname : attrvalue : occurrences
 	typedef QMap<QString, QMap<QString, int>> AttrOccurenceMap_t;

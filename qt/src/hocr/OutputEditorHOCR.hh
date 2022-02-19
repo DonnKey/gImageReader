@@ -91,6 +91,10 @@ public slots:
 	bool exportToText();
 	void removeCurrentItem();
 
+protected:
+	friend class HOCRProofReadWidget;
+	QGraphicsPixmapItem* m_preview = nullptr;
+
 private:
 	class HTMLHighlighter;
 
@@ -104,7 +108,6 @@ private:
 
 	DisplayerToolHOCR* m_tool;
 	QWidget* m_widget;
-	QGraphicsPixmapItem* m_preview = nullptr;
 	QGraphicsPixmapItem* m_selectedItems = nullptr;
 	HOCRProofReadWidget* m_proofReadWidget = nullptr;
 	int m_pageDpi;

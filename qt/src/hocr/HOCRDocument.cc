@@ -384,16 +384,22 @@ void HOCRDocument::xlateItem(const QModelIndex& index, int u_d, int l_r, bool to
 	if(!item) {
 		return;
 	}
-	for (HOCRItem* child:item->children()) {
-		xlateItem(indexAtItem(child), u_d, l_r, false);
+	if (item->itemClass() == "ocrx_word" || item->itemClass() == "ocr_graphic") {
+		QRect bb = item->bbox();
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bb.left()+l_r).arg(bb.top()+u_d).arg(bb.right()+l_r).arg(bb.bottom()+u_d);
+		// Don't call editItemAttribute: call to recompute the bounding box gets the wrong result for the top item,
+		// and since this is a rigid motion, this works fine.
+		item->setAttribute("title:bbox", bboxstr);
+	}
+	else {
+		for (HOCRItem* child:item->children()) {
+			xlateItem(indexAtItem(child), u_d, l_r, false);
+		}
 	}
 
-	QRect bb = item->bbox();
-	QString bboxstr = QString("%1 %2 %3 %4").arg(bb.left()+l_r).arg(bb.top()+u_d).arg(bb.right()+l_r).arg(bb.bottom()+u_d);
-	// Don't call editItemAttribute: call to recompute the bounding box gets the wrong result for the top item,
-	// and since this is a rigid motion, this works fine.
-	item->setAttribute("title:bbox", bboxstr);
 	if (top) {
+		QRect bb = item->bbox();
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bb.left()).arg(bb.top()).arg(bb.right()).arg(bb.bottom());
 		emit itemAttributeChanged(index, "title:bbox", bboxstr);
 	}
 }

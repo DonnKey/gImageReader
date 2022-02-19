@@ -22,6 +22,7 @@
 
 #include <QMap>
 #include <QFrame>
+#include <QPointer>
 
 #include <TreeViewHOCR.hh>
 
@@ -38,7 +39,7 @@ public:
 	void setProofreadEnabled(bool enabled);
 	bool eventFilter(QObject* target, QEvent* ev);
 	void clear();
-	QTreeView* documentTree() const { return m_treeView; }
+	TreeViewHOCR* documentTree() const { return m_treeView; }
 	void setConfidenceLabel(int wconf);
 	QString confidenceStyle(int wconf) const;
 	void adjustFontSize(int diff);
@@ -64,18 +65,25 @@ private:
 	int m_sceneBoxLeft;
 	int m_sceneBoxRight;
 	bool m_hidden = false;
-	typedef QMap<const HOCRItem*, LineEdit*> RowMap;
+	typedef QMap<const HOCRItem*, QPointer<LineEdit>> RowMap;
 	typedef QPair<QWidget*, RowMap*> RowHeader;
 	typedef QMap<const HOCRItem*, RowHeader> LineMap;
 	LineMap* m_lineMap = nullptr;
+	QTimer m_updateTimer;
+	QTimer m_widgetTimer;
+	QTimer m_pointerTimer;
+	bool m_force;
 
 	// Disable auto tab handling
 	bool focusNextPrevChild(bool) override { return false; }
 
 	void repositionWidget();
-	void repositionPointer(int& frameY);
+	void repositionPointer();
+	int repositionPointer(bool computeOnly);
 	void showEvent(QShowEvent *event) override;
 	void hideEvent(QHideEvent *event) override;
+	void innerUpdateWidget();
+	void innerRepositionWidget();
 
 private slots:
 	void updateWidget(bool force = false);

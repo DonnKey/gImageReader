@@ -97,6 +97,7 @@ private:
 	QPixmap m_pixmap;
 	QGraphicsPixmapItem* m_imageItem = nullptr;
 	double m_scale = 1.0;
+	double m_oldScale = 0.0;
 	DisplayerTool* m_tool = nullptr;
 	QPoint m_panPos;
 	Qt::CursorShape m_cursor = Qt::BlankCursor;

@@ -1121,6 +1121,11 @@ HOCRItem::HOCRItem(const QDomElement& element, HOCRPage* page, HOCRItem* parent,
 		m_bbox.setCoords(bbox[0].toInt(), bbox[1].toInt(), bbox[2].toInt(), bbox[3].toInt());
 	}
 
+	if (m_titleAttrs.contains("x_deselected")) {
+		m_titleAttrs.remove("x_deselected");
+		setEnabled(false);
+	}
+
 	if(itemClass() == "ocrx_word") {
 		m_text = element.text();
 		m_bold |= !element.elementsByTagName("strong").isEmpty();
@@ -1285,7 +1290,11 @@ QString HOCRItem::toHtml(int indent) const {
 		tag = "span";
 	}
 	QString html = QString(indent, ' ') + "<" + tag;
-	html += QString(" title=\"%1\"").arg(serializeAttrGroup(m_titleAttrs));
+	html += QString(" title=\"%1").arg(serializeAttrGroup(m_titleAttrs));
+	if (!isEnabled()) {
+		html += QString("; x_deselected true");
+	}
+	html += "\"";
 	for(auto it = m_attrs.begin(), itEnd = m_attrs.end(); it != itEnd; ++it) {
 		html += QString(" %1=\"%2\"").arg(it.key(), it.value());
 	}

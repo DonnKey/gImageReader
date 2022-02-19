@@ -36,6 +36,12 @@
     </property>
     <item>
      <widget class="QWidget" name="widgetImageControls" native="true">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>25</height>
+       </size>
+      </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <property name="spacing">
         <number>4</number>
@@ -221,6 +227,34 @@
         <widget class="QCheckBox" name="checkBoxInvertColors">
          <property name="text">
           <string>Invert colors</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTextBrowser" name="SegMode">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>25</height>
+          </size>
+         </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
+         <property name="acceptDrops">
+          <bool>false</bool>
+         </property>
+         <property name="toolTip">
+          <string>Current Page Segmentation Mode</string>
+         </property>
+         <property name="verticalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
+         </property>
+         <property name="placeholderText">
+          <string/>
+         </property>
+         <property name="openLinks">
+          <bool>false</bool>
          </property>
         </widget>
        </item>

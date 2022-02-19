@@ -266,6 +266,7 @@ void OutputEditorHOCR::HOCRBatchProcessor::appendOutput(QIODevice* dev, tesserac
 	attrs["ppageno"] = QString::number(pageInfos.page);
 	attrs["rot"] = QString::number(pageInfos.angle);
 	attrs["res"] = QString::number(pageInfos.resolution);
+	attrs["x_tesspsm"] = QString::number(static_cast<int>(pageInfos.mode));
 	pageDiv.setAttribute("title", HOCRItem::serializeAttrGroup(attrs));
 	dev->write(doc.toByteArray());
 }
@@ -395,9 +396,9 @@ void OutputEditorHOCR::setModified() {
 }
 
 OutputEditorHOCR::ReadSessionData* OutputEditorHOCR::initRead(tesseract::TessBaseAPI& tess) {
-	tess.SetPageSegMode(tesseract::PSM_AUTO_ONLY);
 	HOCRReadSessionData* data = new HOCRReadSessionData;
 	data->insertIndex = m_insertMode == InsertMode::Append ? m_document->pageCount() : currentPage();
+	data->pageInfo.mode = tess.GetPageSegMode();
 	return data;
 }
 
@@ -433,6 +434,7 @@ void OutputEditorHOCR::addPage(const QString& hocrText, HOCRReadSessionData data
 	attrs["ppageno"] = QString::number(data.pageInfo.page);
 	attrs["rot"] = QString::number(data.pageInfo.angle);
 	attrs["res"] = QString::number(data.pageInfo.resolution);
+	attrs["x_tesspsm"] = QString::number(data.pageInfo.mode);
 	pageDiv.setAttribute("title", HOCRItem::serializeAttrGroup(attrs));
 
 	QModelIndex index = m_document->insertPage(data.insertIndex, pageDiv, true);

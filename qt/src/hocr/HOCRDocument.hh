@@ -23,6 +23,9 @@
 #include "Config.hh"
 #include <QAbstractItemModel>
 #include <QRect>
+#define USE_STD_NAMESPACE
+#include <tesseract/baseapi.h>
+#undef USE_STD_NAMESPACE
 
 class QDomElement;
 class HOCRItem;
@@ -249,6 +252,9 @@ public:
 	int pageId() const {
 		return m_pageId;
 	}
+	tesseract::PageSegMode mode() const {
+		return m_mode;
+	}
 	QString title() const;
 
 private:
@@ -261,9 +267,11 @@ private:
 	int m_pageNr;
 	double m_angle;
 	int m_resolution;
+	tesseract::PageSegMode m_mode;
 
 	void convertSourcePath(const QString& basepath, bool absolute);
 };
 
+QString GetShortPsmName(tesseract::PageSegMode mode);
 
 #endif // HOCRDOCUMENT_HH

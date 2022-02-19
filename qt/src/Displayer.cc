@@ -23,6 +23,8 @@
 #include "DisplayRenderer.hh"
 #include "SourceManager.hh"
 #include "Utils.hh"
+#include "MainWindow.hh"
+#include "RecognitionMenu.hh"
 
 #include <cmath>
 #include <QFileDialog>
@@ -150,6 +152,7 @@ bool Displayer::setSources(QList<Source*> sources) {
 	ui.actionOriginalSize->setChecked(false);
 	ui.actionZoomIn->setEnabled(true);
 	ui.actionZoomOut->setEnabled(true);
+	ui.SegMode->setText(MAIN->getRecognitionMenu()->getSegModeName());
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	unsetCursor();

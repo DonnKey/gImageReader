@@ -178,6 +178,9 @@ MainWindow::MainWindow(const QStringList& files)
 	connect(ui.actionToggleOutputPane, &QAction::toggled, ui.dockWidgetOutput, &QDockWidget::setVisible);
 	connect(ui.comboBoxOCRMode, qOverload<int>(&QComboBox::currentIndexChanged), this, [this] { setOutputMode(static_cast<OutputMode>(ui.comboBoxOCRMode->currentData().toInt())); });
 	connect(m_recognitionMenu, &RecognitionMenu::languageChanged, this, &MainWindow::languageChanged);
+	connect(m_recognitionMenu, &RecognitionMenu::psmChanged, this, [this] {
+		ui.SegMode->setText(MAIN->getRecognitionMenu()->getSegModeName());
+	 });
 	connect(ui.actionAutodetectLayout, &QAction::triggered, m_displayer, &Displayer::autodetectOCRAreas);
 	connect(ui.actionBatchExport, &QAction::triggered, this, &MainWindow::batchExport);
 

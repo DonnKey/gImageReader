@@ -40,9 +40,11 @@ public:
 	tesseract::PageSegMode getPageSegmentationMode() const;
 	QString getCharacterWhitelist() const;
 	QString getCharacterBlacklist() const;
+	QString getSegModeName() const;
 
 signals:
 	void languageChanged(Config::Lang lang);
+	void psmChanged();
 
 private slots:
 	void psmSelected(QAction* action);

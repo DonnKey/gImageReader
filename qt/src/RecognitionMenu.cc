@@ -47,6 +47,28 @@ RecognitionMenu::RecognitionMenu(QWidget* parent)
 	installEventFilter(this);
 }
 
+struct PsmEntry {
+	QString label;
+	tesseract::PageSegMode psmMode;
+	bool requireOsd;
+};
+
+static QMap<tesseract::PageSegMode, PsmEntry> psmModes {
+#define PsmEntry(label, psmMode, requireOsd) {psmMode, {label, psmMode, requireOsd}}
+	PsmEntry(_("Automatic page segmentation"), tesseract::PSM_AUTO, false),
+	PsmEntry(_("Page segmentation with orientation and script detection"), tesseract::PSM_AUTO_OSD, true),
+	PsmEntry(_("Assume single column of text"), tesseract::PSM_SINGLE_COLUMN, false),
+	PsmEntry(_("Assume single block of vertically aligned text"), tesseract::PSM_SINGLE_BLOCK_VERT_TEXT, false),
+	PsmEntry(_("Assume a single uniform block of text"), tesseract::PSM_SINGLE_BLOCK, false),
+	PsmEntry(_("Assume a line of text"), tesseract::PSM_SINGLE_LINE, false),
+	PsmEntry(_("Assume a single word"), tesseract::PSM_SINGLE_WORD, false),
+	PsmEntry(_("Assume a single word in a circle"), tesseract::PSM_CIRCLE_WORD, false),
+	PsmEntry(_("Sparse text in no particular order"), tesseract::PSM_SPARSE_TEXT, false),
+	PsmEntry(_("Sparse text with orientation and script detection"), tesseract::PSM_SPARSE_TEXT_OSD, true),
+	PsmEntry(_("Treat the image as a single line of text, bypassing Tesseract hacks"), tesseract::PSM_RAW_LINE, false)
+#undef PsmEntry
+};
+
 void RecognitionMenu::rebuild() {
 	clear();
 	delete m_langMenuRadioGroup;
@@ -173,23 +195,6 @@ void RecognitionMenu::rebuild() {
 	QMenu* psmMenu = new QMenu();
 	int activePsm = ConfigSettings::get<VarSetting<int>>("psm")->getValue();
 
-	struct PsmEntry {
-		QString label;
-		tesseract::PageSegMode psmMode;
-		bool requireOsd;
-	};
-	QVector<PsmEntry> psmModes = {
-		PsmEntry{_("Automatic page segmentation"), tesseract::PSM_AUTO, false},
-		PsmEntry{_("Page segmentation with orientation and script detection"), tesseract::PSM_AUTO_OSD, true},
-		PsmEntry{_("Assume single column of text"), tesseract::PSM_SINGLE_COLUMN, false},
-		PsmEntry{_("Assume single block of vertically aligned text"), tesseract::PSM_SINGLE_BLOCK_VERT_TEXT, false},
-		PsmEntry{_("Assume a single uniform block of text"), tesseract::PSM_SINGLE_BLOCK, false},
-		PsmEntry{_("Assume a line of text"), tesseract::PSM_SINGLE_LINE, false},
-		PsmEntry{_("Assume a single word"), tesseract::PSM_SINGLE_WORD, false},
-		PsmEntry{_("Assume a single word in a circle"), tesseract::PSM_CIRCLE_WORD, false},
-		PsmEntry{_("Sparse text in no particular order"), tesseract::PSM_SPARSE_TEXT, false},
-		PsmEntry{_("Sparse text with orientation and script detection"), tesseract::PSM_SPARSE_TEXT_OSD, true}
-	};
 	for(const auto& entry : psmModes) {
 		QAction* item = psmMenu->addAction(entry.label);
 		item->setData(entry.psmMode);
@@ -224,6 +229,12 @@ QString RecognitionMenu::getCharacterBlacklist() const {
 
 void RecognitionMenu::psmSelected(QAction* action) {
 	ConfigSettings::get<VarSetting<int>>("psm")->setValue(action->data().toInt());
+	emit psmChanged();
+}
+
+QString RecognitionMenu::getSegModeName() const {
+	tesseract::PageSegMode mode = static_cast<tesseract::PageSegMode>(ConfigSettings::get<VarSetting<int>>("psm")->getValue());
+	return psmModes.find(mode)->label;
 }
 
 void RecognitionMenu::setLanguage() {

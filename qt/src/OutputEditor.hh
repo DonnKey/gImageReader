@@ -22,6 +22,11 @@
 
 #include <QObject>
 #include "Config.hh"
+#include <QDebug>
+
+#define USE_STD_NAMESPACE
+#include <tesseract/baseapi.h>
+#undef USE_STD_NAMESPACE
 
 namespace tesseract {
 class TessBaseAPI;
@@ -35,6 +40,7 @@ public:
 		int page;
 		double angle;
 		int resolution;
+		tesseract::PageSegMode mode;
 	};
 	struct ReadSessionData {
 		virtual ~ReadSessionData() = default;

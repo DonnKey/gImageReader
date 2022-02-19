@@ -689,7 +689,11 @@ QString HOCRDocument::displayRoleForItem(const HOCRItem* item) const {
 	QString itemClass = item->itemClass();
 	if(itemClass == "ocr_page") {
 		const HOCRPage* page = static_cast<const HOCRPage*>(item);
-		return QString("%1 (%2 %3/%4)").arg(page->title()).arg(_("Page")).arg(item->index() + 1).arg(m_pages.size());
+		QString pageTitle = QString("%1 (%2 %3/%4)").arg(page->title()).arg(_("Page")).arg(item->index() + 1).arg(m_pages.size());
+		if (page->mode() != tesseract::PSM_COUNT) {
+			pageTitle += " " + GetShortPsmName(page->mode());
+		}
+		return pageTitle;
 	} else if(itemClass == "ocr_carea") {
 		return _("Text block");
 	} else if(itemClass == "ocr_par") {
@@ -1064,6 +1068,11 @@ HOCRPage::HOCRPage(const QDomElement& element, int pageId, const QString& defaul
 	}
 	m_angle = m_titleAttrs["rot"].toDouble();
 	m_resolution = m_titleAttrs.value("res", "100").toInt();
+	if(m_titleAttrs.find("x_tesspsm") != m_titleAttrs.end()) {
+		m_mode = static_cast<tesseract::PageSegMode>(m_titleAttrs["x_tesspsm"].toInt());
+	} else {
+		m_mode = tesseract::PSM_COUNT;
+	}
 
 	QDomElement childElement = element.firstChildElement("div");
 	while(!childElement.isNull()) {
@@ -1095,4 +1104,40 @@ void HOCRPage::convertSourcePath(const QString& basepath, bool absolute) {
 		m_sourceFile = QString("./%1").arg(QDir(basepath).relativeFilePath(m_sourceFile));
 	}
 	m_titleAttrs["image"] = QString("'%1'").arg(m_sourceFile);
+}
+
+QString GetShortPsmName(tesseract::PageSegMode mode) {
+	switch(mode) {
+		case tesseract::PSM_OSD_ONLY:       
+			return _("OSD_ONLY");
+		case tesseract::PSM_AUTO_OSD:       
+			return _("AUTO_OSD");
+		case tesseract::PSM_AUTO_ONLY:      
+			return _("AUTO_ONLY");
+		case tesseract::PSM_AUTO:           
+			return _("AUTO");
+		case tesseract::PSM_SINGLE_COLUMN:  
+			return _("SINGLE_COLUMN");
+		case tesseract::PSM_SINGLE_BLOCK_VERT_TEXT:  
+			return _("SINGLE_BLOCK_VERT_TEXT");
+		case tesseract::PSM_SINGLE_BLOCK:   
+			return _("SINGLE_BLOCK");
+		case tesseract::PSM_SINGLE_LINE:    
+			return _("SINGLE_LINE");
+		case tesseract::PSM_SINGLE_WORD:    
+			return _("SINGLE_WORD");
+		case tesseract::PSM_CIRCLE_WORD:    
+			return _("CIRCLE_WORD");
+		case tesseract::PSM_SINGLE_CHAR:    
+			return _("SINGLE_CHAR");
+		case tesseract::PSM_SPARSE_TEXT:    
+			return _("SPARSE_TEXT");
+		case tesseract::PSM_SPARSE_TEXT_OSD:  
+			return _("SPARSE_TEXT_OSD");
+		case tesseract::PSM_RAW_LINE:       
+			return _("RAW_LINE");
+		default:
+		case tesseract::PSM_COUNT:
+			return _("");  // PSM_COUNT indicates no value known
+	}
 }

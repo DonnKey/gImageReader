@@ -176,6 +176,7 @@ private slots:
 	void languageChanged(const Config::Lang& lang);
 	void dictionaryAutoinstall();
 	void batchExport();
+	void psmChanged(){};
 };
 
 Q_DECLARE_METATYPE(MainWindow::State)

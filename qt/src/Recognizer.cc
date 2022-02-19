@@ -259,6 +259,7 @@ void Recognizer::recognize(const QList<int>& pages, bool autodetectLayout) {
 				MAIN->getOutputEditor()->readError(_("\n[Failed to recognize page %1]\n"), readSessionData);
 				continue;
 			}
+			pageData.pageInfo.mode = tess->get()->GetPageSegMode();
 			readSessionData->pageInfo = pageData.pageInfo;
 			bool firstChunk = true;
 			bool newFile = readSessionData->pageInfo.filename != prevFile;

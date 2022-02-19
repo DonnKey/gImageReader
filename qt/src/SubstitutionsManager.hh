@@ -31,7 +31,6 @@ class SubstitutionsManager : public QDialog {
 	Q_OBJECT
 public:
 	SubstitutionsManager(QWidget* parent = nullptr);
-	~SubstitutionsManager();
 
 signals:
 	void applySubstitutions(const QMap<QString, QString>& substitutions);
@@ -46,8 +45,9 @@ private slots:
 	void emitApplySubstitutions();
 	bool clearList();
 	void onTableSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
-	void openList();
+	void openList(bool append);
 	void removeRows();
+	void sortTable();
 	bool saveList();
 };
 

@@ -38,6 +38,9 @@ SubstitutionsManager::SubstitutionsManager(QWidget* parent)
 	QAction* openAction = new QAction(QIcon::fromTheme("document-open"), _("Open"), this);
 	openAction->setToolTip(_("Open"));
 
+	QAction* openAppendAction = new QAction(QIcon(":/icons/open-append"), _("Open Append"), this);
+	openAppendAction->setToolTip(_("Open (append)"));
+
 	QAction* saveAction = new QAction(QIcon::fromTheme("document-save"), _("Save"), this);
 	saveAction->setToolTip(_("Save"));
 
@@ -51,14 +54,19 @@ SubstitutionsManager::SubstitutionsManager(QWidget* parent)
 	m_removeAction->setToolTip(_("Remove"));
 	m_removeAction->setEnabled(false);
 
+	QAction* sortAction = new QAction(QIcon::fromTheme("view-sort-ascending"), _("Sort"), this);
+	sortAction->setToolTip(_("Sort"));
+
 	QToolBar* toolbar = new QToolBar(this);
 	toolbar->setIconSize(QSize(1, 1) * toolbar->style()->pixelMetric(QStyle::PM_SmallIconSize));
 	toolbar->addAction(openAction);
+	toolbar->addAction(openAppendAction);
 	toolbar->addAction(saveAction);
 	toolbar->addAction(clearAction);
 	toolbar->addSeparator();
 	toolbar->addAction(addAction);
 	toolbar->addAction(m_removeAction);
+	toolbar->addAction(sortAction);
 
 	m_tableWidget = new QTableWidget(0, 2, this);
 	m_tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -78,28 +86,36 @@ SubstitutionsManager::SubstitutionsManager(QWidget* parent)
 
 	setLayout(layout);
 
-	connect(openAction, &QAction::triggered, this, &SubstitutionsManager::openList);
+	connect(openAction, &QAction::triggered, this, [this] () {openList(false);});
+	connect(openAppendAction, &QAction::triggered, this, [this] () {openList(true);});
 	connect(saveAction, &QAction::triggered, this, &SubstitutionsManager::saveList);
 	connect(clearAction, &QAction::triggered, this, &SubstitutionsManager::clearList);
 	connect(addAction, &QAction::triggered, this, &SubstitutionsManager::addRow);
+	connect(sortAction, &QAction::triggered, this, &SubstitutionsManager::sortTable);
 	connect(buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SubstitutionsManager::emitApplySubstitutions);
 	connect(buttonBox->button(QDialogButtonBox::Close), &QPushButton::clicked, this, &SubstitutionsManager::hide);
 	connect(m_removeAction, &QAction::triggered, this, &SubstitutionsManager::removeRows);
 	connect(m_tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubstitutionsManager::onTableSelectionChanged);
 
 	ADD_SETTING(TableSetting("substitutionslist", m_tableWidget));
-}
 
-SubstitutionsManager::~SubstitutionsManager() {
-	ConfigSettings::get<TableSetting>("substitutionslist")->serialize();
-}
-
-void SubstitutionsManager::openList() {
-	if(!clearList()) {
-		return;
+	if (m_tableWidget->rowCount() > 0) {
+		QTableWidgetItem* item = m_tableWidget->item(0,0);
+		m_tableWidget->setCurrentItem(item);
 	}
+}
+
+void SubstitutionsManager::openList(bool append) {
 	QString dir = !m_currentFile.isEmpty() ? QFileInfo(m_currentFile).absolutePath() : "";
-	QStringList files = FileDialogs::openDialog(_("Open Substitutions List"), dir, "auxdir", QString("%1 (*.txt)").arg(_("Substitutions List")), false, this);
+	QStringList files;
+	if (append) {
+		files = FileDialogs::openDialog(_("Open Substitutions List (append)"), dir, "auxdir", QString("%1 (*.txt)").arg(_("Substitutions List (append)")), false, this);
+	} else {
+		if(!clearList()) {
+			return;
+		}
+		files = FileDialogs::openDialog(_("Open Substitutions List"), dir, "auxdir", QString("%1 (*.txt)").arg(_("Substitutions List")), false, this);
+	}
 
 	if(!files.isEmpty()) {
 		QString filename = files.front();
@@ -137,6 +153,10 @@ void SubstitutionsManager::openList() {
 
 bool SubstitutionsManager::saveList() {
 	QString filename = FileDialogs::saveDialog(_("Save Substitutions List"), m_currentFile, "auxdir", QString("%1 (*.txt)").arg(_("Substitutions List")), false, this);
+	QString ext = QFileInfo(filename).completeSuffix();
+	if (ext.isEmpty()) {
+		filename += "txt";
+	}
 	if(filename.isEmpty()) {
 		return false;
 	}
@@ -173,7 +193,9 @@ void SubstitutionsManager::addRow() {
 	m_tableWidget->insertRow(row);
 	m_tableWidget->setItem(row, 0, new QTableWidgetItem());
 	m_tableWidget->setItem(row, 1, new QTableWidgetItem());
-	m_tableWidget->editItem(m_tableWidget->item(row, 0));
+	QTableWidgetItem* item = m_tableWidget->item(row,0);
+	m_tableWidget->editItem(item);
+	m_tableWidget->setCurrentItem(item);
 }
 
 void SubstitutionsManager::removeRows() {
@@ -182,6 +204,14 @@ void SubstitutionsManager::removeRows() {
 		m_tableWidget->removeRow(index.row());
 	}
 	m_tableWidget->blockSignals(false);
+	emit m_tableWidget->cellChanged(9999,9999);
+}
+
+void SubstitutionsManager::sortTable() {
+	m_tableWidget->blockSignals(true);
+	m_tableWidget->sortByColumn(0, Qt::AscendingOrder);
+	m_tableWidget->blockSignals(false);
+	emit m_tableWidget->cellChanged(9999,9999);
 }
 
 void SubstitutionsManager::onTableSelectionChanged(const QItemSelection& selected, const QItemSelection& /*deselected*/) {

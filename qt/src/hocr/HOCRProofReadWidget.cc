@@ -278,6 +278,25 @@ private:
 			// Merge
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			m_document->mergeItemText(index, (ev->modifiers() & Qt::ShiftModifier) != 0);
+		} else if(ev->key() == Qt::Key_J && ev->modifiers() & Qt::ControlModifier) {
+			// Join with next line
+			if (m_wordItem->itemClass() == "ocrx_word") {
+				QModelIndex index = m_document->indexAtItem(m_wordItem);
+				QModelIndex parent = index.parent();
+				QModelIndex grandparent = parent.parent();
+
+				QModelIndex uncle = parent.sibling(parent.row() + 1, 0);
+				if (uncle.isValid()) {
+					HOCRProofReadWidget* widget = m_proofReadWidget;
+					QModelIndex newLine = m_document->mergeItems(grandparent, parent.row(), uncle.row());
+					m_document->sortOnX(newLine);
+					const HOCRItem* item = m_document->itemAtIndex(newLine);
+					QModelIndex first = m_document->indexAtItem(item->children().first());
+					widget->documentTree()->clearSelection();
+					widget->documentTree()->setCurrentIndex(first);
+					widget->updateWidget(true);
+				}
+			}
 		} else if(ev->key() == Qt::Key_Underscore && ev->modifiers() & Qt::ControlModifier) {
 			// Merge (right) with underscore
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
@@ -1025,6 +1044,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+Shift+M</td>"            "<td> </td> <td> </td> <td>E</td> <td>Merge with next word</td></tr>"
 	                           "<tr><td>Ctrl+_</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Merge with next word insert _</td></tr>"
 	                           "<tr><td>Ctrl+W</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Insert new word/line at cursor</td></tr>"
+	                           "<tr><td>Ctrl+J</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Join line with next line (sorted X)</td></tr>"
 	                           "<tr><td>Ctrl+T</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Trim word height (heuristic)</td></tr>"
 	                           "<tr><td>Ctrl+K</td>"                  "<td>D</td> <td> </td> <td> </td> <td>Show this help</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Delete current character</td></tr>"

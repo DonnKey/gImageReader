@@ -945,6 +945,9 @@ bool HOCRDocument::setData(const QModelIndex& index, const QVariant& value, int 
 	return false;
 }
 
+void HOCRDocument::recomputeBBoxes(const QModelIndex& index) {
+	recomputeBBoxes(mutableItemAtIndex(index));
+}
 void HOCRDocument::recomputeBBoxes(HOCRItem* item) {
 	// Update parent bboxes (except page)
 	while(item && item->parent()) {

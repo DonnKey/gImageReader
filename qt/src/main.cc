@@ -34,6 +34,10 @@ int main (int argc, char* argv[]) {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
+#if DEBUG_ERRORS
+	qInstallMessageHandler(myMessageOutput);
+#endif
+
 	QApplication app(argc, argv);
 
 	QDir dataDir = QDir(QString("%1/../share/").arg(QApplication::applicationDirPath()));
@@ -105,3 +109,37 @@ int main (int argc, char* argv[]) {
 	return exitcode;
 }
 
+#if DEBUG_ERRORS
+// From Qt function of the same name
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QByteArray localMsg = msg.toLocal8Bit();
+    const char *file = context.file ? context.file : "";
+    const char *function = context.function ? context.function : "";
+    switch (type) {
+    case QtDebugMsg:
+        fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        break;
+    case QtInfoMsg:
+        fprintf(stderr, "Info: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+#if DEBUG_ERRORS&0x2
+		myDebugBreak();
+#endif
+        break;
+    case QtWarningMsg:
+        fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+#if DEBUG_ERRORS&0x4
+		myDebugBreak();
+#endif
+        break;
+    case QtCriticalMsg:
+        fprintf(stderr, "Critical: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+		myDebugBreak();
+        break;
+    case QtFatalMsg:
+        fprintf(stderr, "Fatal: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+		myDebugBreak();
+        break;
+    }
+}
+#endif

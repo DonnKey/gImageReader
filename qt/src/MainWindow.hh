@@ -36,6 +36,7 @@
 #define MAIN MainWindow::getInstance()
 
 #define FOCUSDEBUG 0
+#define DEBUG_ERRORS 0 // 1 or 3 or 7...
 
 class Acquirer;
 class Displayer;
@@ -186,6 +187,10 @@ private slots:
 	void focusChanged(QWidget *old, QWidget*now);
 #endif
 };
+
+#if DEBUG_ERRORS
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
+#endif
 
 Q_DECLARE_METATYPE(MainWindow::State)
 

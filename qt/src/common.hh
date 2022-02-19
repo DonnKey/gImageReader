@@ -20,6 +20,8 @@
 #ifndef COMMON_HH
 #define COMMON_HH
 
+#include <QtGlobal>
+
 #include <libintl.h>
 #define _(x) QString(gettext(x))
 
@@ -27,5 +29,14 @@ class DataObject {
 public:
 	virtual ~DataObject() = default;
 };
+
+#ifdef Q_OS_LINUX
+#include <csignal>
+#define myDebugBreak() std::raise(SIGTRAP);
+#endif
+#ifdef Q_OS_WIN
+#include <debugapi.h>
+#define myDebugBreak() DebugBreak();
+#endif
 
 #endif

@@ -41,6 +41,10 @@ class PreferenceChoice {
 		QString name = "normalizeBBox_" + m_instance;
 	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
 	}
+	bool getTrimHeight() {
+		QString name = "normalizeTrimHeight_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
 	bool getNormalizeBase() {
 		QString name = "normalizeBase_" + m_instance;
 	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
@@ -81,6 +85,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	PreferenceChoice *pref = m_parent->m_preferences[0] = new PreferenceChoice("0");
 
 	ADD_SETTING(SwitchSetting("normalizeBBox_0", ui.normalizeBBox_0, false));
+	ADD_SETTING(SwitchSetting("normalizeTrimHeight_0", ui.trimHeight_0, false));
 	ADD_SETTING(SwitchSetting("normalizeFontSize_0", ui.normalizeFontSize_0, false));
 	ADD_SETTING(SwitchSetting("normalizeFont_0", ui.normalizeFont_0, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_0", ui.setBold_0, Qt::PartiallyChecked));
@@ -99,6 +104,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	pref = m_parent->m_preferences[1] = new PreferenceChoice("1");
 
 	ADD_SETTING(SwitchSetting("normalizeBBox_1", ui.normalizeBBox_1, false));
+	ADD_SETTING(SwitchSetting("normalizeTrimHeight_1", ui.trimHeight_1, false));
 	ADD_SETTING(SwitchSetting("normalizeFontSize_1", ui.normalizeFontSize_1, false));
 	ADD_SETTING(SwitchSetting("normalizeFont_1", ui.normalizeFont_1, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_1", ui.setBold_1, Qt::PartiallyChecked));
@@ -117,6 +123,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	pref = m_parent->m_preferences[2] = new PreferenceChoice("2");
 
 	ADD_SETTING(SwitchSetting("normalizeBBox_2", ui.normalizeBBox_2, false));
+	ADD_SETTING(SwitchSetting("normalizeTrimHeight_2", ui.trimHeight_2, false));
 	ADD_SETTING(SwitchSetting("normalizeFontSize_2", ui.normalizeFontSize_2, false));
 	ADD_SETTING(SwitchSetting("normalizeFont_2", ui.normalizeFont_2, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_2", ui.setBold_2, Qt::PartiallyChecked));
@@ -135,6 +142,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	pref = m_parent->m_preferences[3] = new PreferenceChoice("3");
 
 	ADD_SETTING(SwitchSetting("normalizeBBox_3", ui.normalizeBBox_3, false));
+	ADD_SETTING(SwitchSetting("normalizeTrimHeight_3", ui.trimHeight_3, false));
 	ADD_SETTING(SwitchSetting("normalizeFontSize_3", ui.normalizeFontSize_3, false));
 	ADD_SETTING(SwitchSetting("normalizeFont_3", ui.normalizeFont_3, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_3", ui.setBold_3, Qt::PartiallyChecked));
@@ -231,6 +239,9 @@ void HOCRNormalize::normalizeItem(const HOCRItem* item, PreferenceChoice *pref) 
 		}
 		if(pref->getSetItalic() != Qt::PartiallyChecked) {
 			m_doc->editItemAttribute(index, "italic", pref->getSetItalic() == Qt::Checked ? "1" : "0", itemClass);
+		}
+		if(pref->getTrimHeight() && item->isOverheight(true)) {
+			m_doc->fitToFont(index);
 		}
 		return;
 	} 

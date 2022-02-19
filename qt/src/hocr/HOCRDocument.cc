@@ -147,6 +147,7 @@ bool HOCRDocument::editItemAttribute(const QModelIndex& index, const QString& na
 		resetMisspelled(index);
 	}
 	if(name == "title:bbox") {
+		(void)item->isOverheight(true);
 		recomputeBBoxes(item->parent());
 	}
 	return true;
@@ -930,6 +931,51 @@ void HOCRDocument::setAttributes(const QString& name, const QString& value, cons
 	emit itemAttributeChanged(index, name, value);
 }
 
+void HOCRDocument::fitToFont(const QModelIndex& index) {
+	HOCRItem* item = mutableItemAtIndex(index);
+	if (!item->isOverheight()) {
+		return;
+	}
+	int pageDpi = item->page()->resolution();
+
+	QFont font;
+	if(!item->fontFamily().isEmpty()) {
+		font.setFamily(item->fontFamily());
+	}
+	font.setBold(item->fontBold());
+	font.setItalic(item->fontItalic());
+	font.setPointSizeF(item->fontSize());
+	QFontMetrics fm(font);
+
+	double fontHeight = (fm.capHeight())*pageDpi/72.0; // capHeight is "the usual" height
+	double fontDescent = (fm.descent())*pageDpi/72.0;
+
+	const HOCRItem *parent = item->parent();
+
+	// A properly formed ocrx_word bbox will have the baseline intersect the bbox height near the font descent 
+	// above the bottom edge, and not extend above the font height. In addition, the baseline's offset should not
+	// exceed the descent of the font. In reality, this is only "often true".
+
+	QPair<double, double> baseline = parent->baseLine();
+	QRect bbox = item->bbox();
+
+	if(-baseline.second > fontDescent) {
+		// The baseline is wrong... trim the bottom and adjust the baseline
+		double diff = -baseline.second-fontDescent;
+		QString baselineStr = QString("%1 %2").arg(baseline.first).arg(baseline.second+diff);
+		editItemAttribute(indexAtItem(parent),"title:baseline", baselineStr);
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(qRound(bbox.bottom()-diff-fontHeight)).arg(bbox.right()).arg(qRound(bbox.bottom()-diff));
+		editItemAttribute(index,"title:bbox", bboxstr);
+		emit itemAttributeChanged(index, "title:bbox", bboxstr);
+	} else {
+		//The baseline is reasonable: simply trim the top
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(qRound(bbox.bottom()-fontHeight)).arg(bbox.right()).arg(bbox.bottom());
+		editItemAttribute(index,"title:bbox", bboxstr);
+		emit itemAttributeChanged(index, "title:bbox", bboxstr);
+	}
+	(void)item->isOverheight(true);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 QMap<QString, QString> HOCRItem::s_langCache = QMap<QString, QString>();
@@ -1239,6 +1285,37 @@ bool HOCRItem::parseChildren(const QDomElement& element, QString language, const
 		childElement = childElement.nextSiblingElement();
 	}
 	return haveWords;
+}
+
+bool HOCRItem::isOverheight(bool force) const {
+	if (m_isOverheight < 2 && !force) {
+		return m_isOverheight == 1;
+	}
+	if (itemClass() != "ocrx_word") {
+		m_isOverheight = 0;
+		return false;
+	}
+	if (parent()->textangle() != 0) {
+		// This is not worth figuring out.
+		m_isOverheight = 0;
+		return false;
+	}
+	QFont font;
+	if(!fontFamily().isEmpty()) {
+		font.setFamily(fontFamily());
+	}
+	font.setBold(fontBold());
+	font.setItalic(fontItalic());
+	font.setPointSizeF(fontSize());
+	QFontMetrics fm(font);
+	int pageDpi = m_pageItem->resolution();
+	double fontHeight = (fm.capHeight()+fm.descent())*pageDpi/72;
+	if (m_bbox.height() > fontHeight) {
+		m_isOverheight = 1;
+		return true;
+	}
+	m_isOverheight = 0;
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

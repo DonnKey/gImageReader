@@ -244,6 +244,10 @@ private:
 			// Italic
 			QModelIndex index = document->indexAtItem(m_wordItem);
 			document->editItemAttribute(index, "italic", m_wordItem->fontItalic() ? "0" : "1");
+		} else if(ev->key() == Qt::Key_T && ev->modifiers() == Qt::ControlModifier) {
+			// Trim
+			QModelIndex index = document->indexAtItem(m_wordItem);
+			document->fitToFont(index);
 		} else if((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && ev->modifiers() & Qt::ControlModifier) {
 			// Adjust bbox top/bottom
 			QModelIndex index = document->indexAtItem(m_wordItem);
@@ -659,6 +663,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+M</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Merge with previous word</td></tr>"
 	                           "<tr><td>Ctrl+Shift+M</td>"            "<td> </td> <td> </td> <td>E</td> <td>Merge with next word</td></tr>"
 	                           "<tr><td>Ctrl+W</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Insert new word/line at cursor</td></tr>"
+	                           "<tr><td>Ctrl+T</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Trim word height (heuristic)</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Delete current character</td></tr>"
 	                           "<tr><td>Ctrl+Delete</td>"             "<td>D</td> <td>T</td> <td>E</td> <td>Toggle Disable current item</td></tr>"
 	                           "<tr><td>Ctrl+Shift+Delete</td>"       "<td>D</td> <td>T</td> <td>E</td> <td>(Hard) delete current item</td></tr>"

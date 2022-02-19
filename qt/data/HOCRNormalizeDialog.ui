@@ -186,6 +186,22 @@
      <number>1</number>
     </property>
    </widget>
+   <widget class="QCheckBox" name="trimHeight_0">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>120</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Trim overheight words to font (heuristic)</string>
+    </property>
+    <property name="text">
+     <string>Trim Height</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QDialogButtonBox" name="buttonBoxCancel">
    <property name="geometry">
@@ -385,6 +401,22 @@
      <number>1</number>
     </property>
    </widget>
+   <widget class="QCheckBox" name="trimHeight_1">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>120</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Trim overheight words to font (heuristic)</string>
+    </property>
+    <property name="text">
+     <string>Trim Height</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_2">
    <property name="geometry">
@@ -555,6 +587,22 @@
      <number>1</number>
     </property>
    </widget>
+   <widget class="QCheckBox" name="trimHeight_2">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>120</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Trim overheight words to font (heuristic)</string>
+    </property>
+    <property name="text">
+     <string>Trim Height</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_3">
    <property name="geometry">
@@ -723,6 +771,22 @@
     </property>
     <property name="minimum">
      <number>1</number>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="trimHeight_3">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>120</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Trim overheight words to font (heuristic)</string>
+    </property>
+    <property name="text">
+     <string>Trim Height</string>
     </property>
    </widget>
   </widget>

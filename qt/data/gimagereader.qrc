@@ -30,6 +30,7 @@
         <file alias="rotate_pages">../../data/icons/rotate_pages.png</file>
         <file alias="rotate_auto">../../data/icons/rotate_auto.png</file>
         <file alias="wconf">../../data/icons/wconf.png</file>
+        <file alias="trimbox">../../data/icons/trimbox.png</file>
         <file alias="landscape">../../data/icons/landscape.png</file>
         <file alias="portrait">../../data/icons/portrait.png</file>
         <file alias="collapse">../../data/icons/collapse.png</file>

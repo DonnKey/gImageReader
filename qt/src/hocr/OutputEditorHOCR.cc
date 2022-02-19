@@ -383,6 +383,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionToggleWConf, &QAction::triggered, this, &OutputEditorHOCR::toggleWConfColumn);
 	connect(ui.actionPreview, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.actionProofread, &QAction::toggled, m_proofReadWidget, &HOCRProofReadWidget::setProofreadEnabled);
+	connect(ui.actionOverheight, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(&m_previewTimer, &QTimer::timeout, this, &OutputEditorHOCR::updatePreview);
 	connect(ui.searchFrame, &SearchReplaceFrame::findReplace, this, &OutputEditorHOCR::findReplace);
 	connect(ui.searchFrame, &SearchReplaceFrame::replaceAll, this, &OutputEditorHOCR::replaceAll);
@@ -413,6 +414,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	ADD_SETTING(SwitchSetting("replacescans", ui.checkBoxReplace, false));
 	ADD_SETTING(ActionSetting("displayconfidence", ui.actionToggleWConf, false));
 	ADD_SETTING(ActionSetting("displaypreview", ui.actionPreview, false));
+	ADD_SETTING(ActionSetting("displayoverheight", ui.actionOverheight, true));
 
 	setFont();
 
@@ -1205,6 +1207,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	}
 
 	QMenu menu;
+	menu.setToolTipsVisible(true);
 	m_contextMenu = &menu;
 	QAction* actionAddGraphic = nullptr;
 	QAction* actionAddCArea = nullptr;
@@ -1218,6 +1221,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QAction* actionCollapse = nullptr;
 	QAction* actionMoveUp = nullptr;
 	QAction* actionMoveDown = nullptr;
+	QAction* actionFit = nullptr;
 	QAction* nonActionMultiple = nullptr;
 
 	nonActionMultiple = menu.addAction(_("Multiple Selection Menu"));
@@ -1241,6 +1245,10 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		menu.addSeparator();
 	}
 	actionNormalize = menu.addAction(_("Normalize"));
+	if(itemClass == "ocrx_word" && item->isOverheight()) {
+		actionFit = menu.addAction(_("Trim height"));
+		actionFit->setToolTip(_("Heuristic trim overheight word to font size"));
+	}
 	if(itemClass == "ocr_par" || itemClass == "ocr_line" || itemClass == "ocrx_word") {
 		actionSplit = menu.addAction(_("Split from parent"));
 	}
@@ -1294,6 +1302,8 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		moveUpDown(index,-1);
 	} else if(clickedAction == actionMoveDown) {
 		moveUpDown(index,+1);
+	} else if(clickedAction == actionFit) {
+		m_document->fitToFont(index);
 	}
 	menu.setAttribute(Qt::WA_DeleteOnClose, true);
 }
@@ -1866,6 +1876,14 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 			font.setItalic(wordItem->fontItalic());
 			font.setPointSizeF(wordItem->fontSize());
 			painter.setFont(font);
+
+			if (ui.actionOverheight->isChecked() && wordItem->isOverheight()) {
+				painter.save();
+				painter.setBrush(QColor(255, 255, 63, 128)); // yellowish
+				painter.drawRect(wordItem->bbox());
+				painter.restore();
+
+			}
 			// See https://github.com/kba/hocr-spec/issues/15
 			// double y is the y coordinate of the mid-point along the x axis on baseline for line first*x+second (mx+b)
 			if(std::abs(textangle) == 0) {

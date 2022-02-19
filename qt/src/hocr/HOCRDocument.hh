@@ -99,6 +99,7 @@ public:
 	}
 	bool toggleEnabledCheckbox(const QModelIndex& index);
 	void setAttributes(const QString& name, const QString& value, const QString& attrItemClass, const QModelIndex &index);
+	void fitToFont(const QModelIndex& index);
 
 signals:
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);
@@ -190,6 +191,7 @@ public:
 	bool fontItalic() const {
 		return m_italic;
 	}
+	bool isOverheight(bool force = false) const;
 
 	static QMap<QString, QString> deserializeAttrGroup(const QString& string);
 	static QString serializeAttrGroup(const QMap<QString, QString>& attrs);
@@ -213,6 +215,7 @@ protected:
 	HOCRItem* m_parentItem = nullptr;
 	int m_index;
 	bool m_enabled = true;
+	mutable int m_isOverheight = 2;
 
 	QRect m_bbox;
 

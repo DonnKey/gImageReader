@@ -42,6 +42,7 @@ public:
 	QAction* actionToggleWConf;
 	QAction* actionPreview;
 	QAction* actionProofread;
+	QAction* actionOverheight;
 	QAction* actionNavigateNext;
 	QAction* actionNavigatePrev;
 	QAction* actionExpandAll;
@@ -130,6 +131,11 @@ public:
 		actionPreview = new QAction(QIcon::fromTheme("document-preview"), gettext("Show preview"), widget);
 		actionPreview->setToolTip(gettext("Show preview"));
 		actionPreview->setCheckable(true);
+		actionOverheight = new QAction(QIcon(":/icons/trimbox"), gettext("Show Over-height"), widget);
+		actionOverheight->setToolTip(gettext("Highlight words that are inconsistent with the font size."
+			"<br>Right click Output tree item and select \"Trim\" to fix. See also Normalize. (Ctrl-T)"));
+		actionOverheight->setCheckable(true);
+		actionOverheight->setChecked(true);
 
 		toolBarOutput = new QToolBar(widget);
 		toolBarOutput->setToolButtonStyle(Qt::ToolButtonIconOnly);
@@ -146,6 +152,7 @@ public:
 		toolBarOutput->addAction(actionToggleWConf);
 		toolBarOutput->addAction(actionProofread);
 		toolBarOutput->addAction(actionPreview);
+		toolBarOutput->addAction(actionOverheight);
 		widget->addAction(actionOutputReplaceKey); // to some harmless parent
 
 		widget->layout()->addWidget(toolBarOutput);

@@ -46,6 +46,9 @@ public:
 	void reset() override {
 		setAction(ACTION_NONE, true);
 	}
+	bool selecting() const override {
+		return m_currentAction >= ACTION_DRAW_GRAPHIC_RECT && m_currentAction <= ACTION_DRAW_WORD_RECT;
+	}
 
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;

@@ -95,6 +95,7 @@ private:
 	double m_scale = 1.0;
 	DisplayerTool* m_tool = nullptr;
 	QPoint m_panPos;
+	Qt::CursorShape m_cursor = Qt::BlankCursor;
 	QTimer m_renderTimer;
 	QTransform m_viewportTransform;
 	QColor guessBackground(QPixmap& image);
@@ -164,6 +165,9 @@ public:
 	}
 	virtual void autodetectOCRAreas() {}
 	virtual void reset() {}
+	virtual bool selecting() const {
+		return false;
+	}
 
 	Displayer* getDisplayer() const {
 		return m_displayer;
@@ -202,6 +206,10 @@ public:
 		m_anchor *= factor;
 		m_point *= factor;
 	}
+	static bool isHovering() {
+		// Is the user hovering over a draggable element? Suppress panning if so.
+		return m_hovering;
+	}
 
 protected:
 	DisplayerTool* m_tool;
@@ -218,10 +226,12 @@ private:
 	QPointF m_point;
 	QRectF m_minRect;
 	QVector<ResizeHandler> m_resizeHandlers;
-	QPointF m_mouseMoveOffset;
 	bool m_translating = false;
+	QPointF m_mouseMoveOffset;
+	static bool m_hovering;
 
 	void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
+	void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
 	void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
 	void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
 	void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;

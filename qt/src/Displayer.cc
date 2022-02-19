@@ -39,6 +39,7 @@
 #include <QtConcurrent/QtConcurrentMap>
 #include <algorithm>
 
+bool DisplayerSelection::m_hovering;
 
 class GraphicsScene : public QGraphicsScene {
 public:
@@ -557,14 +558,19 @@ void Displayer::mousePressEvent(QMouseEvent* event) {
 		setZoom(Zoom::InStage2);
 		return;
 	}
+
+	m_panPos = event->pos();
+
 	if(event->button() == Qt::MiddleButton) {
-		m_panPos = event->pos();
-	} else {
-		event->ignore();
-		QGraphicsView::mousePressEvent(event);
-		if(!event->isAccepted() && m_tool && m_currentSource) {
-			m_tool->mousePressEvent(event);
-		}
+		m_cursor = Qt::ClosedHandCursor;
+		QApplication::setOverrideCursor(m_cursor);
+		return;
+	} 
+
+	event->ignore();
+	QGraphicsView::mousePressEvent(event);
+	if(!event->isAccepted() && m_tool && m_currentSource) {
+		m_tool->mousePressEvent(event);
 	}
 }
 
@@ -574,16 +580,40 @@ void Displayer::mouseMoveEvent(QMouseEvent* event) {
 		horizontalScrollBar()->setValue( horizontalScrollBar()->value() - delta.x() );
 		verticalScrollBar()->setValue( verticalScrollBar()->value() - delta.y() );
 		m_panPos = event->pos();
-	} else {
-		event->ignore();
-		QGraphicsView::mouseMoveEvent(event);
-		if(!event->isAccepted() && m_tool && m_currentSource) {
-			m_tool->mouseMoveEvent(event);
-		}
+		return;
+	} 
+	
+	if(!DisplayerSelection::isHovering() &&
+		!m_tool->selecting() &&
+		(event->buttons() & Qt::LeftButton) == Qt::LeftButton &&
+		(event->modifiers() & Qt::KeyboardModifierMask) == Qt::NoModifier) {
+		QPoint delta = event->pos() - m_panPos;
+		if (m_cursor != Qt::BlankCursor || delta.manhattanLength() > 1) {
+			if (m_cursor == Qt::BlankCursor) {
+				m_cursor = Qt::ClosedHandCursor;
+				QApplication::setOverrideCursor(m_cursor);
+			}
+			horizontalScrollBar()->setValue( horizontalScrollBar()->value() - delta.x() );
+			verticalScrollBar()->setValue( verticalScrollBar()->value() - delta.y() );
+			m_panPos = event->pos();
+			return;
+	    }
+	}
+
+	event->ignore();
+	QGraphicsView::mouseMoveEvent(event);
+	if(!event->isAccepted() && m_tool && m_currentSource) {
+		m_tool->mouseMoveEvent(event);
 	}
 }
 
 void Displayer::mouseReleaseEvent(QMouseEvent* event) {
+	if (m_cursor != Qt::BlankCursor) {
+		// we were panning
+		QApplication::restoreOverrideCursor();
+		m_cursor = Qt::BlankCursor;
+		return;
+	}
 	event->ignore();
 	QGraphicsView::mouseReleaseEvent(event);
 	if(!event->isAccepted() && m_tool && m_currentSource) {
@@ -593,7 +623,7 @@ void Displayer::mouseReleaseEvent(QMouseEvent* event) {
 
 void Displayer::wheelEvent(QWheelEvent* event) {
 	if(event->modifiers() & Qt::ControlModifier) {
-		setZoom(event->angleDelta().y() > 0 ? Zoom::In : Zoom::Out, QGraphicsView::AnchorUnderMouse);
+		setZoom(event->angleDelta().y() > 0 ? Zoom::InStage2 : Zoom::Out, QGraphicsView::AnchorUnderMouse);
 		event->accept();
 	} else if(event->modifiers() & Qt::ShiftModifier) {
 		QScrollBar* hscroll = horizontalScrollBar();
@@ -788,16 +818,28 @@ void DisplayerSelection::hoverMoveEvent(QGraphicsSceneHoverEvent* event) {
 	bool bottom = std::abs(r.y() + r.height() - p.y()) < tol;
 
 	if((top && left) || (bottom && right)) {
+		m_hovering = true;
 		setCursor(Qt::SizeFDiagCursor);
 	} else if((top && right) || (bottom && left)) {
+		m_hovering = true;
 		setCursor(Qt::SizeBDiagCursor);
 	} else if(top || bottom) {
+		m_hovering = true;
 		setCursor(Qt::SizeVerCursor);
 	} else if(left || right) {
+		m_hovering = true;
 		setCursor(Qt::SizeHorCursor);
-	} else {
+	} else if (r.contains(p)) {
 		setCursor(Qt::SizeAllCursor);
+		m_hovering = true;
+	} else {
+		m_hovering = false;
+		unsetCursor();
 	}
+}
+
+void DisplayerSelection::hoverLeaveEvent(QGraphicsSceneHoverEvent* event) {
+	m_hovering = false;
 }
 
 void DisplayerSelection::mousePressEvent(QGraphicsSceneMouseEvent* event) {

@@ -97,7 +97,7 @@ SourceManager::~SourceManager() {
 	clearSources();
 }
 
-int SourceManager::addSources(const QStringList& files, bool suppressWarnings) {
+int SourceManager::addSources(const QStringList& files, bool suppressWarnings, bool singleSelect) {
 	QStringList failed;
 	QItemSelection sel;
 	QModelIndex index;
@@ -140,6 +140,20 @@ int SourceManager::addSources(const QStringList& files, bool suppressWarnings) {
 	}
 	ConfigSettings::get<VarSetting<QStringList>>("recentitems")->setValue(recentItems.mid(0, sMaxNumRecent));
 	ui.treeViewSources->selectionModel()->blockSignals(true);
+	QAbstractItemView::SelectionMode oldMode = ui.treeViewSources->selectionMode();
+	if(singleSelect) {
+		// Interaction between this TreeView and the one in hOCR Output window.
+		// Normally we use ExtendedSelection here. Ctrl click is select/deselect of TreeView items when that flag is set.
+		// This function can be (and frequently is) called from DisplayerToolHOCR:newPage. If the user presses Ctrl
+		// (click) when that occurs, the Ctrl modifier is seen here because currentSourceChanged below does 'emit sourceChanged'.
+		// sourceChanged uses QApplication::keyboardModifiers() to detect that Ctrl was held at the time of
+		// the click, and does the wrong thing (thinking the request came from a mouse event directed at itself).
+		// (The use of keyboardModifiers is deeply nested in the libray while deciding which Selection Mode is in use.)
+		// The side-effects are undesireable (and confusing), including clearing or freezing the DisplayerTool window.
+		// Disable Ctrl by temporarily using SingleSelection. Arguably a workaround for a Qt bug.
+		// Repro: Ctrl-click on Dispalyer canvas (or Ctrl-key in tree view).  Still in Qt 5.15.
+		ui.treeViewSources->setSelectionMode(QAbstractItemView::SingleSelection);
+	}
 	ui.treeViewSources->setUpdatesEnabled(false);
 	if(!sel.isEmpty()) {
 		ui.treeViewSources->selectionModel()->select(sel, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Select | QItemSelectionModel::Rows);
@@ -153,6 +167,7 @@ int SourceManager::addSources(const QStringList& files, bool suppressWarnings) {
 	ui.treeViewSources->selectionModel()->blockSignals(false);
 	ui.treeViewSources->setUpdatesEnabled(true);
 	currentSourceChanged();
+	ui.treeViewSources->setSelectionMode(oldMode);
 	if(!failed.isEmpty() && !suppressWarnings) {
 		QMessageBox::critical(MAIN, _("Unable to open files"), _("The following files could not be opened:\n%1").arg(failed.join("\n")));
 	}

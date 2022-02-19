@@ -563,7 +563,8 @@ void OutputEditorHOCR::expandCollapseChildren(const QModelIndex& index, bool exp
 
 
 bool OutputEditorHOCR::newPage(const HOCRPage* page) {
-	return page && MAIN->getSourceManager()->addSource(page->sourceFile(), true) && MAIN->getDisplayer()->setup(&page->pageNr(), &page->resolution(), &page->angle());
+	// Change to a *single* new page. See singleSelect in addSource().
+	return page && MAIN->getSourceManager()->addSource(page->sourceFile(), true, true) && MAIN->getDisplayer()->setup(&page->pageNr(), &page->resolution(), &page->angle());
 }
 
 int OutputEditorHOCR::currentPage() {

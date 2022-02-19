@@ -32,6 +32,9 @@
 #include <QSyntaxHighlighter>
 #include <QTimer>
 #include <QtSpell.hpp>
+#include <QRadioButton>
+#include <QButtonGroup>
+#include <QTextEdit>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -754,6 +757,119 @@ void OutputEditorHOCR::itemAttributeChanged(const QModelIndex& itemIndex, const 
 	}
 }
 
+class GetWordDialog : public QDialog
+{
+	//Q_OBJECT
+public:
+	GetWordDialog(QWidget *parent, const QString& name, NewWordMode initialMode) : QDialog(parent) {
+		setWindowTitle(name);
+		setObjectName("GetWordDialog dialog");
+		QVBoxLayout* mainBox = new QVBoxLayout(this);
+
+		m_policyBoxGroup = new QButtonGroup(mainBox);
+		QGroupBox* policies = new QGroupBox(_("Place word..."), this);
+		QVBoxLayout* policyBoxLayout = new QVBoxLayout();
+		if(initialMode == NewWordMode::CurrentLine) {
+			QRadioButton* policy1 = new QRadioButton(_("...in selected Textline"),policies);
+			m_policyBoxGroup->addButton(policy1,static_cast<int>(NewWordMode::CurrentLine));
+			policy1->setToolTip(_("From the one selected in the HOCR tree"));
+			policy1->setChecked(true);
+			policyBoxLayout->addWidget(policy1);
+		}
+		QRadioButton* policy2 = new QRadioButton(_("...in nearest Textline"),policies);
+		policy2->setToolTip(_("The nearest above the cursor"));
+		policy2->setChecked(initialMode == NewWordMode::NearestLine);
+		m_policyBoxGroup->addButton(policy2,static_cast<int>(NewWordMode::NearestLine));
+		policyBoxLayout->addWidget(policy2);
+		QRadioButton* policy3 = new QRadioButton(_("...in new Textline at cursor"),policies);
+		policy3->setToolTip(_("A new textline just below the Textline nearest above cursor"));
+		policy3->setChecked(initialMode == NewWordMode::NewLine);
+		m_policyBoxGroup->addButton(policy3,static_cast<int>(NewWordMode::NewLine));
+		policyBoxLayout->addWidget(policy3);
+
+		policies->setLayout(policyBoxLayout);
+		mainBox->addWidget(policies);
+
+		QGroupBox* captionBox = new QGroupBox(this);
+		QHBoxLayout* caption = new QHBoxLayout();
+		captionBox->setContentsMargins(0, 0, 0, 0);
+		caption->setContentsMargins(0, 0, 0, 0);
+		caption->addWidget(new QLabel(_("Enter word:")));
+		caption->addStretch(1);
+		QCheckBox* fitCheckBox = new QCheckBox(_("Fit"));
+		fitCheckBox->setToolTip(_("Size new Bounding Box to fit text"));
+		QString currentTitle;
+		int currentIndex;
+		HOCRNormalize().currentDefault(currentTitle, currentIndex);
+		QCheckBox* nrmCheckBox = new QCheckBox(_("N%1 ").arg(currentIndex));
+		nrmCheckBox->setToolTip(_("Apply most recent normalization (%1)").arg(currentTitle));
+		caption->addWidget(nrmCheckBox);
+		caption->addWidget(fitCheckBox);
+		caption->setSpacing(0);
+		captionBox->setLayout(caption);
+		captionBox->setStyleSheet("border:none; margin 0px; padding 0px");
+		mainBox->addWidget(captionBox);
+
+		m_lineEdit = new QLineEdit(this);
+		m_lineEdit->setFocus();
+		mainBox->addWidget(m_lineEdit);
+
+		QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+		mainBox->addWidget(buttons);
+
+		connect(buttons->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, &GetWordDialog::done);
+		connect(buttons->button(QDialogButtonBox::Cancel), &QPushButton::clicked, this, &GetWordDialog::cancel);
+		connect(fitCheckBox, &QCheckBox::toggled, this, [](){}); // doesn't work without it!
+		connect(nrmCheckBox, &QCheckBox::toggled, this, [](){});
+
+		ADD_SETTING(SwitchSetting("fitNewWord", fitCheckBox, true));
+		ADD_SETTING(SwitchSetting("normalizeNewWord", nrmCheckBox, true));
+
+		exec();
+		setFocus();
+	}
+
+	QString getText(NewWordMode& mode) {
+		mode = static_cast<NewWordMode>(m_policyBoxGroup->checkedId());
+		return m_text;
+	}
+
+	private:
+	QButtonGroup* m_policyBoxGroup;
+	QString m_text;
+	QLineEdit *m_lineEdit;
+
+	private slots:
+	void done() {
+		m_text = m_lineEdit->text();
+		close();
+	}
+	void cancel() {
+		m_text = QString();
+		close();
+	}
+};
+
+QDomElement OutputEditorHOCR::newLine(QDomDocument &doc, const QRect& bbox, QMap<QString, QMap<QString, QSet<QString>>>& propAttrs) {
+	QDomElement newElement;
+
+	newElement = doc.createElement("span");
+	newElement.setAttribute("class", "ocr_line");
+	QSet<QString> propLineBaseline = propAttrs["ocrx_line"]["baseline"];
+	// Tesseract does as follows:
+	// row_height = x_height + ascenders - descenders
+	// font_pt_size = row_height * 72 / dpi (72 = pointsPerInch)
+	// As a first approximation, assume x_size = bbox.height() and ascenders = descenders = bbox.height() / 4
+	QMap<QString, QString> titleAttrs;
+	titleAttrs["bbox"] = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+	titleAttrs["x_ascenders"] = QString("%1").arg(0.25 * bbox.height());
+	titleAttrs["x_descenders"] = QString("%1").arg(0.25 * bbox.height());
+	titleAttrs["x_size"] = QString("%1").arg(bbox.height());
+	titleAttrs["baseline"] = propLineBaseline.size() == 1 ? *propLineBaseline.begin() : QString("0 0");
+	newElement.setAttribute("title", HOCRItem::serializeAttrGroup(titleAttrs));
+	return newElement;
+}
+
 void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 	QDomDocument doc;
 	QModelIndex current = ui.treeViewHOCR->selectionModel()->currentIndex();
@@ -761,9 +877,13 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 	if(!currentItem) {
 		return;
 	}
+	QModelIndex index = QModelIndex();
+
 	QMap<QString, QMap<QString, QSet<QString>>> propAttrs;
 	currentItem->getPropagatableAttributes(propAttrs);
 	QDomElement newElement;
+	int newPos = -1; // at end
+
 	if(action == DisplayerToolHOCR::ACTION_DRAW_GRAPHIC_RECT) {
 		newElement = doc.createElement("div");
 		newElement.setAttribute("class", "ocr_graphic");
@@ -777,49 +897,181 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 		newElement.setAttribute("class", "ocr_par");
 		newElement.setAttribute("title", QString("bbox %1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom()));
 	} else if(action == DisplayerToolHOCR::ACTION_DRAW_LINE_RECT) {
-		newElement = doc.createElement("span");
-		newElement.setAttribute("class", "ocr_line");
-		QSet<QString> propLineBaseline = propAttrs["ocrx_line"]["baseline"];
-		// Tesseract does as follows:
-		// row_height = x_height + ascenders - descenders
-		// font_pt_size = row_height * 72 / dpi (72 = pointsPerInch)
-		// As a first approximation, assume x_size = bbox.height() and ascenders = descenders = bbox.height() / 4
-		QMap<QString, QString> titleAttrs;
-		titleAttrs["bbox"] = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
-		titleAttrs["x_ascenders"] = QString("%1").arg(0.25 * bbox.height());
-		titleAttrs["x_descenders"] = QString("%1").arg(0.25 * bbox.height());
-		titleAttrs["x_size"] = QString("%1").arg(bbox.height());
-		titleAttrs["baseline"] = propLineBaseline.size() == 1 ? *propLineBaseline.begin() : QString("0 0");
-		newElement.setAttribute("title", HOCRItem::serializeAttrGroup(titleAttrs));
+		newElement = newLine(doc, bbox, propAttrs);
 	} else if(action == DisplayerToolHOCR::ACTION_DRAW_WORD_RECT) {
-		QString text = QInputDialog::getText(m_widget, _("Add Word"), _("Enter word:"));
+		NewWordMode mode = NewWordMode::CurrentLine;
+		QModelIndex foundLine = pickLine(bbox.topLeft());
+		const HOCRItem* foundItem = m_document->itemAtIndex(foundLine);
+		
+		if (bbox.height() == 0) {
+			if(!foundItem) {
+				return;
+			}
+			QRectF bigBox = foundItem->bbox();
+			// expand top, bottom 10%; left 30%, right 100%
+			bigBox = QRect(std::max(0.0, bigBox.x()-bigBox.width()*0.3), std::max(0.0, bigBox.y()-bigBox.height()*0.1), bigBox.width()*2.3, bigBox.height()*1.2);
+			if (bigBox.contains(bbox.topLeft())) {
+				mode = NewWordMode::NearestLine;
+			} else {
+				mode = NewWordMode::NewLine;
+			}
+		}
+
+		QString text = GetWordDialog(m_widget, _("Add Word"), mode).getText(mode);
 		if(text.isEmpty()) {
 			m_tool->clearSelection();
 			return;
 		}
+
+		if (mode == NewWordMode::NearestLine) {
+			current = foundLine;
+			currentItem = foundItem;
+			propAttrs.clear();
+			currentItem->getPropagatableAttributes(propAttrs);
+		}
+
+		if (mode == NewWordMode::NewLine) {
+			current = foundLine;
+			QModelIndex parent = current.parent();
+			const HOCRItem* parentItem = m_document->itemAtIndex(parent);
+			int newRow = current.row();
+			int top = bbox.top();
+			QVector<HOCRItem *>children = parentItem->children();
+			while(newRow > 0) {
+				if (top > children[newRow]->bbox().top()) {
+					break;
+				}
+				newRow--;
+			}
+			newRow += 1;
+			while(newRow < children.size()) {
+				if (top < children[newRow]->bbox().top()) {
+					break;
+				}
+				newRow++;
+			}
+			if (newRow >= children.size()) {
+				newRow = -1; // at end
+			}
+			if (parentItem->bbox().top() >= bbox.top()) {
+				newRow = 0;
+			}
+			QRect newBBox = bbox;
+			newBBox.setHeight(0);
+			propAttrs.clear();
+			parentItem->getPropagatableAttributes(propAttrs);
+			QDomElement line = newLine(doc, newBBox, propAttrs);
+			current = m_document->addItem(current.parent(), line, newRow);
+			currentItem = m_document->itemAtIndex(current);
+			propAttrs.clear();
+			currentItem->getPropagatableAttributes(propAttrs);
+		}
+
 		newElement = doc.createElement("span");
 		newElement.setAttribute("class", "ocrx_word");
 		QMap<QString, QSet<QString>> propWord = propAttrs["ocrx_word"];
 
 		newElement.setAttribute("lang", propWord["lang"].size() == 1 ? *propWord["lang"].begin() : m_document->defaultLanguage());
 		QMap<QString, QString> titleAttrs;
-		titleAttrs["bbox"] = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
 		titleAttrs["x_wconf"] = "100";
 		titleAttrs["x_font"] = propWord["title:x_font"].size() == 1 ?
 		                       *propWord["title:x_font"].begin() : QFont().family();
 		titleAttrs["x_fsize"] = propWord["title:x_fsize"].size() == 1 ?
-		                        *propWord["title:x_fsize"].begin() : QString("%1").arg(qRound(bbox.height() * 72. / currentItem->page()->resolution()));
-		newElement.setAttribute("title", HOCRItem::serializeAttrGroup(titleAttrs));
+		                        *propWord["title:x_fsize"].begin() : 
+								bbox.height() == 0 ? "8" :
+								QString("%1").arg(qRound(bbox.height() * 72. / currentItem->page()->resolution()));
 		if (propWord["bold"].size() == 1) { newElement.setAttribute("bold", *propWord["bold"].begin()); }
 		if (propWord["italic"].size() == 1) { newElement.setAttribute("italic", *propWord["italic"].begin()); }
+
+		int x2 = bbox.right();
+		int y2 = bbox.bottom();
+		if (QSettings().value("fitNewWord").toBool()) {
+			int maxFontSize = -1;
+			for(QString i:propWord["title:x_fsize"]) {
+				maxFontSize = std::max(i.toInt(),maxFontSize);
+			}
+			if (maxFontSize > 0) {
+				titleAttrs["x_fsize"] = QString("%1").arg(maxFontSize);
+			}
+
+			for (int i = 0; i < currentItem->children().size(); i++) {
+				if (currentItem->children().at(i)->bbox().left() > bbox.left()) {
+					newPos = i;
+					break;
+				}
+			}
+		} 
+
+		titleAttrs["bbox"] = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(x2).arg(y2);
+		newElement.setAttribute("title", HOCRItem::serializeAttrGroup(titleAttrs));
 		newElement.appendChild(doc.createTextNode(text));
+		if (QSettings().value("normalizeNewWord").toBool() || QSettings().value("fitNewWord").toBool() || bbox.height() == 0) {
+			index = m_document->addItem(current, newElement, newPos);
+			const HOCRItem* item = m_document->itemAtIndex(index);
+
+			if (QSettings().value("normalizeNewWord").toBool()) {
+				HOCRNormalize().normalizeSingle(m_document, item);
+			}
+
+			// Must occur after normalization
+			QFont font;
+			if(!item->fontFamily().isEmpty()) {
+				font.setFamily(item->fontFamily());
+			}
+			font.setBold(item->fontBold());
+			font.setItalic(item->fontItalic());
+			font.setPointSizeF(item->fontSize());
+			QFontMetricsF fm(font);
+			// These report in 1/96 inch pixels (afaict), even though we're mostly thinking in points.
+			int len = qRound((fm.horizontalAdvance(text)) * currentItem->page()->resolution()/96.);
+			int hei = qRound((fm.capHeight()) * currentItem->page()->resolution()/96.);
+			int x1 = bbox.left();
+			int y1 = bbox.top();
+			if (bbox.height() == 0 && QSettings().value("fitNewWord").toBool()) {
+				x1 -= len/2;
+				y1 -= hei/2;
+				x2 = x1 + len;
+				y2 = y1 + hei;
+				if (currentItem->bbox().height() > 0) {
+					y1 = std::max(currentItem->bbox().center().y() - hei/2, currentItem->bbox().top());
+					y2 = std::min(y1+hei, currentItem->bbox().bottom());
+				}
+			} else if (bbox.height() == 0) {
+				x2 = x1 + len;
+				y2 = y1 + hei;
+			} else {
+				x2 = std::min(x1+len,bbox.right());
+				y2 = std::min(y1+hei,bbox.bottom());
+			}
+
+			QString bboxstr = QString("%1 %2 %3 %4").arg(x1).arg(y1).arg(x2).arg(y2);
+			m_document->editItemAttribute(index, "title:bbox", bboxstr);
+		}
 	} else {
 		return;
 	}
-	QModelIndex index = m_document->addItem(current, newElement);
+	if (!index.isValid()) {
+		index = m_document->addItem(current, newElement, newPos);
+	}
 	if(index.isValid()) {
 		ui.treeViewHOCR->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 	}
+}
+
+void OutputEditorHOCR::addWordAtCursor() {
+	QPoint p = MAIN->getDisplayer()->mapFromGlobal(QCursor::pos());
+	QPointF q = MAIN->getDisplayer()->mapToScene(p);
+	QPointF qOld = q;
+	QRectF bounds = MAIN->getDisplayer()->getSceneBoundingRect();
+	q.rx() = std::min(std::max(bounds.x(), q.x()), bounds.x() + bounds.width());
+	q.ry() = std::min(std::max(bounds.y(), q.y()), bounds.y() + bounds.height());
+	if (q != qOld) {
+		// If clamping changed things, it's off-screen and ignore it
+		return;
+	}
+	QRectF rf = QRectF(q, q).normalized();
+	QRect r = rf.translated(-bounds.toRect().topLeft()).toRect();
+	bboxDrawn(r, static_cast<int>(DisplayerToolHOCR::ACTION_DRAW_WORD_RECT));
 }
 
 void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
@@ -1090,7 +1342,7 @@ void OutputEditorHOCR::pickItem(const QPoint& point) {
 		return;
 	}
 	const HOCRPage* page = pageItem->page();
-	// Transform point in coordinate space used when page was OCRed
+	// Transform point into coordinate space used when page was OCRed from canvas position
 	double alpha = (page->angle() - MAIN->getDisplayer()->getCurrentAngle()) / 180. * M_PI;
 	double scale = double(page->resolution()) / double(MAIN->getDisplayer()->getCurrentResolution());
 	QPoint newPoint( scale * (point.x() * std::cos(alpha) - point.y() * std::sin(alpha)) + 0.5 * page->bbox().width(),
@@ -1103,6 +1355,23 @@ void OutputEditorHOCR::pickItem(const QPoint& point) {
 	} else {
 		MAIN->getDisplayer()->setFocus();
 	}
+}
+
+QModelIndex OutputEditorHOCR::pickLine(const QPoint& point) {
+	int pageNr;
+	QString filename = MAIN->getDisplayer()->getCurrentImage(pageNr);
+	QModelIndex pageIndex = m_document->searchPage(filename, pageNr);
+	const HOCRItem* pageItem = m_document->itemAtIndex(pageIndex);
+	if(!pageItem) {
+		return QModelIndex();
+	}
+	const HOCRPage* page = pageItem->page();
+	// Transform point into coordinate space used when page was OCRed
+	double alpha = (page->angle() - MAIN->getDisplayer()->getCurrentAngle()) / 180. * M_PI;
+	double scale = double(page->resolution()) / double(MAIN->getDisplayer()->getCurrentResolution());
+	QPoint newPoint( scale * (point.x() * std::cos(alpha) - point.y() * std::sin(alpha)),
+	                 scale * (point.x() * std::sin(alpha) + point.y() * std::cos(alpha)) );
+    return m_document->lineAboveCanvasPos(pageIndex, newPoint);
 }
 
 void OutputEditorHOCR::toggleWConfColumn() {

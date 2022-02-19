@@ -21,6 +21,7 @@
 #define OUTPUTEDITORHOCR_HH
 
 #include <QTimer>
+#include <QDomDocument>
 
 #include "OutputEditor.hh"
 #include "Ui_OutputEditorHOCR.hh"
@@ -31,6 +32,8 @@ class HOCRItem;
 class HOCRPage;
 class HOCRProofReadWidget;
 class QGraphicsPixmapItem;
+
+enum class NewWordMode { CurrentLine, NearestLine, NewLine };
 
 class OutputEditorHOCR : public OutputEditor {
 	Q_OBJECT
@@ -69,6 +72,7 @@ public:
 	void blinkCombo();
 	int m_blinkCounter = 0;
 	QTimer *m_blinkTimer;
+	void addWordAtCursor();
 
 public slots:
 	bool open(const QString& filename) override { return open(InsertMode::Replace, {filename}); }
@@ -122,6 +126,8 @@ private:
 	void moveUpDown(const QModelIndex& index, int by);
 	bool eventFilter(QObject* obj, QEvent* ev);
 	void doReplace(bool force);
+	QDomElement newLine(QDomDocument &doc, const QRect& bbox, QMap<QString, QMap<QString, QSet<QString>>>& propAttrs);
+	QModelIndex pickLine(const QPoint& point);
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);

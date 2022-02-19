@@ -29,6 +29,7 @@
 #include "HOCRSpellChecker.hh"
 #include "MainWindow.hh"
 #include "SourceManager.hh"
+#include "OutputEditorHOCR.hh"
 
 
 class HOCRProofReadWidget::LineEdit : public QLineEdit {
@@ -238,6 +239,10 @@ private:
 			}
 			QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
 			document->editItemAttribute(index, "title:bbox", bboxstr);
+		} else if(ev->key() == Qt::Key_W && ev->modifiers() == Qt::ControlModifier) {
+			// Add word
+			QPoint p = QCursor::pos();
+			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->addWordAtCursor();
 		} else if(ev->key() == Qt::Key_D && ev->modifiers() == Qt::ControlModifier) {
 			// Divide
 			QModelIndex index = document->indexAtItem(m_wordItem);
@@ -588,6 +593,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+D</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Divide word at cursor position</td></tr>"
 	                           "<tr><td>Ctrl+M</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Merge with previous word</td></tr>"
 	                           "<tr><td>Ctrl+Shift+M</td>"            "<td> </td> <td> </td> <td>E</td> <td>Merge with next word</td></tr>"
+	                           "<tr><td>Ctrl+W</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Insert new word/line at cursor</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Delete current character</td></tr>"
 	                           "<tr><td>Ctrl+Delete</td>"             "<td>D</td> <td>T</td> <td>E</td> <td>Toggle Disable current item</td></tr>"
 	                           "<tr><td>Ctrl+Shift+Delete</td>"       "<td>D</td> <td>T</td> <td>E</td> <td>(Hard) delete current item</td></tr>"

@@ -71,7 +71,7 @@ public:
 	QModelIndex splitItem(const QModelIndex& itemIndex, int startRow, int endRow);
 	QModelIndex splitItemText(const QModelIndex& itemIndex, int pos);
 	QModelIndex mergeItemText(const QModelIndex& itemIndex, bool mergeNext);
-	QModelIndex addItem(const QModelIndex& parent, const QDomElement& element);
+	QModelIndex addItem(const QModelIndex& parent, const QDomElement& element, int pos = -1);
 	bool removeItem(const QModelIndex& index);
 
 	QModelIndex nextIndex(const QModelIndex& current) const;
@@ -83,6 +83,7 @@ public:
 	bool referencesSource(const QString& filename) const;
 	QModelIndex searchPage(const QString& filename, int pageNr) const;
 	QModelIndex searchAtCanvasPos(const QModelIndex& pageIndex, const QPoint& pos) const;
+	QModelIndex lineAboveCanvasPos(const QModelIndex& pageIndex, const QPoint& pos) const;
 	void convertSourcePaths(const QString& basepath, bool absolute);
 
 	QVariant data(const QModelIndex& index, int role) const override;

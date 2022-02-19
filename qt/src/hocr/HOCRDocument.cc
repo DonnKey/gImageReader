@@ -333,15 +333,21 @@ QModelIndex HOCRDocument::mergeItemText(const QModelIndex& itemIndex, bool merge
 	return itemIndex;
 }
 
-QModelIndex HOCRDocument::addItem(const QModelIndex& parent, const QDomElement& element) {
+QModelIndex HOCRDocument::addItem(const QModelIndex& parent, const QDomElement& element, int pos) {
 	HOCRItem* parentItem = mutableItemAtIndex(parent);
 	if(!parentItem) {
 		return QModelIndex();
 	}
+	if (pos < 0 ) {
+		pos = parentItem->children().size();
+	} else {
+		if (pos > parentItem->children().size()) {
+			return QModelIndex();
+		}
+	}
 	HOCRItem* item = new HOCRItem(element, parentItem->page(), parentItem);
-	int pos = parentItem->children().size();
 	beginInsertRows(parent, pos, pos);
-	parentItem->addChild(item);
+	parentItem->insertChild(item,pos);
 	recomputeBBoxes(parentItem);
 	endInsertRows();
 	return index(pos, 0, parent);
@@ -558,6 +564,88 @@ QModelIndex HOCRDocument::searchAtCanvasPos(const QModelIndex& pageIndex, const 
 		}
 	}
 	return idx;
+}
+
+QModelIndex HOCRDocument::lineAboveCanvasPos(const QModelIndex& pageIndex, const QPoint& pos) const {
+	// Can't assume (from actual results) that the page is well-ordered on Y value, thus the added complexity.
+	QModelIndex idx = pageIndex;
+	if(!idx.isValid()) {
+		return QModelIndex();
+	}
+
+	int closest = std::numeric_limits<int>::max();
+	const HOCRItem* closestItem = nullptr;
+
+	const HOCRItem* item = itemAtIndex(idx);
+	while(true) {
+		int iChild = 0, nChildren = item->children().size();
+		for(; iChild < nChildren; ++iChild) {
+			const HOCRItem* childItem = item->children()[iChild];
+			const QRectF bbox = childItem->bbox();
+			int dist = (pos-bbox.bottomLeft()).manhattanLength();
+			if(bbox.bottom() <= pos.y() && dist <= closest) {
+				closest = dist;
+				closestItem = childItem;
+			}
+			if(bbox.top() <= pos.y() && pos.y() <= bbox.bottom()) {
+				idx = index(iChild, 0, idx);
+				if (childItem->itemClass() == "ocr_line") {
+					return idx;
+				}
+				item = childItem;
+				break;
+			}
+		}
+		if(iChild == nChildren || item->itemClass() == "ocr_line") {
+			break;
+		}
+	}
+
+	if(closestItem == nullptr) {
+		// No closest above... fake it
+		item = itemAtIndex(pageIndex);
+		while (true) {
+			if(item->itemClass() == "ocr_line") {
+				break;
+			}
+			if (item->children().size() > 0) {
+				item = item->children()[0];
+			} else {
+				return QModelIndex();
+			}
+		}
+		return indexAtItem(item);
+	}
+
+	if (closestItem->itemClass() != "ocr_line") {
+		item = closestItem;
+		while(true) {
+			int nChildren = item->children().size();
+			if (nChildren == 0) {
+				break;
+			}
+			closest = std::numeric_limits<int>::max();
+			closestItem = nullptr;
+			for(int iChild = 0; iChild < nChildren; ++iChild) {
+				const HOCRItem* childItem = item->children()[iChild];
+				const QRectF bbox = childItem->bbox();
+				int dist = (pos-bbox.bottomLeft()).manhattanLength();
+				if (bbox.bottom() <= pos.y() && dist <= closest) {
+					closest = dist;
+					closestItem = childItem;
+				}
+			}
+			if(item->itemClass() == "ocr_par") {
+				break;
+			}
+			item = closestItem;
+		}
+	}
+
+	if(closestItem == nullptr || closestItem->itemClass() != "ocr_line") {
+		return QModelIndex();
+	}
+	return indexAtItem(closestItem);
 }
 
 void HOCRDocument::convertSourcePaths(const QString& basepath, bool absolute) {
@@ -972,6 +1060,7 @@ QMap<QString, QString> HOCRItem::getAttributes(const QList<QString>& names = QLi
 }
 
 // ocr_class:attr_key:attr_values
+// Does NOT clear 'occurrences' between calls.
 void HOCRItem::getPropagatableAttributes(QMap<QString, QMap<QString, QSet<QString>>>& occurrences) const {
 	static QMap<QString, QStringList> s_propagatableAttributes = {
 		{"ocr_line", {"title:baseline"}},

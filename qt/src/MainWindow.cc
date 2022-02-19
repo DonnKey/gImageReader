@@ -382,6 +382,7 @@ void MainWindow::showAbout() {
 	aboutDialogUi.setupUi(&d);
 	aboutDialogUi.labelVersion->setText(QString("%1 (%2)").arg(PACKAGE_VERSION, QString(PACKAGE_REVISION).left(6)));;
 	aboutDialogUi.labelTesseractVer->setText(QString("<html><head/><body><p style=\"font-size:small;\">%1 %2</p></body></html>").arg(_("Using tesseract")).arg(TESSERACT_VERSION_STR));
+	aboutDialogUi.labelGraphicsVer->setText(QString("<html><head/><body><p style=\"font-size:small;\">%1 %2</p></body></html>").arg(_("Using Qt")).arg(QT_VERSION_STR));
 	d.exec();
 }
 

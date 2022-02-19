@@ -43,7 +43,8 @@ public:
 		connect(document, &HOCRDocument::itemAttributeChanged, this, &LineEdit::onAttributeChanged);
 
 		QModelIndex index = document->indexAtItem(m_wordItem);
-		setStyleSheet( getStyle( document->indexIsMisspelledWord(index) ) );
+		setReadOnly(!m_wordItem->isEnabled());
+		setStyleSheet( getStyle( document->indexIsMisspelledWord(index), m_wordItem->isEnabled() ) );
 
 		QFont ft = font();
 		ft.setBold(m_wordItem->fontBold());
@@ -54,12 +55,14 @@ public:
 
 private:
 	HOCRProofReadWidget* m_proofReadWidget = nullptr;
-	HOCRItem* m_wordItem = nullptr;
+	const HOCRItem* m_wordItem = nullptr;
 	bool m_blockSetText = false;
 
-	QString getStyle(bool misspelled) const {
+	QString getStyle(bool misspelled, bool enabled) const {
 		QStringList styles;
-		if(misspelled) {
+		if(!enabled) {
+			styles.append( "color: grey;" );
+		} else if(misspelled) {
 			styles.append( "color: red;" );
 		}
 		return styles.isEmpty() ? "" : QString("QLineEdit {%1}").arg(styles.join(" "));
@@ -83,7 +86,12 @@ private:
 				setText(m_wordItem->text());
 			}
 			if(roles.contains(Qt::ForegroundRole)) {
-				setStyleSheet( getStyle( document->indexIsMisspelledWord(index) ) );
+				setStyleSheet( getStyle( document->indexIsMisspelledWord(index), m_wordItem->isEnabled() ) );
+			}
+			if(roles.contains(Qt::CheckStateRole)) {
+				// setEnabled doesn't do the right thing, unfortunately
+				setReadOnly(!m_wordItem->isEnabled());
+				setStyleSheet( getStyle( document->indexIsMisspelledWord(index), m_wordItem->isEnabled() ) );
 			}
 		}
 	}
@@ -174,9 +182,12 @@ private:
 			// Merge
 			QModelIndex index = document->indexAtItem(m_wordItem);
 			document->mergeItemText(index, (ev->modifiers() & Qt::ShiftModifier) != 0);
+		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == (Qt::ControlModifier|Qt::ShiftModifier)) {
+			QModelIndex index = document->indexAtItem(m_wordItem);
+			document->removeItem(index);
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == Qt::ControlModifier) {
 			QModelIndex index = document->indexAtItem(m_wordItem);
-			document-> removeItem(index);
+			document->toggleEnabledCheckbox(index);
 		} else if(ev->key() == Qt::Key_Plus && ev->modifiers() & Qt::ControlModifier) {
 			m_proofReadWidget->adjustFontSize(+1);
 		} else if((ev->key() == Qt::Key_Minus || ev->key() == Qt::Key_Underscore) && ev->modifiers() & Qt::ControlModifier) {
@@ -467,39 +478,45 @@ void HOCRProofReadWidget::repositionWidget() {
 void HOCRProofReadWidget::showShortcutsDialog() {
 	QString text = QString(_(
 	                           "<table>"
-	                           "<tr><td>Tab</td><td>Next field</td></tr>"
-	                           "<tr><td>Shift+Tab</td><td>Previous field</td></tr>"
-	                           "<tr><td>Down</td><td>Next line</td></tr>"
-	                           "<tr><td>Up</td><td>Previous line</td></tr>"
-	                           "<tr><td>Ctrl+Space</td><td>Spelling suggestions</td></tr>"
-	                           "<tr><td>Ctrl+Enter</td><td>Add word to dictionary</td></tr>"
-	                           "<tr><td>Ctrl+B</td><td>Toggle bold</td></tr>"
-	                           "<tr><td>Ctrl+I</td><td>Toggle italic</td></tr>"
-	                           "<tr><td>Ctrl+D</td><td>Divide word at cursor position</td></tr>"
-	                           "<tr><td>Ctrl+M</td><td>Merge with previous word</td></tr>"
-	                           "<tr><td>Ctrl+Shift+M</td><td>Merge with next word</td></tr>"
-	                           "<tr><td>Ctrl+Delete</td><td>Delete word</td></tr>"
-	                           "<tr><td>Ctrl+{Left,Right}</td><td>Adjust left bounding box edge</td></tr>"
-	                           "<tr><td>Ctrl+Shift+{Left,Right}</td><td>Adjust right bounding box edge</td></tr>"
-	                           "<tr><td>Ctrl+{Up,Down}</td><td>Adjust top bounding box edge</td></tr>"
-	                           "<tr><td>Ctrl+Shift+{Up,Down}</td><td>Adjust bottom bounding box edge</td></tr>"
-	                           "<tr><td>Ctrl++</td><td>Increase font size</td></tr>"
-	                           "<tr><td>Ctrl+-</td><td>Decrease font size</td></tr>"
-	                           "<tr><td>PageUp</td><td>Previous Page</td></tr>"
-	                           "<tr><td>PageDown</td><td>NextPage</td></tr>"
-	                           "<tr><td>F+Ctrl</td><td>Open/Go to Find</td></tr>"
-	                           "<tr><td>S+Ctrl</td><td>Open Save HOCR</td></tr>"
-	                           "<tr><td>F3</td><td>Next Page/Paragraph/Line in Tree (see Output dropdown)</td></tr>"
-	                           "<tr><td>F3+Shift</td><td>Previous... </td></tr>"
-	                           "<tr><td>Del</td><td></td>Delete current item</tr>"
-	                           "<tr><td>&lt;print&gt;</td><td>Search to item beginning with &lt;print&gt;</td></tr>"
-							   "<tr><td>Click</td><td>Select</td></tr>"
-							   "<tr><td>L-Mouse Drag</td><td>Pan (when zoomed) or drag region handle</td></tr>"
-							   "<tr><td>M-Mouse Drag</td><td>Pan (unconditionally)</td></tr>"
-							   "<tr><td>Wheel</td><td>Pan Up/Down</td></tr>"
-							   "<tr><td>Wheel+Shift</td><td>Pan Left/Right</td></tr>"
-							   "<tr><td>Wheel+Ctrl</td><td>Zoom (around position)</td></tr>"
+	                           "<tr><td>Tab, Shift-Tab</td>"          "<td>D</td> <td> </td> <td>T&nbsp;&nbsp;&nbsp;</td> <td>Next/Prev field</td></tr>"
+	                           "<tr><td>Up, Down</td>"                "<td>D</td> <td>T</td> <td>E</td> <td>Previous/Next line</td></tr>"
+	                           "<tr><td>Ctrl+Space</td>"              "<td> </td> <td> </td> <td>E</td> <td>Spelling suggestions</td></tr>"
+	                           "<tr><td>Ctrl+Enter</td>"              "<td> </td> <td> </td> <td>E</td> <td>Add word to dictionary</td></tr>"
+	                           "<tr><td>Ctrl+B</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Toggle bold</td></tr>"
+	                           "<tr><td>Ctrl+I</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Toggle italic</td></tr>"
+	                           "<tr><td>Ctrl+D</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Divide word at cursor position</td></tr>"
+	                           "<tr><td>Ctrl+M</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Merge with previous word</td></tr>"
+	                           "<tr><td>Ctrl+Shift+M</td>"            "<td> </td> <td> </td> <td>E</td> <td>Merge with next word</td></tr>"
+	                           "<tr><td>Delete</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Delete current character</td></tr>"
+	                           "<tr><td>Ctrl+Delete</td>"             "<td>D</td> <td>T</td> <td>E</td> <td>Toggle Disable current item</td></tr>"
+	                           "<tr><td>Ctrl+Shift+Delete</td>"       "<td>D</td> <td>T</td> <td>E</td> <td>(Hard) delete current item</td></tr>"
+	                           "<tr><td>Ctrl+{Left,Right}</td>"       "<td> </td> <td> </td> <td>E</td> <td>Adjust left bounding box edge</td></tr>"
+	                           "<tr><td>Ctrl+Shift+{Left,Right}</td>" "<td> </td> <td> </td> <td>E</td> <td>Adjust right bounding box edge</td></tr>"
+	                           "<tr><td>Ctrl+{Up,Down}</td>"          "<td> </td> <td> </td> <td>E</td> <td>Adjust top bounding box edge</td></tr>"
+	                           "<tr><td>Ctrl+Shift+{Up,Down}</td>"    "<td> </td> <td> </td> <td>E</td> <td>Adjust bottom bounding box edge</td></tr>"
+	                           "<tr><td>Ctrl++</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Increase <em>tool</em> font size</td></tr>"
+	                           "<tr><td>Ctrl+-</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Decrease <em>tool</em> font size</td></tr>"
+	                           "<tr><td>PageUp, PageDown</td>"        "<td>D</td> <td> </td> <td>E</td> <td>Previous/Next Page</td></tr>"
+	                           "<tr><td>PageUp, PageDown</td>"        "<td> </td> <td>T</td> <td> </td> <td>Up/down one table screen</td></tr>"
+	                           "<tr><td>Ctrl+F</td>"                  "<td>D</td> <td>T</td> <td>F</td> <td>Open/Go to Find</td></tr>"
+	                           "<tr><td>Ctrl+S</td>"                  "<td>D</td> <td>T</td> <td>F</td> <td>Open Save HOCR</td></tr>"
+	                           "<tr><td>F3, Shift+F3</td>"            "<td>D</td> <td>T</td> <td>F</td> <td>Next/Prev Page/Paragraph/Line in Tree</td></tr>"
+	                           "<tr><td></td>"                        "<td> </td> <td> </td> <td> </td> <td>(see Output dropdown)</td></tr>"
+	                           "<tr><td>&lt;print&gt;</td>"           "<td> </td> <td> </td> <td>E</td> <td>Insert the character</td></tr>"
+	                           "<tr><td>&lt;print&gt;</td>"           "<td>D</td> <td>T</td> <td> </td> <td>Search to item beginning with &lt;print&gt;</td></tr>"
+							   "<tr><td>L-Click</td>"                 "<td>D</td> <td>T</td> <td>E</td> <td>Select</td></tr>"
+							   "<tr><td>L-2Click</td>"                "<td> </td> <td>T</td> <td>E</td> <td>Expand/Open for edit</td></tr>"
+							   "<tr><td>R-Click</td>"                 "<td> </td> <td>T</td> <td> </td> <td>Open context menu</td></tr>"
+							   "<tr><td>L-Mouse Drag</td>"            "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"
+							   "<tr><td>L-Mouse Drag Box Edge</td>"   "<td>D</td> <td> </td> <td> </td> <td>Resize Box</td></tr>"
+							   "<tr><td>M-Mouse Drag Any</td>"        "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"
+							   "<tr><td>Wheel</td>"                   "<td>D</td> <td> </td> <td> </td> <td>Pan Up/Down</td></tr>"
+							   "<tr><td>Shift+Wheel</td>"             "<td>D</td> <td> </td> <td> </td> <td>Pan Left/Right</td></tr>"
+							   "<tr><td>Ctrl+Wheel</td>"              "<td>D</td> <td> </td> <td> </td> <td>Zoom (around position)</td></tr>"
 	                           "</table>"
+							   "<p>"
+							   "D = in Display window; T = in Table window; E = Text Edit active"
+							   "</p>"
 	                       ));
 	QMessageBox* box = new QMessageBox(QMessageBox::NoIcon, _("Keyboard Shortcuts"), text, QMessageBox::Close, MAIN);
 	box->setAttribute(Qt::WA_DeleteOnClose, true);

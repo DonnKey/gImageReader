@@ -361,6 +361,16 @@ bool HOCRDocument::removeItem(const QModelIndex& index) {
 	return true;
 }
 
+bool HOCRDocument::toggleEnabledCheckbox(const QModelIndex& index) {
+	HOCRItem* item = mutableItemAtIndex(index);
+	if(!item) {
+		return false;
+	}
+	item->setEnabled(!item->isEnabled());
+	emit dataChanged(index, index, {Qt::CheckStateRole});
+	return true;
+}
+
 QModelIndex HOCRDocument::nextIndex(const QModelIndex& current) const {
 	QModelIndex idx = current;
 	// If the current index is invalid return first index

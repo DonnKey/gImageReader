@@ -95,6 +95,7 @@ public:
 	HOCRItem* mutableItemAtIndex(const QModelIndex& index) const {
 		return index.isValid() ? static_cast<HOCRItem*>(index.internalPointer()) : nullptr;
 	}
+	bool toggleEnabledCheckbox(const QModelIndex& index);
 
 signals:
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);

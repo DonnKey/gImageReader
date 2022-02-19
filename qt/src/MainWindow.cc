@@ -142,6 +142,7 @@ MainWindow::MainWindow(const QStringList& files)
 
 	qRegisterMetaType<MainWindow::State>();
 
+	m_currentPageWidget = new QLabel("");
 	ui.setupUi(this);
 
 	// For performance reasons, add a dummy window to use as a parent
@@ -229,6 +230,9 @@ MainWindow::MainWindow(const QStringList& files)
 	m_progressWidget->layout()->addWidget(m_progressCancelButton);
 	statusBar()->addPermanentWidget(m_progressWidget);
 	m_progressWidget->setVisible(false);
+
+	statusBar()->addPermanentWidget(m_currentPageWidget);
+	m_currentPageWidget->setVisible(true);
 
 	pushState(State::Idle, _("Select an image to begin..."));
 
@@ -583,13 +587,19 @@ void MainWindow::showProgress(ProgressMonitor* monitor, int updateInterval) {
 	m_progressBar->setValue(0);
 	KeyMapManager::waitableStarted();
 	m_progressWidget->show();
+	m_currentPageWidget->hide();
 }
 
 void MainWindow::hideProgress() {
 	m_progressWidget->hide();
+	m_currentPageWidget->show();
 	m_progressTimer.stop();
 	KeyMapManager::waitableDone();
 	m_progressMonitor = nullptr;
+}
+
+void MainWindow::showCurrentPage(const QString& pageName) {
+	m_currentPageWidget->setText(pageName);
 }
 
 void MainWindow::progressCancel() {

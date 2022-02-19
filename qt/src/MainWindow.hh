@@ -129,6 +129,7 @@ public:
 	void setOutputPaneVisible(bool visible);
 	void showProgress(ProgressMonitor* monitor, int updateInterval = 500);
 	void hideProgress();
+	void showCurrentPage(const QString& pageName);
 
 protected:
 	UI_MainWindow ui;
@@ -168,6 +169,7 @@ private:
 	MainWindow::Notification m_notifierHandle = nullptr;
 
 	QWidget* m_progressWidget = nullptr;
+	QLabel* m_currentPageWidget = nullptr;
 	QProgressBar* m_progressBar = nullptr;
 	QToolButton* m_progressCancelButton = nullptr;
 	QTimer m_progressTimer;

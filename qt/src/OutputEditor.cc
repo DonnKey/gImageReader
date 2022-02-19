@@ -18,11 +18,13 @@
  */
 
 
+#include "MainWindow.hh"
 #include "OutputEditor.hh"
 
 Q_DECLARE_METATYPE(OutputEditor::ReadSessionData)
 
 OutputEditor::OutputEditor(QObject* parent) : QObject(parent) {
 	static int reg = qRegisterMetaType<ReadSessionData>("ReadSessionData");
+	MAIN->showCurrentPage("");
 	Q_UNUSED(reg);
 }

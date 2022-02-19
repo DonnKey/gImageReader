@@ -793,9 +793,12 @@ void OutputEditorHOCR::showItemProperties(const QModelIndex& index, const QModel
 	const HOCRItem* currentItem = m_document->itemAtIndex(index);
 	if(!currentItem) {
 		m_tool->clearSelection();
+		MAIN->showCurrentPage("");
 		return;
 	}
 	const HOCRPage* page = currentItem->page();
+	QModelIndex pageIndex = m_document->indexAtItem(page);
+	MAIN->showCurrentPage(pageIndex.model()->data(pageIndex, Qt::EditRole).toString());
 
 	int row = -1;
 	QMap<QString, QString> attrs = currentItem->getAllAttributes();

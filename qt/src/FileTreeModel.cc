@@ -310,6 +310,12 @@ QVariant FileTreeModel::data(const QModelIndex& index, int role) const {
 			bool editable = dynamic_cast<FileNode*>(node) && static_cast<FileNode*>(node)->editable;
 			return editable ? QIcon::fromTheme("document-edit") : QIcon();
 		}
+		if(role == Qt::ToolTipRole) {
+			bool editable = dynamic_cast<FileNode*>(node) && static_cast<FileNode*>(node)->editable;
+			if (editable) {
+				return "Editable";
+			} 
+		}
 	}
 	return QVariant();
 }

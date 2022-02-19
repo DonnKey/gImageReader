@@ -226,7 +226,7 @@ void Recognizer::recognize(const QList<int>& pages, bool autodetectLayout) {
 		QString source;
 		int sourcePage;
 		if(MAIN->getDisplayer()->resolvePage(page, source, sourcePage)) {
-			if(MAIN->getOutputEditor()->containsSource(source, sourcePage)) {
+			if(MAIN->getOutputEditor()->positionOf(source, sourcePage) >= 0) {
 				contains = true;
 				break;
 			}
@@ -261,6 +261,12 @@ void Recognizer::recognize(const QList<int>& pages, bool autodetectLayout) {
 			}
 			pageData.pageInfo.mode = tess->get()->GetPageSegMode();
 			readSessionData->pageInfo = pageData.pageInfo;
+
+			QString oldSource;
+			int oldNumber = -1;
+			MAIN->getDisplayer()->resolvePage(page, oldSource, oldNumber);
+			MAIN->getOutputEditor()->setupPage(readSessionData, oldSource, oldNumber);
+
 			bool firstChunk = true;
 			bool newFile = readSessionData->pageInfo.filename != prevFile;
 			prevFile = readSessionData->pageInfo.filename;

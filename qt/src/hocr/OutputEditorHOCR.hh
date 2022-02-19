@@ -52,11 +52,12 @@ public:
 		return m_widget;
 	}
 	ReadSessionData* initRead(tesseract::TessBaseAPI& tess) override;
+	void setupPage(ReadSessionData *data, QString& oldSource, int oldPage) override;
 	void read(tesseract::TessBaseAPI& tess, ReadSessionData* data) override;
 	void readError(const QString& errorMsg, ReadSessionData* data) override;
 	void finalizeRead(ReadSessionData* data) override;
 	BatchProcessor* createBatchProcessor(const QMap<QString, QVariant>& /*options*/) const override { return new HOCRBatchProcessor; }
-	bool containsSource(const QString& source, int sourcePage) const override;
+	int positionOf(const QString& source, int sourcePage) const override;
 	bool crashSave(const QString& filename) const override;
 
 	HOCRDocument* getDocument() const { return m_document; }
@@ -73,13 +74,15 @@ public slots:
 	bool exportToODT();
 	bool exportToPDF();
 	bool exportToText();
-	void removeItem();
+	void removeCurrentItem();
 
 private:
 	class HTMLHighlighter;
 
 	struct HOCRReadSessionData : ReadSessionData {
 		int insertIndex;
+		int removeIndex;
+		int beginIndex;
 		QStringList errors;
 	};
 	friend struct QMetaTypeId<HOCRReadSessionData>;
@@ -95,6 +98,7 @@ private:
 	bool m_blockSourceChanged = false;
 	QString m_filebasename;
 	InsertMode m_insertMode = InsertMode::Append;
+	bool m_replace = false;
 
 	HOCRDocument* m_document;
 
@@ -106,6 +110,7 @@ private:
 	bool showPage(const HOCRPage* page);
 	int currentPage();
 	void drawPreview(QPainter& painter, const HOCRItem* item);
+    void removePageByPosition(int position); 
 
 private slots:
 	void bboxDrawn(const QRect& bbox, int action);
@@ -138,6 +143,7 @@ private slots:
 	void applySubstitutions(const QMap<QString, QString>& substitutions, bool matchCase);
 	void sourceChanged();
 	void previewToggled();
+	void setReplaceMode();
 	void updatePreview();
 };
 

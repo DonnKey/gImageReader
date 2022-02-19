@@ -318,12 +318,13 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	ui.comboBoxNavigate->addItem(_("Low confidence word"), "ocrx_word_lowconf");
 
 	QShortcut* shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), m_widget);
-	QObject::connect(shortcut, &QShortcut::activated, this, &OutputEditorHOCR::removeItem);
+	QObject::connect(shortcut, &QShortcut::activated, this, &OutputEditorHOCR::removeCurrentItem);
 
 	ui.actionInsertModeAppend->setData(static_cast<int>(InsertMode::Append));
 	ui.actionInsertModeBefore->setData(static_cast<int>(InsertMode::InsertBefore));
 
 	connect(ui.menuInsertMode, &QMenu::triggered, this, &OutputEditorHOCR::setInsertMode);
+	connect(ui.checkBoxReplace, &QCheckBox::toggled, this, &OutputEditorHOCR::setReplaceMode);
 	connect(ui.toolButtonOpen, &QToolButton::clicked, this, [this] { open(InsertMode::Replace); });
 	connect(ui.actionOpenAppend, &QAction::triggered, this, [this] { open(InsertMode::Append); });
 	connect(ui.actionOpenInsertBefore, &QAction::triggered, this, [this] { open(InsertMode::InsertBefore); });
@@ -362,6 +363,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionCollapseAll, &QAction::triggered, this, &OutputEditorHOCR::collapseItemClass);
 	connect(MAIN->getDisplayer(), &Displayer::imageChanged, this, &OutputEditorHOCR::sourceChanged);
 
+	ADD_SETTING(SwitchSetting("replacescans", ui.checkBoxReplace, false));
 	ADD_SETTING(ActionSetting("displayconfidence", ui.actionToggleWConf, false));
 	ADD_SETTING(ActionSetting("displaypreview", ui.actionPreview, false));
 
@@ -391,6 +393,10 @@ void OutputEditorHOCR::setInsertMode(QAction* action) {
 	ui.toolButtonInsertMode->setIcon(action->icon());
 }
 
+void OutputEditorHOCR::setReplaceMode() {
+	m_replace = ConfigSettings::get<SwitchSetting>("replacescans")->getValue();
+}
+
 void OutputEditorHOCR::setModified() {
 	ui.actionOutputSaveHOCR->setEnabled(m_document->pageCount() > 0);
 	ui.toolButtonOutputExport->setEnabled(m_document->pageCount() > 0);
@@ -402,9 +408,25 @@ void OutputEditorHOCR::setModified() {
 
 OutputEditorHOCR::ReadSessionData* OutputEditorHOCR::initRead(tesseract::TessBaseAPI& tess) {
 	HOCRReadSessionData* data = new HOCRReadSessionData;
-	data->insertIndex = m_insertMode == InsertMode::Append ? m_document->pageCount() : currentPage();
+	data->beginIndex = data->insertIndex = m_insertMode == InsertMode::Append ? m_document->pageCount() : currentPage();
+	data->removeIndex = -1;
 	data->pageInfo.mode = tess.GetPageSegMode();
 	return data;
+}
+
+void OutputEditorHOCR::setupPage(ReadSessionData *d, QString& oldSource, int oldPage) {
+	HOCRReadSessionData *data = static_cast<HOCRReadSessionData*>(d);
+	if (!m_replace) {
+		return;
+	}
+	int position = positionOf(oldSource, oldPage);
+	if (position < 0) {
+		data->removeIndex = -1;
+		return;
+	}
+	data->insertIndex = position;
+	data->removeIndex = position;
+	data->beginIndex = position;
 }
 
 void OutputEditorHOCR::read(tesseract::TessBaseAPI& tess, ReadSessionData* data) {
@@ -426,7 +448,7 @@ void OutputEditorHOCR::finalizeRead(ReadSessionData* data) {
 		QString message = QString(_("The following pages could not be processed:\n%1").arg(hdata->errors.join("\n")));
 		QMessageBox::warning(MAIN, _("Recognition errors"), message);
 	}
-	selectPage(currentPage()>0 ? currentPage()-1 : 0);
+	selectPage(hdata->beginIndex);
 	OutputEditor::finalizeRead(data);
 }
 
@@ -443,21 +465,31 @@ void OutputEditorHOCR::addPage(const QString& hocrText, HOCRReadSessionData data
 	attrs["x_tesspsm"] = QString::number(data.pageInfo.mode);
 	pageDiv.setAttribute("title", HOCRItem::serializeAttrGroup(attrs));
 
+	if (data.removeIndex >= 0) {
+		removePageByPosition(data.removeIndex);
+		data.removeIndex = -1;
+	}
+
 	QModelIndex index = m_document->insertPage(data.insertIndex, pageDiv, true);
 
 	expandCollapseChildren(index, true);
 	MAIN->setOutputPaneVisible(true);
 	m_modified = true;
+
+	selectPage(data.insertIndex);
 }
 
-bool OutputEditorHOCR::containsSource(const QString& source, int sourcePage) const {
+int OutputEditorHOCR::positionOf(const QString& source, int sourcePage) const {
+	if (source.isEmpty() || sourcePage < 0) {
+		return -1;
+	}
 	for(int i = 0, n = m_document->pageCount(); i < n; ++i) {
 		const HOCRPage* page = m_document->page(i);
 		if(page->pageNr() == sourcePage && page->sourceFile() == source) {
-			return true;
+			return i;
 		}
 	}
-	return false;
+	return -1;
 }
 
 void OutputEditorHOCR::navigateTargetChanged() {
@@ -1278,8 +1310,13 @@ void OutputEditorHOCR::applySubstitutions(const QMap<QString, QString>& substitu
 	MAIN->popState();
 }
 
-void OutputEditorHOCR::removeItem() {
+void OutputEditorHOCR::removeCurrentItem() {
 	m_document->removeItem(ui.treeViewHOCR->selectionModel()->currentIndex());
+}
+
+void OutputEditorHOCR::removePageByPosition(int position) {
+	const HOCRPage* page = m_document->page(position);
+	m_document->HOCRDocument::removeItem(m_document->indexAtItem(page));
 }
 
 void OutputEditorHOCR::sourceChanged() {

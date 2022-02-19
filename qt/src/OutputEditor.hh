@@ -61,6 +61,7 @@ public:
 
 	virtual QWidget* getUI() = 0;
 	virtual ReadSessionData* initRead(tesseract::TessBaseAPI& tess) = 0;
+	virtual void setupPage(ReadSessionData *data, QString& oldSource, int oldPage) = 0;
 	virtual void read(tesseract::TessBaseAPI& tess, ReadSessionData* data) = 0;
 	virtual void readError(const QString& errorMsg, ReadSessionData* data) = 0;
 	virtual void finalizeRead(ReadSessionData* data) {
@@ -70,6 +71,7 @@ public:
 
 	virtual bool containsSource(const QString& source, int sourcePage) const { return false; }
 	virtual bool crashSave(const QString& filename) const = 0;
+	virtual int positionOf(const QString& source, int sourcePage) const { return -1; }
 
 public slots:
 	virtual void onVisibilityChanged(bool /*visible*/) {}

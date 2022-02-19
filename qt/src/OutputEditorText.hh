@@ -48,6 +48,7 @@ public:
 	ReadSessionData* initRead(tesseract::TessBaseAPI& /*tess*/) override {
 		return new TextReadSessionData;
 	}
+	void setupPage(ReadSessionData *data, QString& oldSource, int oldPage) {};
 	void read(tesseract::TessBaseAPI& tess, ReadSessionData* data) override;
 	void readError(const QString& errorMsg, ReadSessionData* data) override;
 	BatchProcessor* createBatchProcessor(const QMap<QString, QVariant>& options) const override { return new TextBatchProcessor(options["prependPage"].toBool()); }

@@ -27,6 +27,7 @@ public:
 	QToolButton* toolButtonOpen;
 	QAction* actionInsertModeAppend;
 	QAction* actionInsertModeBefore;
+	QCheckBox* checkBoxReplace;
 	QAction* actionOpenAppend;
 	QAction* actionOpenInsertBefore;
 	QAction* actionOutputClear;
@@ -66,6 +67,10 @@ public:
 		menuInsertMode = new QMenu(widget);
 		menuInsertMode->addAction(actionInsertModeAppend);
 		menuInsertMode->addAction(actionInsertModeBefore);
+
+		checkBoxReplace = new QCheckBox(widget);
+		checkBoxReplace->setTristate(false);
+		checkBoxReplace->setToolTip("Replace Duplicated Entries");
 
 		toolButtonInsertMode = new QToolButton(widget);
 		toolButtonInsertMode->setIcon(QIcon(":/icons/ins_hocr_append"));
@@ -126,6 +131,7 @@ public:
 		toolBarOutput->setToolButtonStyle(Qt::ToolButtonIconOnly);
 		toolBarOutput->setIconSize(QSize(1, 1) * toolBarOutput->style()->pixelMetric(QStyle::PM_SmallIconSize));
 		toolBarOutput->addWidget(toolButtonInsertMode);
+		toolBarOutput->addWidget(checkBoxReplace);
 		toolBarOutput->addSeparator();
 		toolBarOutput->addWidget(toolButtonOpen);
 		toolBarOutput->addAction(actionOutputSaveHOCR);

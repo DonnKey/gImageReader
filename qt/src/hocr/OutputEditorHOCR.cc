@@ -437,7 +437,6 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	ui.actionInsertModeBefore->setData(static_cast<int>(InsertMode::InsertBefore));
 
 	connect(ui.menuInsertMode, &QMenu::triggered, this, &OutputEditorHOCR::setInsertMode);
-	connect(ui.checkBoxReplace, &QCheckBox::toggled, this, &OutputEditorHOCR::setReplaceMode);
 	connect(ui.toolButtonOpen, &QToolButton::clicked, this, [this] { open(InsertMode::Replace); });
 	connect(ui.actionOpenAppend, &QAction::triggered, this, [this] { open(InsertMode::Append); });
 	connect(ui.actionOpenInsertBefore, &QAction::triggered, this, [this] { open(InsertMode::InsertBefore); });
@@ -449,12 +448,8 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionOutputClear, &QAction::triggered, this, &OutputEditorHOCR::clear);
 	connect(ui.actionOutputReplace, &QAction::triggered, this, [this] { doReplace(false); });
 	connect(ui.actionOutputReplaceKey, &QAction::triggered, this, [this] { doReplace(true); });
-	connect(ui.actionToggleWConf, &QAction::triggered, this, &OutputEditorHOCR::toggleWConfColumn);
-	connect(ui.actionPreview, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
-	connect(ui.actionProofread, &QAction::toggled, m_proofReadWidget, &HOCRProofReadWidget::setProofreadEnabled);
-	connect(ui.actionOverheight, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
+	connect(ui.actionOutputSettings, &QAction::triggered, this, [this] { ui.outputDialog->exec(); });
 	connect(&m_previewTimer, &QTimer::timeout, this, [this] {showPreview(OutputEditorHOCR::showMode::show); }); 
-	connect(ui.actionNonAscii, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.searchFrame, &SearchReplaceFrame::findReplace, this, &OutputEditorHOCR::findReplace);
 	connect(ui.searchFrame, &SearchReplaceFrame::replaceAll, this, &OutputEditorHOCR::replaceAll);
 	connect(ui.searchFrame, &SearchReplaceFrame::applySubstitutions, this, &OutputEditorHOCR::applySubstitutions);
@@ -484,17 +479,23 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionExpandAll, &QAction::triggered, this, &OutputEditorHOCR::expandItemClass);
 	connect(ui.actionCollapseAll, &QAction::triggered, this, &OutputEditorHOCR::collapseItemClass);
 	connect(MAIN->getDisplayer(), &Displayer::imageChanged, this, &OutputEditorHOCR::sourceChanged);
+	connect(ui.outputDialogUi.checkBox_Preview, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
+	connect(ui.outputDialogUi.checkBox_Overheight, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
+	connect(ui.outputDialogUi.checkBox_NonAscii, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
+	connect(ui.outputDialogUi.checkBox_WConf, &QCheckBox::toggled, this, &OutputEditorHOCR::toggleWConfColumn);
+	connect(ui.outputDialogUi.doubleSpinBox_Stretch, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OutputEditorHOCR::previewToggled);
 
-	ADD_SETTING(SwitchSetting("replacescans", ui.checkBoxReplace, false));
-	ADD_SETTING(ActionSetting("displayconfidence", ui.actionToggleWConf, false));
-	ADD_SETTING(ActionSetting("displaypreview", ui.actionPreview, false));
-	ADD_SETTING(ActionSetting("displayoverheight", ui.actionOverheight, true));
-	ADD_SETTING(ActionSetting("displaynonascii", ui.actionNonAscii, true));
+	ADD_SETTING(SwitchSetting("replacescans", ui.outputDialogUi.checkBox_ReplaceScan, false));
+	ADD_SETTING(SwitchSetting("displayconfidence", ui.outputDialogUi.checkBox_WConf, false));
+	ADD_SETTING(SwitchSetting("displaypreview", ui.outputDialogUi.checkBox_Preview, false));
+	ADD_SETTING(SwitchSetting("displayoverheight", ui.outputDialogUi.checkBox_Overheight, true));
+	ADD_SETTING(SwitchSetting("displaynonascii", ui.outputDialogUi.checkBox_NonAscii, true));
+	ADD_SETTING(DoubleSpinSetting("previewfontstretch", ui.outputDialogUi.doubleSpinBox_Stretch, 100.0));
 
 	setFont();
 
 	// Deferred until connect()s are done
-	ui.treeViewHOCR->setColumnHidden(1, !ConfigSettings::get<ActionSetting>("displayconfidence")->getValue());
+	ui.treeViewHOCR->setColumnHidden(1, !ui.outputDialogUi.checkBox_WConf->isChecked());
 }
 
 OutputEditorHOCR::~OutputEditorHOCR() {
@@ -518,10 +519,6 @@ void OutputEditorHOCR::setInsertMode(QAction* action) {
 	ui.toolButtonInsertMode->setIcon(action->icon());
 }
 
-void OutputEditorHOCR::setReplaceMode() {
-	m_replace = ConfigSettings::get<SwitchSetting>("replacescans")->getValue();
-}
-
 void OutputEditorHOCR::setModified() {
 	ui.actionOutputSaveHOCR->setEnabled(m_document->pageCount() > 0);
 	ui.toolButtonOutputExport->setEnabled(m_document->pageCount() > 0);
@@ -543,7 +540,7 @@ OutputEditorHOCR::ReadSessionData* OutputEditorHOCR::initRead(tesseract::TessBas
 
 void OutputEditorHOCR::setupPage(ReadSessionData *d, QString& oldSource, int oldPage) {
 	HOCRReadSessionData *data = static_cast<HOCRReadSessionData*>(d);
-	if (!m_replace) {
+	if (!ui.outputDialogUi.checkBox_ReplaceScan->isChecked()) {
 		return;
 	}
 	int position = positionOf(oldSource, oldPage);
@@ -1588,7 +1585,7 @@ void OutputEditorHOCR::deselectChildren(QItemSelectionModel *model, QModelIndex&
 }
 
 void OutputEditorHOCR::toggleWConfColumn() {
-	ui.treeViewHOCR->setColumnHidden(1, !ConfigSettings::get<ActionSetting>("displayconfidence")->getValue());
+	ui.treeViewHOCR->setColumnHidden(1, !ui.outputDialogUi.checkBox_WConf->isChecked());
 }
 
 bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
@@ -1853,7 +1850,6 @@ bool OutputEditorHOCR::exportToIndentedText() {
 
 bool OutputEditorHOCR::clear(bool hide) {
 	m_previewTimer.stop();
-	ui.actionPreview->setChecked(false);
 	if(!m_widget->isVisible()) {
 		return true;
 	}
@@ -2048,7 +2044,7 @@ void OutputEditorHOCR::showPreview(OutputEditorHOCR::showMode mode) {
 		m_suspended = false;
 		break;
 	}
-	if(item != nullptr && !m_suspended && (ui.actionPreview->isChecked()^inv)) {
+	if(item != nullptr && !m_suspended && (ui.outputDialogUi.checkBox_Preview->isChecked()^inv)) {
 		updatePreview();
 		m_preview->show();
 		if (MAIN->getDisplayer()->underMouse()) {
@@ -2111,7 +2107,7 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 			QFontMetrics fm(font);
 			painter.setFont(font);
 
-			if (ui.actionOverheight->isChecked() && wordItem->isOverheight()) {
+			if (ui.outputDialogUi.checkBox_Overheight->isChecked() && wordItem->isOverheight()) {
 				painter.save();
 				painter.setBrush(QColor(255, 255, 63, 128)); // yellowish
 				painter.drawRect(wordItem->bbox());
@@ -2122,7 +2118,7 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 			QString displayText = wordItem->text();
 			const QString* shadowText = wordItem->shadowText();
 			bool usingShadowText = false;
-			if (!ui.actionNonAscii->isChecked()) {
+			if (!ui.outputDialogUi.checkBox_NonAscii->isChecked()) {
 				// nothing
 			} else if (shadowText == nullptr) {
 				bool isAscii = true;
@@ -2180,7 +2176,7 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 
 			painter.translate(x,y);
 			painter.rotate(-textangle);
-			painter.scale(m_pageDpi/96., m_pageDpi/96.);
+			painter.scale((m_pageDpi/96.)*(ui.outputDialogUi.doubleSpinBox_Stretch->value()/100.), m_pageDpi/96.);
 			doc.drawContents(&painter);
 			painter.restore();
 		}

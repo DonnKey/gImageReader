@@ -118,7 +118,6 @@ private:
 	bool m_modified = false;
 	QString m_filebasename;
 	InsertMode m_insertMode = InsertMode::Append;
-	bool m_replace = false;
 	QPoint m_contextMenuLocation;
 	QMenu *m_contextMenu;
 	QModelIndex* m_contextIndexUp;
@@ -178,7 +177,6 @@ private slots:
 	void applySubstitutions(const QMap<QString, QString>& substitutions, bool matchCase);
 	void sourceChanged();
 	void previewToggled();
-	void setReplaceMode();
 	void updatePreview();
 };
 

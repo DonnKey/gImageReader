@@ -18,7 +18,9 @@
 #include <QVBoxLayout>
 #include <QWidgetAction>
 
-#include <TreeViewHOCR.hh>
+#include "TreeViewHOCR.hh"
+#include "MainWindow.hh"
+#include "ui_OutputSettingsDialog.h"
 
 class UI_OutputEditorHOCR {
 public:
@@ -29,7 +31,6 @@ public:
 	QToolButton* toolButtonOpen;
 	QAction* actionInsertModeAppend;
 	QAction* actionInsertModeBefore;
-	QCheckBox* checkBoxReplace;
 	QAction* actionOpenAppend;
 	QAction* actionOpenInsertBefore;
 	QAction* actionOutputClear;
@@ -40,11 +41,7 @@ public:
 	QAction* actionOutputExportODT;
 	QAction* actionOutputReplace;
 	QAction* actionOutputReplaceKey;
-	QAction* actionToggleWConf;
-	QAction* actionPreview;
-	QAction* actionProofread;
-	QAction* actionOverheight;
-	QAction* actionNonAscii;
+	QAction* actionOutputSettings;
 	QAction* actionNavigateNext;
 	QAction* actionNavigatePrev;
 	QAction* actionExpandAll;
@@ -61,6 +58,9 @@ public:
 	OutputTextEdit* plainTextEditOutput;
 	SearchReplaceFrame* searchFrame;
 
+	QDialog* outputDialog;
+	Ui::OutputSettingsDialog outputDialogUi;
+
 	void setupUi(QWidget* widget) {
 		widget->setLayout(new QVBoxLayout());
 		widget->layout()->setContentsMargins(0, 0, 0, 0);
@@ -74,9 +74,6 @@ public:
 		menuInsertMode->addAction(actionInsertModeAppend);
 		menuInsertMode->addAction(actionInsertModeBefore);
 
-		checkBoxReplace = new QCheckBox(widget);
-		checkBoxReplace->setTristate(false);
-		checkBoxReplace->setToolTip("Replace Duplicated Entries");
 
 		toolButtonInsertMode = new QToolButton(widget);
 		toolButtonInsertMode->setIcon(QIcon(":/icons/ins_hocr_append"));
@@ -127,31 +124,15 @@ public:
 		actionOutputReplace->setToolTip(gettext("Find and replace"));
 		actionOutputReplace->setCheckable(true);
 		actionOutputReplaceKey = new QAction(widget);
-		actionToggleWConf = new QAction(QIcon(":/icons/wconf"), gettext("Show confidence values"), widget);
-		actionToggleWConf->setToolTip(gettext("Show confidence values"));
-		actionToggleWConf->setCheckable(true);
-		actionProofread = new QAction(QIcon(":/icons/proofread"), gettext("Show proofread widget"), widget);
-		actionProofread->setToolTip(gettext("Show proofread widget"));
-		actionProofread->setCheckable(true);
-		actionPreview = new QAction(QIcon::fromTheme("document-preview"), gettext("Show preview"), widget);
-		actionPreview->setToolTip(gettext("Show preview"));
-		actionPreview->setCheckable(true);
-		actionOverheight = new QAction(QIcon(":/icons/trimbox"), gettext("Show Over-height"), widget);
-		actionOverheight->setToolTip(gettext("Highlight words that are inconsistent with the font size."
-			"<br>Right click Output tree item and select \"Trim\" to fix. See also Normalize. (Ctrl-T)"));
-		actionOverheight->setCheckable(true);
-		actionOverheight->setChecked(true);
-		actionNonAscii = new QAction(QIcon(":/icons/trimbox"), gettext("Show Non Latin-1 characters"), widget);
-		actionNonAscii->setToolTip(gettext("Highlight characters that are not Latin-1."
-			"<br>For computer text."));
-		actionNonAscii->setCheckable(true);
-		actionNonAscii->setChecked(true);
+
+		actionOutputSettings = new QAction(QIcon::fromTheme("preferences-system"), gettext("Output Window Preferences"));
+		outputDialog = new QDialog(MAIN);
+		outputDialogUi.setupUi(outputDialog);
 
 		toolBarOutput = new QToolBar(widget);
 		toolBarOutput->setToolButtonStyle(Qt::ToolButtonIconOnly);
 		toolBarOutput->setIconSize(QSize(1, 1) * toolBarOutput->style()->pixelMetric(QStyle::PM_SmallIconSize));
 		toolBarOutput->addWidget(toolButtonInsertMode);
-		toolBarOutput->addWidget(checkBoxReplace);
 		toolBarOutput->addSeparator();
 		toolBarOutput->addWidget(toolButtonOpen);
 		toolBarOutput->addAction(actionOutputSaveHOCR);
@@ -159,11 +140,13 @@ public:
 		toolBarOutput->addAction(actionOutputClear);
 		toolBarOutput->addSeparator();
 		toolBarOutput->addAction(actionOutputReplace);
-		toolBarOutput->addAction(actionToggleWConf);
-		toolBarOutput->addAction(actionProofread);
-		toolBarOutput->addAction(actionPreview);
-		toolBarOutput->addAction(actionOverheight);
-		toolBarOutput->addAction(actionNonAscii);
+
+		QWidget* spacer = new QWidget(toolBarOutput);
+		spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+		toolBarOutput->addWidget(spacer);
+
+		toolBarOutput->addAction(actionOutputSettings);
+		
 		widget->addAction(actionOutputReplaceKey); // to some harmless parent
 
 		widget->layout()->addWidget(toolBarOutput);

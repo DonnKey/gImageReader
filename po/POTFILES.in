@@ -101,6 +101,7 @@ gtk/src/Utils.hh
 [type: gettext/qtdesigner]qt/data/IndentedTextExportDialog.ui
 [type: gettext/qtdesigner]qt/data/IndentedTextExportWidget.ui
 [type: gettext/qtdesigner]qt/data/MainWindow.ui
+[type: gettext/qtdesigner]qt/data/OutputSettings.ui
 [type: gettext/qtdesigner]qt/data/PageRangeDialog.ui
 [type: gettext/qtdesigner]qt/data/PdfExportWidget.ui
 [type: gettext/qtdesigner]qt/data/SearchReplaceFrame.ui

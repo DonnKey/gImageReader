@@ -392,6 +392,7 @@ bool MainWindow::setOutputMode(OutputMode mode) {
 	} else {
 		delete m_displayerTool;
 		delete m_outputEditor;
+		unsetCursor();
 		if(mode == OutputModeText) {
 			m_displayerTool = new DisplayerToolSelect(m_displayer);
 			m_outputEditor = new OutputEditorText();

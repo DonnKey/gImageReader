@@ -161,7 +161,6 @@ bool Displayer::setSources(QList<Source*> sources) {
 	ui.SegMode->setText(MAIN->getRecognitionMenu()->getSegModeName());
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	unsetCursor();
 
 	m_sources = sources;
 

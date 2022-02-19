@@ -543,27 +543,61 @@ QModelIndex HOCRDocument::searchPage(const QString& filename, int pageNr) const 
 	return QModelIndex();
 }
 
-QModelIndex HOCRDocument::searchAtCanvasPos(const QModelIndex& pageIndex, const QPoint& pos) const {
-	QModelIndex idx = pageIndex;
+QModelIndex HOCRDocument::searchAtCanvasPos(const QModelIndex& idx, const QPoint& pos, const int fuzz) const {
 	if(!idx.isValid()) {
 		return QModelIndex();
 	}
-	const HOCRItem* item = itemAtIndex(idx);
-	while(true) {
-		int iChild = 0, nChildren = item->children().size();
-		for(; iChild < nChildren; ++iChild) {
-			const HOCRItem* childItem = item->children()[iChild];
-			if(childItem->bbox().contains(pos)) {
-				item = childItem;
-				idx = index(iChild, 0, idx);
-				break;
-			}
-		}
-		if(iChild == nChildren) {
-			break;
-		}
+	m_pickFuzzyMatch = nullptr;
+	QModelIndex newIdx = searchAtCanvasPos_inner(idx, pos, fuzz, 0, 0);
+    if (!newIdx.isValid() && m_pickFuzzyMatch != nullptr) {
+		return indexAtItem(m_pickFuzzyMatch);
 	}
-	return idx;
+	return newIdx;
+}
+
+QModelIndex HOCRDocument::searchAtCanvasPos_inner(const QModelIndex& idx, const QPoint& pos, const int fuzz, int parentUB, int parentLB) const {
+	const HOCRItem* item = itemAtIndex(idx);
+	bool oneFound = false;
+
+	for(int iChild = 0, nChildren = item->children().size(); iChild < nChildren; ++iChild) {
+		const HOCRItem* childItem = item->children()[iChild];
+		QRect bbox = childItem->bbox();
+		if (childItem->itemClass() == "ocrx_word") {
+			QRect fuzzyBox = QRect(bbox.x()-fuzz, parentUB, bbox.width()+2*fuzz, parentLB);
+			if(fuzzyBox.contains(pos)) {
+				if(bbox.contains(pos)) {
+					return indexAtItem(childItem);
+				} 
+				if(m_pickFuzzyMatch != nullptr) {
+					double dist = 0.0 + bbox.topLeft().x() - m_pickFuzzyMatch->bbox().topRight().x(); // retain sign for overlap!
+					if (pos.x() > bbox.topLeft().x()-dist/2) {
+						m_pickFuzzyMatch = childItem;
+					}
+				} else {
+					m_pickFuzzyMatch = childItem;
+				}
+			}
+		} else {
+			// Keep searching until we run out of overlapping regions
+			if(bbox.contains(pos)) {
+				oneFound = true;
+				if (childItem->itemClass() == "ocr_line") {
+					parentUB = childItem->bbox().topLeft().y();
+					parentLB = childItem->bbox().bottomLeft().y();
+				}
+				// tacit assumption: all children are words
+				QModelIndex newIdx = searchAtCanvasPos_inner(index(iChild, 0, idx), pos, fuzz, parentUB, parentLB);
+				if (newIdx.isValid()) {
+					return newIdx;
+				}
+			} else {
+				if(oneFound) {
+					return QModelIndex();
+				}
+			}
+		} 
+	}
+	return QModelIndex();
 }
 
 QModelIndex HOCRDocument::lineAboveCanvasPos(const QModelIndex& pageIndex, const QPoint& pos) const {

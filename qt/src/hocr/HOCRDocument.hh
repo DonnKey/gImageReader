@@ -82,7 +82,7 @@ public:
 
 	bool referencesSource(const QString& filename) const;
 	QModelIndex searchPage(const QString& filename, int pageNr) const;
-	QModelIndex searchAtCanvasPos(const QModelIndex& pageIndex, const QPoint& pos) const;
+	QModelIndex searchAtCanvasPos(const QModelIndex& pageIndex, const QPoint& pos, int fuzz) const;
 	QModelIndex lineAboveCanvasPos(const QModelIndex& pageIndex, const QPoint& pos) const;
 	void convertSourcePaths(const QString& basepath, bool absolute);
 
@@ -106,6 +106,7 @@ private:
 	int m_pageIdCounter = 0;
 	QString m_defaultLanguage = "en_US";
 	HOCRSpellChecker* m_spell;
+	const mutable HOCRItem* m_pickFuzzyMatch;
 
 	QVector<HOCRPage*> m_pages;
 
@@ -119,6 +120,7 @@ private:
 	void resetMisspelled(const QModelIndex& index);
 	QList<QModelIndex> recheckItemSpelling(const QModelIndex& index) const;
 	void recomputeBBoxes(HOCRItem* item);
+	QModelIndex searchAtCanvasPos_inner(const QModelIndex& pageIndex, const QPoint& pos, int fuzz, int parentUB, int parentLB) const;
 };
 
 

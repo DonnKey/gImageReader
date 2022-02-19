@@ -1347,7 +1347,11 @@ void OutputEditorHOCR::pickItem(const QPoint& point) {
 	double scale = double(page->resolution()) / double(MAIN->getDisplayer()->getCurrentResolution());
 	QPoint newPoint( scale * (point.x() * std::cos(alpha) - point.y() * std::sin(alpha)) + 0.5 * page->bbox().width(),
 	                 scale * (point.x() * std::sin(alpha) + point.y() * std::cos(alpha)) + 0.5 * page->bbox().height());
-	QModelIndex index = m_document->searchAtCanvasPos(pageIndex, newPoint);
+	QModelIndex index = m_document->searchAtCanvasPos(pageIndex, newPoint, page->resolution()/10);
+	if (!index.isValid()) {
+		MAIN->getDisplayer()->setFocus();
+		return;
+	}
 	ui.treeViewHOCR->setCurrentIndex(index);
 	const HOCRItem* item = m_document->itemAtIndex(index);
 	if(item->itemClass() == "ocrx_word") {

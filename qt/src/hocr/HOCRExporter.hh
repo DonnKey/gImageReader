@@ -36,6 +36,7 @@ public:
 };
 
 class HOCRExporterWidget : public QWidget {
+	Q_OBJECT
 public:
 	HOCRExporterWidget(QWidget* parent = nullptr) : QWidget(parent) {};
 

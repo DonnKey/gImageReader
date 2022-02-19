@@ -304,7 +304,6 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	ui.treeViewHOCR->header()->setStretchLastSection(false);
 	ui.treeViewHOCR->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 	ui.treeViewHOCR->setColumnWidth(1, 32);
-	ui.treeViewHOCR->setColumnHidden(1, true);
 	ui.treeViewHOCR->setItemDelegateForColumn(0, new HOCRTextDelegate(ui.treeViewHOCR));
 
 	m_proofReadWidget = new HOCRProofReadWidget(ui.treeViewHOCR, MAIN->getDisplayer());
@@ -363,7 +362,12 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionCollapseAll, &QAction::triggered, this, &OutputEditorHOCR::collapseItemClass);
 	connect(MAIN->getDisplayer(), &Displayer::imageChanged, this, &OutputEditorHOCR::sourceChanged);
 
+	ADD_SETTING(ActionSetting("displayconfidence", ui.actionToggleWConf, false));
+
 	setFont();
+
+	// Deferred until connect()s are done
+	ui.treeViewHOCR->setColumnHidden(1, !ConfigSettings::get<ActionSetting>("displayconfidence")->getValue());
 }
 
 OutputEditorHOCR::~OutputEditorHOCR() {
@@ -904,8 +908,8 @@ void OutputEditorHOCR::pickItem(const QPoint& point) {
 	}
 }
 
-void OutputEditorHOCR::toggleWConfColumn(bool active) {
-	ui.treeViewHOCR->setColumnHidden(1, !active);
+void OutputEditorHOCR::toggleWConfColumn() {
+	ui.treeViewHOCR->setColumnHidden(1, !ConfigSettings::get<ActionSetting>("displayconfidence")->getValue());
 }
 
 bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {

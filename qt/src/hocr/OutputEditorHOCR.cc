@@ -513,6 +513,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	connect(&m_previewTimer, &QTimer::timeout, this, [this] {showPreview(OutputEditorHOCR::showMode::show); }); 
 	connect(ui.searchFrame, &SearchReplaceFrame::findReplace, this, &OutputEditorHOCR::findReplace);
 	connect(ui.searchFrame, &SearchReplaceFrame::replaceAll, this, &OutputEditorHOCR::replaceAll);
+	connect(ui.searchFrame, &SearchReplaceFrame::replaceInSelected, this, &OutputEditorHOCR::replaceInSelected);
 	connect(ui.searchFrame, &SearchReplaceFrame::reFocusTree, this, &OutputEditorHOCR::reFocusTree);
 	connect(ui.searchFrame, &SearchReplaceFrame::applySubstitutions, this, &OutputEditorHOCR::applySubstitutions);
 	connect(ConfigSettings::get<FontSetting>("customoutputfont"), &FontSetting::changed, this, &OutputEditorHOCR::setFont);
@@ -2420,6 +2421,29 @@ void OutputEditorHOCR::replaceAll(const QString& searchstr, const QString& repla
 		ui.searchFrame->setErrorState();
 	}
 	MAIN->popState();
+}
+
+void OutputEditorHOCR::replaceInSelected(const QString& searchstr, const QString& replacestr, bool matchCase) {
+	QModelIndex current = ui.treeViewHOCR->currentIndex();
+	HOCRItem* item = m_document->mutableItemAtIndex(current);
+	replaceInSelected_inner(item, searchstr, replacestr, matchCase);
+}
+
+void OutputEditorHOCR::replaceInSelected_inner(HOCRItem* item, const QString& searchstr, const QString& replacestr, bool matchCase) {
+	QString itemClass = item->itemClass();
+	const QMap<QString,QString> attr = item->getAttributes();
+
+	Qt::CaseSensitivity cs = matchCase ? Qt::CaseSensitive : Qt::CaseInsensitive;
+	QModelIndex index = m_document->indexAtItem(item);
+	if(itemClass == "ocrx_word") {
+		m_document->setData(index, item->text().replace(searchstr, replacestr, cs), Qt::EditRole);
+		return;
+	}
+
+	for(int i = 0, n = item->children().size(); i < n; ++i) {
+		replaceInSelected_inner(item->children()[i], searchstr, replacestr, matchCase);
+		QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+	}
 }
 
 void OutputEditorHOCR::applySubstitutions(const QMap<QString, QString>& substitutions, bool matchCase) {

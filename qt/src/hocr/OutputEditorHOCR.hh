@@ -164,6 +164,7 @@ private:
 	void bulkOperation(QModelIndex& index, const std::function<void()>& op);
 	bool isFullyExpanded(const QModelIndex& index) const;
 	void doPreferences(FocusableMenu *keyParent);
+	void replaceInSelected_inner(HOCRItem* item, const QString& searchstr, const QString& replacestr, bool matchCase);
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);
@@ -196,6 +197,7 @@ private slots:
 	void updateCurrentItemBBox(QRect bbox, bool affectsChildren);
 	void findReplace(const QString& searchstr, const QString& replacestr, bool matchCase, bool backwards, bool replace);
 	void replaceAll(const QString& searchstr, const QString& replacestr, bool matchCase);
+	void replaceInSelected(const QString& searchstr, const QString& replacestr, bool matchCase);
 	void applySubstitutions(const QMap<QString, QString>& substitutions, bool matchCase);
 	void sourceChanged();
 	void previewToggled();

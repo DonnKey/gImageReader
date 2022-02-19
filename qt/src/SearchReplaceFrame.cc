@@ -39,6 +39,7 @@ SearchReplaceFrame::SearchReplaceFrame(FocusableMenu* keyParent, QWidget* parent
 	connect(ui.toolButtonFindPrev, &QToolButton::clicked, this, &SearchReplaceFrame::findPrev);
 	connect(ui.toolButtonReplace, &QToolButton::clicked, this, &SearchReplaceFrame::replaceNext);
 	connect(ui.toolButtonReplaceAll, &QToolButton::clicked, this, &SearchReplaceFrame::emitReplaceAll);
+	connect(ui.toolButtonReplaceSel, &QToolButton::clicked, this, &SearchReplaceFrame::emitReplaceInSelected);
 
 	connect(ui.pushButtonSubstitutions, &QPushButton::clicked, this, [this] {m_substitutionsManager->doShow();} );
 	connect(m_substitutionsManager, &SubstitutionsManager::applySubstitutions, this, &SearchReplaceFrame::emitApplySubstitutions);
@@ -63,6 +64,7 @@ void SearchReplaceFrame::setKeyMenu(FocusableMenu* menu) {
 
 	}); 
 	menu->addAction(_("Replace &all"), this, &SearchReplaceFrame::emitReplaceAll); 
+	menu->addAction(_("Replace &selection"), this, &SearchReplaceFrame::emitReplaceInSelected); 
 	menu->addCheckable(_("&Match case"), ui.checkBoxMatchCase); 
 	menu->addAction(_("S&ubstitutions"), this, [this] {m_substitutionsManager->doShow(); });
 }

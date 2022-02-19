@@ -45,6 +45,7 @@ public slots:
 signals:
 	void findReplace(const QString& searchstr, const QString& replacestr, bool matchCase, bool backwards, bool replace);
 	void replaceAll(const QString& searchstr, const QString& replacestr, bool matchCase);
+	void replaceInSelected(const QString& searchstr, const QString& replacestr, bool matchCase);
 	void applySubstitutions(const QMap<QString, QString>& substitutions, bool matchCase);
 	void reFocusTree();
 
@@ -64,6 +65,9 @@ private slots:
 	}
 	void emitReplaceAll() {
 		emit replaceAll(ui.lineEditSearch->text(), ui.lineEditReplace->text(), ui.checkBoxMatchCase->isChecked());
+	}
+	void emitReplaceInSelected() {
+		emit replaceInSelected(ui.lineEditSearch->text(), ui.lineEditReplace->text(), ui.checkBoxMatchCase->isChecked());
 	}
 	void emitApplySubstitutions(const QMap<QString, QString>& substitutions) {
 		emit applySubstitutions(substitutions, ui.checkBoxMatchCase->isChecked());

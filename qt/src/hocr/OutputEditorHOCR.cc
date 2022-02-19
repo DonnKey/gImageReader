@@ -403,13 +403,13 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 
 	m_grid = new QGraphicsPixmapItem();
 	m_grid->setTransformationMode(Qt::SmoothTransformation);
-	m_grid->setZValue(4);
+	m_grid->setZValue(2);
 	MAIN->getDisplayer()->scene()->addItem(m_grid);
 	m_gridTimer.setSingleShot(true);
 
 	m_selectedItems = new QGraphicsPixmapItem();
 	m_selectedItems->setTransformationMode(Qt::SmoothTransformation);
-	m_selectedItems->setZValue(2);
+	m_selectedItems->setZValue(4);
 	MAIN->getDisplayer()->scene()->addItem(m_selectedItems);
 
 	ui.actionOutputReplaceKey->setShortcut(Qt::CTRL | Qt::Key_F);
@@ -1485,9 +1485,13 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		QAction* actionSwap = nullptr;
 		QAction* actionNormalize = nullptr;
 		QAction* actionApplyGrid = nullptr;
+		QAction* actionClearGrid = nullptr;
 		QAction* actionRemove = nullptr;
 		if(sameClass) { // Removal allowed
 			actionRemove = menu.addAction(_("&Remove all selected"));
+			if(pages) {
+				actionClearGrid = menu.addAction(_("Re&set Grid"));
+			}
 		}
 		if(consecutive && !graphics && !pages && sameClass) { // Merging allowed
 			actionMerge = menu.addAction(_("&Merge"));
@@ -1535,6 +1539,12 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			bulkOperation(newIndex, [this, &items]() {
 				applyGrid(items);
 			});
+		} else if(clickedAction == actionClearGrid) {
+			QList<HOCRItem*> items;
+			for (auto i:indices) {
+				HOCRPage* page = m_document->mutableItemAtIndex(i)->page();
+				page->clearGrid();
+			}
 		} else if(clickedAction == actionRemove) {
 			std::sort(indices.begin(), indices.end(), std::less<QModelIndex>());
 			for(QModelIndexList::const_reverse_iterator i = indices.rbegin(); i != indices.rend(); i++) {
@@ -1590,6 +1600,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QAction* actionLevelBaseline = nullptr;
 	QAction* actionClean = nullptr;
 	QAction* actionApplyGrid = nullptr;
+	QAction* actionClearGrid = nullptr;
 	QAction* nonActionMultiple = nullptr;
 
 	nonActionMultiple = menu.addAction(_("Multiple Selection Menu"));
@@ -1659,6 +1670,9 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	if(itemClass == "ocr_line") {
 		actionLevelBaseline = menu.addAction(_("&Level the baseline"));
 	}
+	if(itemClass == "ocr_page") {
+		actionClearGrid = menu.addAction(_("Re&set Grid"));
+	}
 	if(itemClass == "ocr_page" || itemClass == "ocr_carea" || itemClass == "ocr_par") {
 		actionClean = menu.addAction(_("&Clean empty items"));
 	}
@@ -1699,6 +1713,9 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			applyGrid(items);
 			});
 		showItemProperties(index);
+	} else if(clickedAction == actionClearGrid) {
+		HOCRPage* page = item->page();
+		page->clearGrid();
 	} else if(clickedAction == actionRemove) {
 		removeCurrentItem();
 	} else if(clickedAction == actionExpand) {

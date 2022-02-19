@@ -1611,6 +1611,12 @@ void HOCRItem::setAttribute(const QString& name, const QString& value) {
 	}
 }
 
+void HOCRItem::clearAttribute(const QString& name) {
+	QStringList parts = name.split(":");
+	Q_ASSERT(parts[0] == "title");
+	m_titleAttrs.remove(parts[1]);
+}
+
 QString HOCRItem::toHtml(int indent) const {
 	QString cls = itemClass();
 	QString tag;
@@ -1790,6 +1796,15 @@ void HOCRPage::convertSourcePath(const QString& basepath, bool absolute) {
 		m_sourceFile = QString("./%1").arg(QDir(basepath).relativeFilePath(m_sourceFile));
 	}
 	m_titleAttrs["image"] = QString("'%1'").arg(m_sourceFile);
+}
+
+void HOCRPage::commitGrid() {
+	setAttribute("title:x_grid", QString("(%1,%2 %3x%4)").arg(m_grid.x()).arg(m_grid.y()).arg(m_grid.width()).arg(m_grid.height()));
+}
+
+void HOCRPage::clearGrid() {
+	m_grid = QRect();
+	clearAttribute("title:x_grid");
 }
 
 QString GetShortPsmName(tesseract::PageSegMode mode) {

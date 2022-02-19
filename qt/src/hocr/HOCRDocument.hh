@@ -291,6 +291,7 @@ protected:
 		return m_misspelled;
 	}
 	void setAttribute(const QString& name, const QString& value);
+	void clearAttribute(const QString& name);
 	bool parseChildren(const QDomElement& element, QString language, const QString& defaultLanguage);
 };
 
@@ -325,9 +326,9 @@ public:
 	void setGrid(QRectF grid) {
 		m_grid = grid;
 	}
-	void commitGrid() {
-		setAttribute("title:x_grid", QString("(%1,%2 %3x%4)").arg(m_grid.x()).arg(m_grid.y()).arg(m_grid.width()).arg(m_grid.height()));
-	}
+	void commitGrid();
+	void clearGrid();
+
 	tesseract::PageSegMode mode() const {
 		return m_mode;
 	}

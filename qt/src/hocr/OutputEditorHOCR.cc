@@ -363,6 +363,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(MAIN->getDisplayer(), &Displayer::imageChanged, this, &OutputEditorHOCR::sourceChanged);
 
 	ADD_SETTING(ActionSetting("displayconfidence", ui.actionToggleWConf, false));
+	ADD_SETTING(ActionSetting("displaypreview", ui.actionPreview, false));
 
 	setFont();
 
@@ -425,6 +426,7 @@ void OutputEditorHOCR::finalizeRead(ReadSessionData* data) {
 		QString message = QString(_("The following pages could not be processed:\n%1").arg(hdata->errors.join("\n")));
 		QMessageBox::warning(MAIN, _("Recognition errors"), message);
 	}
+	selectPage(currentPage()>0 ? currentPage()-1 : 0);
 	OutputEditor::finalizeRead(data);
 }
 
@@ -969,7 +971,7 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 }
 
 bool OutputEditorHOCR::selectPage(int nr) {
-	if(!m_document || nr >= m_document->pageCount()) {
+	if(!m_document || nr >= m_document->pageCount() || nr < 0) {
 		return false;
 	}
 	QModelIndex index = m_document->indexAtItem(m_document->page(nr));
@@ -1069,7 +1071,6 @@ bool OutputEditorHOCR::exportToODT() {
 
 bool OutputEditorHOCR::exportToPDF() {
 	ui.treeViewHOCR->setFocus(); // Ensure any item editor loses focus and commits its changes
-	ui.actionPreview->setChecked(false); // Disable preview because if conflicts with preview from PDF dialog
 	QModelIndex current = ui.treeViewHOCR->selectionModel()->currentIndex();
 	const HOCRItem* item = m_document->itemAtIndex(current);
 	const HOCRPage* page = item ? item->page() : m_document->page(0);
@@ -1290,7 +1291,6 @@ void OutputEditorHOCR::sourceChanged() {
 	// Check if source is in document tree
 	QModelIndex pageIndex = m_document->searchPage(path, page);
 	if(!pageIndex.isValid()) {
-		ui.actionPreview->setChecked(false);
 		ui.treeViewHOCR->setCurrentIndex(QModelIndex());
 	} else {
 		QModelIndex curIndex = ui.treeViewHOCR->currentIndex();
@@ -1301,9 +1301,11 @@ void OutputEditorHOCR::sourceChanged() {
 			ui.treeViewHOCR->setCurrentIndex(pageIndex);
 		}
 	}
+	updatePreview();
 }
 
-void OutputEditorHOCR::previewToggled(bool active) {
+void OutputEditorHOCR::previewToggled() {
+	bool active = ConfigSettings::get<SwitchSetting>("displaypreview")->getValue();
 	QModelIndex index = ui.treeViewHOCR->currentIndex();
 	if(active && !index.isValid() && m_document->pageCount() > 0) {
 		ui.treeViewHOCR->setCurrentIndex(m_document->indexAtItem(m_document->page(0)));

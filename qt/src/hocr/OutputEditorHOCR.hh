@@ -137,7 +137,7 @@ private slots:
 	void replaceAll(const QString& searchstr, const QString& replacestr, bool matchCase);
 	void applySubstitutions(const QMap<QString, QString>& substitutions, bool matchCase);
 	void sourceChanged();
-	void previewToggled(bool active);
+	void previewToggled();
 	void updatePreview();
 };
 

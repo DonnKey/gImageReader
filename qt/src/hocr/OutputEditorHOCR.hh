@@ -82,9 +82,10 @@ public:
 	enum showMode{show, invert, suspend, resume};
 	bool m_suspended = false;
 	void showPreview(showMode mode);
+	void setModified();
 
 public slots:
-	bool open(const QString& filename) override { return open(InsertMode::Replace, {filename}); }
+ 	bool open(const QString& filename) { return open(InsertMode::Replace, {filename}); }
 	bool clear(bool hide = true) override;
 	void setLanguage(const Config::Lang& lang) override;
 	void onVisibilityChanged(bool visible) override;
@@ -168,7 +169,6 @@ private slots:
 	void pickItem(const QPoint& point, QMouseEvent* event);
 	void setFont();
 	void setInsertMode(QAction* action);
-	void setModified();
 	void showItemProperties(const QModelIndex& index, const QModelIndex& prev = QModelIndex());
 	void showTreeWidgetContextMenu(const QPoint& point);
 	void showTreeWidgetContextMenu_inner(const QPoint& point);

@@ -1706,7 +1706,8 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 		break;
 	}
 	if(files.isEmpty()) {
-		files = FileDialogs::openDialog(_("Open hOCR File (%1)").arg(modeName), "", "outputdir", QString("%1 (*.html)").arg(_("hOCR HTML Files")), true, MAIN->getDialogHost());
+		QString suggestion = ConfigSettings::get<VarSetting<QString>>("lasthocrsave")->getValue();
+		files = FileDialogs::openDialog(_("Open hOCR File (%1)").arg(modeName), suggestion, "outputdir", QString("%1 (*.html)").arg(_("hOCR HTML Files")), true, MAIN->getDialogHost());
 	}
 	if(files.isEmpty()) {
 		return false;
@@ -1714,7 +1715,7 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 	int pos = mode == InsertMode::InsertBefore ? currentPage() : m_document->pageCount();
 	QStringList failed;
 	QStringList invalid;
-	int added = 0;
+	QStringList added;
 	for(const QString& filename : files) {
 		QFile file(filename);
 		if(!file.open(QIODevice::ReadOnly)) {
@@ -1733,16 +1734,17 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 			QDomElement nextDiv = div.nextSiblingElement("div");
 			m_document->insertPage(pos++, div, false, QFileInfo(filename).absolutePath());
 			div = nextDiv;
-			++added;
+			added.append(filename);
 		}
 	}
-	if(added > 0) {
+	if(added.size() > 0) {
 		m_modified = mode != InsertMode::Replace;
 		if(mode == InsertMode::Replace && m_filebasename.isEmpty()) {
-			QFileInfo finfo(files.front());
+			QFileInfo finfo(added.front());
 			m_filebasename = finfo.absoluteDir().absoluteFilePath(finfo.completeBaseName());
 		}
 		MAIN->setOutputPaneVisible(true);
+		ConfigSettings::get<VarSetting<QString>>("lasthocrsave")->setValue(added.front());
 	}
 	QStringList errorMsg;
 	if(!failed.isEmpty()) {
@@ -1754,7 +1756,7 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 	if(!errorMsg.isEmpty()) {
 		QMessageBox::critical(MAIN, _("Unable to open files"), errorMsg.join("\n\n"));
 	}
-	return added > 0;
+	return added.size() > 0;
 }
 
 bool OutputEditorHOCR::selectPage(int nr) {
@@ -1814,11 +1816,16 @@ bool OutputEditorHOCR::save(const QString& filename) {
 	m_modified = false;
 	QFileInfo finfo(outname);
 	m_filebasename = finfo.absoluteDir().absoluteFilePath(finfo.completeBaseName());
+	ConfigSettings::get<VarSetting<QString>>("lasthocrsave")->setValue(finfo.absoluteFilePath());
 	return true;
 }
 
 bool OutputEditorHOCR::crashSave(const QString& filename) const {
 	QFile file(filename);
+	QByteArray current = setlocale(LC_ALL, NULL);
+	setlocale(LC_ALL, "C");
+	tesseract::TessBaseAPI tess;
+	setlocale(LC_ALL, current.constData());
 	if(file.open(QIODevice::WriteOnly)) {
 		QString header = QString(
 		                     "<!DOCTYPE html>\n"
@@ -1826,8 +1833,9 @@ bool OutputEditorHOCR::crashSave(const QString& filename) const {
 		                     "<head>\n"
 		                     " <title>%1</title>\n"
 		                     " <meta charset=\"utf-8\" /> \n"
+							 " <meta name='ocr-system' content='tesseract %2' />\n"
 		                     " <meta name='ocr-capabilities' content='ocr_page ocr_carea ocr_par ocr_line ocrx_word'/>\n"
-		                     "</head>\n").arg(QFileInfo(filename).fileName());
+							 "</head>\n").arg(QFileInfo(filename).fileName()).arg(tess.Version());
 		file.write(header.toUtf8());
 		m_document->convertSourcePaths(QFileInfo(filename).absolutePath(), false);
 		file.write(m_document->toHTML().toUtf8());

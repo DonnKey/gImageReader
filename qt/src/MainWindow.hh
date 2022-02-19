@@ -122,6 +122,7 @@ public:
 		return m_dialogHostParent;
 	}
 
+	void setupFiles();
 	void addNotification(const QString& title, const QString& message, const QList<NotificationAction>& actions, Notification* handle = nullptr);
 	void openFiles(const QStringList& files);
 	void openOutput(const QString& filename);
@@ -171,6 +172,8 @@ private:
 	QToolButton* m_progressCancelButton = nullptr;
 	QTimer m_progressTimer;
 	ProgressMonitor* m_progressMonitor = nullptr;
+	QStringList m_hocrFiles;
+	QStringList m_otherFiles;
 
 	QFutureWatcher<QString> m_versionWatcher;
 

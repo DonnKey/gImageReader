@@ -110,6 +110,8 @@ Config::Config(FocusableMenu* keyParent, QWidget* parent)
 	ADD_SETTING(VarSetting<QString>("sourcedir", Utils::documentsFolder()));
 	ADD_SETTING(VarSetting<QString>("outputdir", Utils::documentsFolder()));
 	ADD_SETTING(VarSetting<QString>("auxdir", Utils::documentsFolder()));
+	ADD_SETTING(VarSetting<QString>("lasthocrsave", ""));
+	ADD_SETTING(VarSetting<QString>("lastcrashsave", ""));
 
 	updateFontButton(m_fontDialog->currentFont());
 }

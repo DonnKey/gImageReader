@@ -54,6 +54,7 @@ public:
 	void showCloseButton(bool show);
 	static void waitableStarted();
 	static void waitableDone();
+	void startupSending();
 
 private:
 	void refreshKeyMap() const;
@@ -61,7 +62,6 @@ private:
 	void hideEvent(QHideEvent *event) override;
 	bool eventFilter(QObject* target, QEvent* ev);
 	bool startSending(Qt::Key keyCode);
-	void startupSending();
 	void sendOnePress();
 	void sendOneRelease();
 	void sendOneCharacter();

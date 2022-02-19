@@ -74,14 +74,17 @@ void MainWindow::signalHandlerExec(int signal, bool tesseractCrash) {
 
 	QString filename;
 	if(MAIN->getOutputEditor()) {
-		filename = QDir(Utils::documentsFolder()).absoluteFilePath(QString("%1_crash-save.txt").arg(PACKAGE_NAME));
+		QString suffix = (dynamic_cast<OutputEditorHOCR*>(MAIN->getOutputEditor()) != nullptr) ? ".html" : ".txt";
+		filename = QDir(Utils::documentsFolder()).absoluteFilePath(QString("%1_crash-save%2").arg(PACKAGE_NAME).arg(suffix));
 		int i = 0;
 		while(QFile(filename).exists()) {
 			++i;
-			filename = QDir(Utils::documentsFolder()).absoluteFilePath(QString("%1_crash-save_%2.txt").arg(PACKAGE_NAME).arg(i));
+			filename = QDir(Utils::documentsFolder()).absoluteFilePath(QString("%1_crash-save_%2%3").arg(PACKAGE_NAME).arg(i).arg(suffix));
 		}
 		if(!MAIN->getOutputEditor()->crashSave(filename)) {
 			filename.clear();
+		} else {
+			ConfigSettings::get<VarSetting<QString>>("lastcrashsave")->setValue(filename);
 		}
 	}
 
@@ -125,7 +128,9 @@ MainWindow::MainWindow(const QStringList& files)
 	s_instance = this;
 
 	std::signal(SIGSEGV, signalHandler);
+	std::signal(SIGBUS, signalHandler);
 	std::signal(SIGABRT, signalHandler);
+	std::signal(SIGFPE, signalHandler);
 #if !(defined(__ARMEL__) || defined(__LCC__) && __LCC__ <= 121)
 	std::set_terminate(terminateHandler);
 #endif
@@ -245,24 +250,62 @@ MainWindow::MainWindow(const QStringList& files)
 		m_versionWatcher.setFuture(future);
 	}
 #endif
-
-	QStringList hocrFiles;
-	QStringList otherFiles;
 	for(const QString& file : files) {
 		if(file.endsWith(".html", Qt::CaseInsensitive)) {
-			hocrFiles.append(file);
+			m_hocrFiles.append(file);
 		} else {
-			otherFiles.append(file);
+			m_otherFiles.append(file);
 		}
 	}
-	m_sourceManager->addSources(otherFiles);
-	if(!hocrFiles.isEmpty()) {
+	m_sourceManager->addSources(m_otherFiles);
+
+	QTimer::singleShot(0, [this] {
+		setupFiles();
+	});
+}
+
+void MainWindow::setupFiles() {
+	// Has to happen after the constructor has returned (and the parent window is up).
+	QString lastSave = (ConfigSettings::get<VarSetting<QString>>("lastcrashsave") != nullptr) ? ConfigSettings::get<VarSetting<QString>>("lastcrashsave")->getValue() : "";
+	if (!lastSave.isEmpty()) {
+		// Never ask again (about this crash)
+		ConfigSettings::get<VarSetting<QString>>("lastcrashsave")->setValue("");
+
+		int response = QMessageBox::question(MAIN, _("Auto-save File"), 
+			_("Resume with Crash Save file:\n%1?\n (Otherwise proceed normally.)").arg(lastSave), QMessageBox::Yes | QMessageBox::No , QMessageBox::No);
+			
+		if(response == QMessageBox::Yes) {
+			if(lastSave.endsWith(".html", Qt::CaseInsensitive)) {
+				if(setOutputMode(OutputModeHOCR)) {
+					// Theoretically, this line could fail, but since we don't do anything different if it does...
+					static_cast<OutputEditorHOCR*>(m_outputEditor)->open(OutputEditorHOCR::InsertMode::Append, {lastSave});
+					static_cast<OutputEditorHOCR*>(m_outputEditor)->setModified(); // (Crash recovery files are always modified!)
+					ui.dockWidgetOutput->setVisible(true);
+				}
+			} else {
+				if(setOutputMode(OutputModeText)) {
+					static_cast<OutputEditorText*>(m_outputEditor)->open(lastSave);
+					static_cast<OutputEditorText*>(m_outputEditor)->setModified(); // (Crash recovery files are always modified!)
+					ui.dockWidgetOutput->setVisible(true);
+				}
+			}
+			return;
+		}
+	}
+
+	if(!m_hocrFiles.isEmpty()) {
 		if(setOutputMode(OutputModeHOCR)) {
 			// Theoretically, this line could fail, but since we don't do anything different if it does...
-			static_cast<OutputEditorHOCR*>(m_outputEditor)->open(OutputEditorHOCR::InsertMode::Append, hocrFiles);
+			static_cast<OutputEditorHOCR*>(m_outputEditor)->open(OutputEditorHOCR::InsertMode::Append, m_hocrFiles);
 			ui.dockWidgetOutput->setVisible(true);
 		}
 	}
+	m_hocrFiles.clear();
+	m_otherFiles.clear();
+
+	QTimer::singleShot(1000, [this] {
+		m_keyMapManager->startupSending();
+	});
 }
 
 MainWindow::~MainWindow() {

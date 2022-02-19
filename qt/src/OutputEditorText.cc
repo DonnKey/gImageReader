@@ -384,7 +384,8 @@ void OutputEditorText::addText(const QString& text, bool insert) {
 bool OutputEditorText::open(const QString& filename) {
 	QStringList files;
 	if (filename.isEmpty()) {
-		files = FileDialogs::openDialog(_("Select Files"), "", "outputdir", QString("%1 (*.txt)").arg(_("Text Files")), true, MAIN);
+		QList<QString>oldRecent = ConfigSettings::get<VarSetting<QStringList>>("recenttxtitems")->getValue();
+		files = FileDialogs::openDialog(_("Select Files"), oldRecent[0], "outputdir", QString("%1 (*.txt)").arg(_("Text Files")), true, MAIN);
 		if (files.isEmpty()) {
 			return false;
 		}
@@ -544,6 +545,10 @@ bool OutputEditorText::clear(bool hide) {
 		MAIN->setOutputPaneVisible(false);
 	}
 	return true;
+}
+
+void OutputEditorText::setModified() {
+	textEdit()->document()->setModified();
 }
 
 void OutputEditorText::onVisibilityChanged(bool /*visible*/) {

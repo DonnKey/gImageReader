@@ -56,9 +56,10 @@ public:
 	BatchProcessor* createBatchProcessor(const QMap<QString, QVariant>& options) const override { return new TextBatchProcessor(options["prependPage"].toBool()); }
 	bool crashSave(const QString& filename) const override;
 	void navigateNextPrev(bool next, const QString& target = "") override;
+	void setModified();
 
 public slots:
-	bool open(const QString& filename = QString()) override;
+	bool open(const QString& filename = QString());
 	void onVisibilityChanged(bool visible) override;
 	bool clear(bool hide = true) override;
 	bool save(int page = -1, const QString& filename = "");

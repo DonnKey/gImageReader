@@ -323,10 +323,6 @@ KeyMapManager::KeyMapManager(FocusableMenu* keyParent, QWidget* parent)
 	QApplication::instance()->installEventFilter(this);
 
 	m_currentKeys = nullptr;
-
-	QTimer::singleShot(1000, [this] {
-		startupSending();
-	});
 }
 
 void KeyMapManager::doShow() {

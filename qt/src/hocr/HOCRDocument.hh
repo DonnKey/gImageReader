@@ -102,6 +102,7 @@ public:
 	void fitToFont(const QModelIndex& index);
 	void sortOnX(const QModelIndex& index);
 	void sortOnY(const QModelIndex& index);
+	void flatten(const QModelIndex& index);
 
 signals:
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);

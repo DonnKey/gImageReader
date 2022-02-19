@@ -689,6 +689,23 @@ void OutputEditorHOCR::expandCollapseChildren(const QModelIndex& index, bool exp
 	}
 }
 
+bool OutputEditorHOCR::isFullyExpanded(const QModelIndex& index) const {
+	if (m_document->itemAtIndex(index)->itemClass() == "ocr_line") {
+		return ui.treeViewHOCR->isExpanded(index);
+	}
+	else if (!ui.treeViewHOCR->isExpanded(index)) {
+		return false;
+	}
+	int nChildren = m_document->rowCount(index);
+	if(nChildren > 0) {
+		for(int i = 0; i < nChildren; ++i) {
+			if(!isFullyExpanded(m_document->index(i, 0, index))) {
+				return false;
+			}
+		}
+	};
+	return true;
+}
 
 bool OutputEditorHOCR::newPage(const HOCRPage* page) {
 	// Change to a *single* new page. See singleSelect in addSource().
@@ -1198,6 +1215,23 @@ void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
 	showTreeWidgetContextMenu_inner(m_contextMenuLocation);
 }
 
+void OutputEditorHOCR::bulkOperation(/*inout*/ QModelIndex &index, const std::function <void ()>& op) {
+	const HOCRItem* oldItem = m_document->itemAtIndex(index);
+	const HOCRPage* pageItem = oldItem->page();
+	bool oldExpanded = ui.treeViewHOCR->isExpanded(index);
+	bool oldFullyExpanded = isFullyExpanded(m_document->indexAtItem(pageItem));
+
+	op();
+	index = m_document->indexAtItem(oldItem);
+
+	if (oldFullyExpanded) {
+		expandCollapseChildren(m_document->indexAtItem(pageItem), true);
+	} else {
+		expandCollapseChildren(index, oldExpanded);
+	}
+	ui.treeViewHOCR->setCurrentIndex(index);
+}
+
 void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QModelIndexList indices = ui.treeViewHOCR->selectionModel()->selectedRows();
 	int nIndices = indices.size();
@@ -1263,8 +1297,10 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			for (auto i:indices) {
 				items.append(m_document->mutableItemAtIndex(i));
 			}
-			HOCRNormalize().normalizeTree(m_document, &items);
 			newIndex = indices.last();
+			bulkOperation(newIndex, [this, &items]() {
+				HOCRNormalize().normalizeTree(m_document, &items);
+			});
 		}
 		if(newIndex.isValid()) {
 			ui.treeViewHOCR->selectionModel()->blockSignals(true);
@@ -1301,6 +1337,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QAction* actionFit = nullptr;
 	QAction* actionSortX = nullptr;
 	QAction* actionSortY = nullptr;
+	QAction* actionFlatten = nullptr;
 	QAction* nonActionMultiple = nullptr;
 
 	nonActionMultiple = menu.addAction(_("Multiple Selection Menu"));
@@ -1354,6 +1391,9 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	if(itemClass == "ocr_line") {
 		actionSortX = menu.addAction(_("Sort immediate children on &X position"));
 	}
+	if(itemClass == "ocr_page" || itemClass == "ocr_carea") {
+		actionFlatten = menu.addAction(_("Flatten"));
+	}
 	menu.installEventFilter(this);
 
 	QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
@@ -1375,8 +1415,10 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		ui.treeViewHOCR->selectionModel()->setCurrentIndex(newIndex, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 		expandCollapseChildren(newIndex, true);
 	} else if(clickedAction == actionNormalize) {
-		QList<HOCRItem*>items = QList<HOCRItem*>({m_document->mutableItemAtIndex(index)});
-		HOCRNormalize().normalizeTree(m_document, &items);
+		bulkOperation(index, [this, index]() {
+			QList<HOCRItem*>items = QList<HOCRItem*>({m_document->mutableItemAtIndex(index)});
+			HOCRNormalize().normalizeTree(m_document, &items);
+			});
 		showItemProperties(index);
 	} else if(clickedAction == actionRemove) {
 		m_document->removeItem(ui.treeViewHOCR->selectionModel()->currentIndex());
@@ -1398,6 +1440,8 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		bool oldExpanded = ui.treeViewHOCR->isExpanded(index);
 		m_document->sortOnY(index);
 		expandCollapseChildren(index, oldExpanded);
+	} else if(clickedAction == actionFlatten) {
+		bulkOperation(index, [this, index]() {m_document->flatten(index);});
 	}
 	menu.setAttribute(Qt::WA_DeleteOnClose, true);
 }

@@ -240,7 +240,7 @@
    <widget class="QCheckBox" name="applySort_0">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>140</x>
       <y>150</y>
       <width>121</width>
       <height>21</height>
@@ -248,6 +248,19 @@
     </property>
     <property name="text">
      <string>Sort by Position</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applyFlatten_0">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>150</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Flatten</string>
     </property>
    </widget>
   </widget>
@@ -503,7 +516,7 @@
    <widget class="QCheckBox" name="applySort_1">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>140</x>
       <y>150</y>
       <width>121</width>
       <height>21</height>
@@ -511,6 +524,19 @@
     </property>
     <property name="text">
      <string>Sort by Position</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applyFlatten_1">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>150</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Flatten</string>
     </property>
    </widget>
   </widget>
@@ -737,7 +763,7 @@
    <widget class="QCheckBox" name="applySort_2">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>140</x>
       <y>150</y>
       <width>121</width>
       <height>21</height>
@@ -745,6 +771,19 @@
     </property>
     <property name="text">
      <string>Sort by Position</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applyFlatten_2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>150</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Flatten</string>
     </property>
    </widget>
   </widget>
@@ -971,7 +1010,7 @@
    <widget class="QCheckBox" name="applySort_3">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>140</x>
       <y>150</y>
       <width>121</width>
       <height>21</height>
@@ -979,6 +1018,19 @@
     </property>
     <property name="text">
      <string>Sort by Position</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applyFlatten_3">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>150</y>
+      <width>85</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Flatten</string>
     </property>
    </widget>
   </widget>

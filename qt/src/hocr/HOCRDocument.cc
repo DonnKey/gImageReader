@@ -457,6 +457,58 @@ void HOCRDocument::raw_sortOnY(const QModelIndex& idx) {
 	}
 }
 
+void HOCRDocument::flatten(const QModelIndex& idx) {
+	beginResetModel();
+
+	HOCRItem* top = mutableItemAtIndex(idx);
+	HOCRItem* firstPara = mutableItemAtIndex(idx);
+	while (true) {
+		if (firstPara->itemClass() == "ocr_par") {
+			break;
+		}
+		if (firstPara->m_childItems.size() <= 0) {
+			break;
+		}
+		firstPara = firstPara->m_childItems[0];
+	}
+	if (firstPara->itemClass() != "ocr_par") {
+		return;
+	}
+
+	std::function<void (HOCRItem*, HOCRItem*)> sweep = [&] (HOCRItem* target, HOCRItem* source) {
+		QVector<HOCRItem*> empties;
+		for(HOCRItem* child : source->m_childItems) {
+			if (child->itemClass() == "ocr_par") {
+				if (child == target) {
+					continue;
+				}
+
+				QVector<HOCRItem*> toMove = child->takeChildren();
+				for(HOCRItem* i : toMove) {
+					target->addChild(i);
+				}
+				empties.append(child);
+			} else {
+				sweep(target, child);
+				if (child->m_childItems.size() == 0) {
+					empties.append(child);
+				}
+			}
+		}
+
+		for(HOCRItem* item : empties) {
+			Q_ASSERT(item->m_childItems.size() <= 0);
+			source->removeChild(item);
+		}
+		empties.clear();
+	};
+
+	sweep(firstPara, top);
+	recomputeBBoxes(firstPara);
+
+	endResetModel();
+}
+
 bool HOCRDocument::toggleEnabledCheckbox(const QModelIndex& index) {
 	HOCRItem* item = mutableItemAtIndex(index);
 	if(!item) {

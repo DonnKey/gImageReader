@@ -141,6 +141,8 @@ private:
 	QModelIndex pickLine(const QPoint& point);
 	void deselectChildren(QItemSelectionModel *model, QModelIndex& index);
 	QRectF getWidgetGeometry() override;
+	void bulkOperation(QModelIndex& index, const std::function<void()>& op);
+	bool isFullyExpanded(const QModelIndex& index) const;
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);

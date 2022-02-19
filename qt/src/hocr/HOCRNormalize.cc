@@ -82,6 +82,10 @@ class PreferenceChoice {
 		QString name = "normalizeSort_" + m_instance;
 	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
 	}
+	bool getFlatten() {
+		QString name = "normalizeFlatten_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
 	const QString getTitle() {
 		QString name = "normalizeTitle_" + m_instance;
 	    return ConfigSettings::get<LineEditSetting>(name)->getValue();
@@ -105,6 +109,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSetting("normalizeFont_0", ui.normalizeFont_0, false));
 	ADD_SETTING(SwitchSetting("normalizeApplySubst_0", ui.applySubst_0, false));
 	ADD_SETTING(SwitchSetting("normalizeSort_0", ui.applySort_0, false));
+	ADD_SETTING(SwitchSetting("normalizeFlatten_0", ui.applyFlatten_0, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_0", ui.setBold_0, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_0", ui.setItalic_0, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_0", ui.title_0));
@@ -131,6 +136,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSetting("normalizeFont_1", ui.normalizeFont_1, false));
 	ADD_SETTING(SwitchSetting("normalizeApplySubst_1", ui.applySubst_1, false));
 	ADD_SETTING(SwitchSetting("normalizeSort_1", ui.applySort_1, false));
+	ADD_SETTING(SwitchSetting("normalizeFlatten_1", ui.applyFlatten_1, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_1", ui.setBold_1, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_1", ui.setItalic_1, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_1", ui.title_1));
@@ -157,6 +163,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSetting("normalizeFont_2", ui.normalizeFont_2, false));
 	ADD_SETTING(SwitchSetting("normalizeApplySubst_2", ui.applySubst_2, false));
 	ADD_SETTING(SwitchSetting("normalizeSort_2", ui.applySort_2, false));
+	ADD_SETTING(SwitchSetting("normalizeFlatten_2", ui.applyFlatten_2, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_2", ui.setBold_2, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_2", ui.setItalic_2, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_2", ui.title_2));
@@ -183,6 +190,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSetting("normalizeFont_3", ui.normalizeFont_3, false));
 	ADD_SETTING(SwitchSetting("normalizeApplySubst_3", ui.applySubst_3, false));
 	ADD_SETTING(SwitchSetting("normalizeSort_3", ui.applySort_3, false));
+	ADD_SETTING(SwitchSetting("normalizeFlatten_3", ui.applyFlatten_3, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_3", ui.setBold_3, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_3", ui.setItalic_3, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_3", ui.title_3));
@@ -267,6 +275,10 @@ void HOCRNormalize::normalizeSelection(PreferenceChoice *pref, bool substituteOn
 	m_doc->beginLayoutChange();
 	bool success = Utils::busyTask([this, pref, substituteOnly] {
 		for (HOCRItem* item:*m_items) {
+			if (!substituteOnly && pref->getFlatten()) {
+				QModelIndex index = m_doc->indexAtItem(item);
+				m_doc->flatten(index);
+			}
 			normalizeItem(item, pref, substituteOnly);
 		}
 		return true;

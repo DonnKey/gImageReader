@@ -36,6 +36,7 @@ public:
 	QToolButton* toolButtonLanguages;
 	QToolButton* toolButtonAppMenu;
 	QToolButton* toolButtonSourceAdd;
+	QToolButton* toolButtonEditKeyMap;
 	QWidgetAction* actionRotate;
 	QWidgetAction* actionPage;
 
@@ -165,6 +166,14 @@ public:
 		QWidget* toolBarMainSpacer = new QWidget(toolBarMain);
 		toolBarMainSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 		toolBarMain->addWidget(toolBarMainSpacer);
+
+		// KeyMap window
+		toolButtonEditKeyMap = new QToolButton(MainWindow);
+		toolButtonEditKeyMap->setAutoRaise(true);
+		toolButtonEditKeyMap->setIcon(QIcon::fromTheme("preferences-desktop-keyboard-symbolic.symbolic"));
+		toolButtonEditKeyMap->setPopupMode(QToolButton::InstantPopup);
+		toolButtonEditKeyMap->setToolTip("Map keys to actions");
+		toolBarMain->addWidget(toolButtonEditKeyMap);
 
 		// App menu
 		menuAppMenu = new QMenu(MainWindow);

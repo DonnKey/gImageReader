@@ -123,6 +123,8 @@ qt/src/FileDialogs.cc
 qt/src/FileDialogs.hh
 qt/src/FileTreeModel.cc
 qt/src/FileTreeModel.hh
+qt/src/KeyMapManager.cc
+qt/src/KeyMapManager.hh
 qt/src/hocr/DisplayerToolHOCR.cc
 qt/src/hocr/DisplayerToolHOCR.hh
 qt/src/hocr/HOCRBatchExportDialog.cc

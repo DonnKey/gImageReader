@@ -46,6 +46,7 @@
 #include "DisplayerToolSelect.hh"
 #include "DisplayerToolHOCR.hh"
 #include "HOCRBatchExportDialog.hh"
+#include "KeyMapManager.hh"
 #include "OutputEditorText.hh"
 #include "OutputEditorHOCR.hh"
 #include "RecognitionMenu.hh"
@@ -144,6 +145,7 @@ MainWindow::MainWindow(const QStringList& files)
 	m_recognitionMenu = new RecognitionMenu(this);
 	m_recognizer = new Recognizer(ui);
 	m_sourceManager = new SourceManager(ui);
+	m_keyMapManager = new KeyMapManager(this);
 
 	ui.centralwidget->layout()->addWidget(m_displayer);
 	ui.toolBarMain->setLayoutDirection(Qt::LeftToRight);
@@ -183,6 +185,7 @@ MainWindow::MainWindow(const QStringList& files)
 	 });
 	connect(ui.actionAutodetectLayout, &QAction::triggered, m_displayer, &Displayer::autodetectOCRAreas);
 	connect(ui.actionBatchExport, &QAction::triggered, this, &MainWindow::batchExport);
+	connect(ui.toolButtonEditKeyMap, &QPushButton::clicked, m_keyMapManager, &KeyMapManager::show);
 #if FOCUSDEBUG
 	connect(qApp, &QApplication::focusChanged, this, &MainWindow::focusChanged);
 #endif
@@ -262,6 +265,7 @@ MainWindow::~MainWindow() {
 	delete m_displayer;
 	delete m_recognizer;
 	delete m_config;
+	delete m_keyMapManager;
 	s_instance = nullptr;
 }
 
@@ -521,12 +525,14 @@ void MainWindow::showProgress(ProgressMonitor* monitor, int updateInterval) {
 	m_progressTimer.start(updateInterval);
 	m_progressCancelButton->setEnabled(true);
 	m_progressBar->setValue(0);
+	KeyMapManager::waitableStarted();
 	m_progressWidget->show();
 }
 
 void MainWindow::hideProgress() {
 	m_progressWidget->hide();
 	m_progressTimer.stop();
+	KeyMapManager::waitableDone();
 	m_progressMonitor = nullptr;
 }
 

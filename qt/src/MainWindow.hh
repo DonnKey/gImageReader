@@ -47,6 +47,7 @@ class Recognizer;
 class SourceManager;
 class Source;
 class QProgressBar;
+class KeyMapManager;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -149,6 +150,7 @@ private:
 	RecognitionMenu* m_recognitionMenu = nullptr;
 	Recognizer* m_recognizer = nullptr;
 	SourceManager* m_sourceManager = nullptr;
+	KeyMapManager* m_keyMapManager = nullptr;
 
 	QActionGroup m_idleActions;
 	QList<QWidget*> m_idleWidgets;

@@ -20,12 +20,13 @@
 #include "common.hh"
 #include "ui_MainWindow.h"
 #include "Ui_MainWindow.hh"
+#include "MainWindow.hh"
 #include <QDoubleSpinBox>
 #include <QMenu>
 #include <QWidgetAction>
 
-void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
-	Ui_MainWindow::setupUi(MainWindow);
+void UI_MainWindow::setupUi(QMainWindow* mainWindow) {
+	Ui_MainWindow::setupUi(mainWindow);
 
 	// Do remaining things which are not possible in designer
 	toolBarMain->setContextMenuPolicy(Qt::PreventContextMenu);
@@ -38,7 +39,7 @@ void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
 	widgetImageControls->setVisible(false);
 
 	// Rotate spinbox
-	frameRotation = new QFrame(MainWindow);
+	frameRotation = new QFrame(mainWindow);
 	frameRotation->setFrameShape(QFrame::StyledPanel);
 	frameRotation->setFrameShadow(QFrame::Sunken);
 	frameRotation->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -48,16 +49,16 @@ void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
 	layoutRotation->setContentsMargins(1, 1, 1, 1);
 	layoutRotation->setSpacing(0);
 
-	actionRotateCurrentPage = new QAction(QIcon(":/icons/rotate_page"), gettext("Rotate current page"), MainWindow);
-	actionRotateAllPages = new QAction(QIcon(":/icons/rotate_pages"), gettext("Rotate all pages"), MainWindow);
-	actionRotateAuto = new QAction(QIcon(":/icons/rotate_auto"), gettext("Auto rotate when recognizing"), MainWindow);
+	actionRotateCurrentPage = new QAction(QIcon(":/icons/rotate_page"), gettext("Rotate current page"), mainWindow);
+	actionRotateAllPages = new QAction(QIcon(":/icons/rotate_pages"), gettext("Rotate all pages"), mainWindow);
+	actionRotateAuto = new QAction(QIcon(":/icons/rotate_auto"), gettext("Auto rotate when recognizing"), mainWindow);
 
-	menuRotation = new QMenu(MainWindow);
+	menuRotation = new QMenu(mainWindow);
 	menuRotation->addAction(actionRotateCurrentPage);
 	menuRotation->addAction(actionRotateAllPages);
 	menuRotation->addAction(actionRotateAuto);
 
-	toolButtonRotation = new QToolButton(MainWindow);
+	toolButtonRotation = new QToolButton(mainWindow);
 	toolButtonRotation->setIcon(QIcon(":/icons/rotate_pages"));
 	toolButtonRotation->setToolTip(gettext("Select rotation mode"));
 	toolButtonRotation->setPopupMode(QToolButton::InstantPopup);
@@ -66,7 +67,7 @@ void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
 
 	layoutRotation->addWidget(toolButtonRotation);
 
-	spinBoxRotation = new QDoubleSpinBox(MainWindow);
+	spinBoxRotation = new QDoubleSpinBox(mainWindow);
 	spinBoxRotation->setRange(0.0, 359.9);
 	spinBoxRotation->setDecimals(1);
 	spinBoxRotation->setSingleStep(0.1);
@@ -76,13 +77,13 @@ void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
 	spinBoxRotation->setSizePolicy(spinBoxRotation->sizePolicy().horizontalPolicy(), QSizePolicy::MinimumExpanding);
 	layoutRotation->addWidget(spinBoxRotation);
 
-	actionRotate = new QWidgetAction(MainWindow);
+	actionRotate = new QWidgetAction(mainWindow);
 	actionRotate->setDefaultWidget(frameRotation);
 
 	toolBarMain->insertAction(actionImageControls, actionRotate);
 
 	// Page spinbox
-	framePage = new QFrame(MainWindow);
+	framePage = new QFrame(mainWindow);
 	framePage->setFrameShape(QFrame::StyledPanel);
 	framePage->setFrameShadow(QFrame::Sunken);
 	framePage->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -92,20 +93,20 @@ void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
 	layoutPage->setContentsMargins(1, 1, 1, 1);
 	layoutPage->setSpacing(0);
 
-	QToolButton* toolButtonPage = new QToolButton(MainWindow);
+	QToolButton* toolButtonPage = new QToolButton(mainWindow);
 	toolButtonPage->setIcon(QPixmap(":/icons/page"));
 	toolButtonPage->setEnabled(false);
 	toolButtonPage->setAutoRaise(true);
 	layoutPage->addWidget(toolButtonPage);
 
-	spinBoxPage = new QSpinBox(MainWindow);
+	spinBoxPage = new QSpinBox(mainWindow);
 	spinBoxPage->setRange(1, 1);
 	spinBoxPage->setFrame(false);
 	spinBoxPage->setKeyboardTracking(false);
 	spinBoxPage->setSizePolicy(spinBoxPage->sizePolicy().horizontalPolicy(), QSizePolicy::MinimumExpanding);
 	layoutPage->addWidget(spinBoxPage);
 
-	actionPage = new QWidgetAction(MainWindow);
+	actionPage = new QWidgetAction(mainWindow);
 	actionPage->setDefaultWidget(framePage);
 
 	toolBarMain->insertAction(actionImageControls, actionPage);
@@ -132,13 +133,13 @@ void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
 	actionAutodetectLayout->setVisible(false);
 
 	// Recognize and language button
-	toolButtonRecognize = new QToolButton(MainWindow);
+	toolButtonRecognize = new QToolButton(mainWindow);
 	toolButtonRecognize->setIcon(QIcon::fromTheme("insert-text"));
 	toolButtonRecognize->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 	toolButtonRecognize->setFont(smallFont);
 	toolBarMain->insertWidget(actionToggleOutputPane, toolButtonRecognize);
 
-	toolButtonLanguages = new QToolButton(MainWindow);
+	toolButtonLanguages = new QToolButton(mainWindow);
 	toolButtonLanguages->setIcon(QIcon::fromTheme("applications-education-language"));
 	toolButtonLanguages->setPopupMode(QToolButton::InstantPopup);
 	toolBarMain->insertWidget(actionToggleOutputPane, toolButtonLanguages);
@@ -151,7 +152,7 @@ void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
 	toolBarMain->addWidget(toolBarMainSpacer);
 
 	// KeyMap window
-	toolButtonEditKeyMap = new QToolButton(MainWindow);
+	toolButtonEditKeyMap = new QToolButton(mainWindow);
 	toolButtonEditKeyMap->setAutoRaise(true);
 	toolButtonEditKeyMap->setIcon(QIcon::fromTheme("preferences-desktop-keyboard-symbolic.symbolic"));
 	toolButtonEditKeyMap->setPopupMode(QToolButton::InstantPopup);
@@ -159,54 +160,54 @@ void UI_MainWindow::setupUi(QMainWindow* MainWindow) {
 	toolBarMain->addWidget(toolButtonEditKeyMap);
 
 	// App menu
-	menuAppMenu = new QMenu(MainWindow);
+	menuAppMenu = new QMenu(mainWindow);
 
-	actionRedetectLanguages = new QAction(QIcon::fromTheme("view-refresh"), gettext("Redetect Languages"), MainWindow);
+	actionRedetectLanguages = new QAction(QIcon::fromTheme("view-refresh"), gettext("Redetect Languages"), mainWindow);
 	menuAppMenu->addAction(actionRedetectLanguages);
 
-	actionManageLanguages = new QAction(QIcon::fromTheme("applications-education-language"), gettext("Manage Languages"), MainWindow);
+	actionManageLanguages = new QAction(QIcon::fromTheme("applications-education-language"), gettext("Manage Languages"), mainWindow);
 	menuAppMenu->addAction(actionManageLanguages);
 
-	actionPreferences = new QAction(QIcon::fromTheme("preferences-system"), gettext("Preferences"), MainWindow);
+	actionPreferences = new QAction(QIcon::fromTheme("preferences-system"), gettext("Preferences"), mainWindow);
 	menuAppMenu->addAction(actionPreferences);
 
 	menuAppMenu->addSeparator();
 
-	actionHelp = new QAction(QIcon::fromTheme("help-contents"), gettext("Help"), MainWindow);
+	actionHelp = new QAction(QIcon::fromTheme("help-contents"), gettext("Help"), mainWindow);
 	menuAppMenu->addAction(actionHelp);
 
-	actionAbout = new QAction(QIcon::fromTheme("help-about"), gettext("About"), MainWindow);
+	actionAbout = new QAction(QIcon::fromTheme("help-about"), gettext("About"), mainWindow);
 	menuAppMenu->addAction(actionAbout);
 
 	// App menu button
-	toolButtonAppMenu = new QToolButton(MainWindow);
+	toolButtonAppMenu = new QToolButton(mainWindow);
 	toolButtonAppMenu->setIcon(QIcon::fromTheme("preferences-system"));
 	toolButtonAppMenu->setPopupMode(QToolButton::InstantPopup);
 	toolButtonAppMenu->setMenu(menuAppMenu);
 	toolBarMain->addWidget(toolButtonAppMenu);
 
 	// Sources toolbar
-	actionSourceFolder = new QAction(QIcon::fromTheme("folder-open"), gettext("Add folder"), MainWindow);
-	actionSourcePaste = new QAction(QIcon::fromTheme("edit-paste"), gettext("Paste"), MainWindow);
-	actionSourceScreenshot = new QAction(QIcon::fromTheme("camera-photo"), gettext("Take Screenshot"), MainWindow);
+	actionSourceFolder = new QAction(QIcon::fromTheme("folder-open"), gettext("Add folder"), mainWindow);
+	actionSourcePaste = new QAction(QIcon::fromTheme("edit-paste"), gettext("Paste"), mainWindow);
+	actionSourceScreenshot = new QAction(QIcon::fromTheme("camera-photo"), gettext("Take Screenshot"), mainWindow);
 
-	toolButtonSourceAdd = new QToolButton(MainWindow);
+	toolButtonSourceAdd = new QToolButton(mainWindow);
 	toolButtonSourceAdd->setIcon(QIcon::fromTheme("document-open"));
 	toolButtonSourceAdd->setText(gettext("Add Images"));
 	toolButtonSourceAdd->setToolTip(gettext("Add images"));
 	toolButtonSourceAdd->setPopupMode(QToolButton::MenuButtonPopup);
 
-	actionSourceRemove = new QAction(QIcon::fromTheme("list-remove"), gettext("Remove Image"), MainWindow);
+	actionSourceRemove = new QAction(QIcon::fromTheme("list-remove"), gettext("Remove Image"), mainWindow);
 	actionSourceRemove->setToolTip(gettext("Remove image from list"));
 	actionSourceRemove->setEnabled(false);
-	actionSourceDelete = new QAction(QIcon::fromTheme("user-trash"), gettext("Delete Image"), MainWindow);
+	actionSourceDelete = new QAction(QIcon::fromTheme("user-trash"), gettext("Delete Image"), mainWindow);
 	actionSourceDelete->setToolTip(gettext("Delete image"));
 	actionSourceDelete->setEnabled(false);
-	actionSourceClear = new QAction(QIcon::fromTheme("edit-clear"), gettext("Clear List"), MainWindow);
+	actionSourceClear = new QAction(QIcon::fromTheme("edit-clear"), gettext("Clear List"), mainWindow);
 	actionSourceClear->setToolTip(gettext("Clear list"));
 	actionSourceClear->setEnabled(false);
 
-	toolBarSources = new QToolBar(MainWindow);
+	toolBarSources = new QToolBar(mainWindow);
 	toolBarSources->setToolButtonStyle(Qt::ToolButtonIconOnly);
 	toolBarSources->setIconSize(QSize(1, 1) * toolBarSources->style()->pixelMetric(QStyle::PM_SmallIconSize));
 	toolBarSources->addWidget(toolButtonSourceAdd);

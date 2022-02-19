@@ -304,7 +304,7 @@ bool Displayer::renderImage() {
 	m_imageItem->setTransformOriginPoint(m_imageItem->boundingRect().center());
 	m_imageItem->setPos(m_imageItem->pos() - m_imageItem->sceneBoundingRect().center());
 	m_scene->setSceneRect(m_imageItem->sceneBoundingRect());
-	centerOn(sceneRect().center());
+	setTransformationAnchor(ViewportAnchor::AnchorUnderMouse);
 	setAngle(ui.spinBoxRotation->value());
 	if(m_scale < 1.0) {
 		m_scaleTimer.start(100);

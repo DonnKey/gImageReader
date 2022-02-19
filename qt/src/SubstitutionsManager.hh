@@ -33,6 +33,7 @@ public:
 	SubstitutionsManager(QString key, QWidget* parent = nullptr);
 	~SubstitutionsManager();
 	QMap<QString, QString>* getSubstitutions();
+	void showEvent(QShowEvent *event) override;
 
 signals:
 	void applySubstitutions(const QMap<QString, QString>& substitutions);

@@ -98,11 +98,6 @@ SubstitutionsManager::SubstitutionsManager(QString key, QWidget* parent)
 	connect(m_tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubstitutionsManager::onTableSelectionChanged);
 
 	ADD_SETTING(TableSetting(key, m_tableWidget));
-
-	if (m_tableWidget->rowCount() > 0) {
-		QTableWidgetItem* item = m_tableWidget->item(0,0);
-		m_tableWidget->setCurrentItem(item);
-	}
 }
 
 SubstitutionsManager::~SubstitutionsManager() {
@@ -236,4 +231,16 @@ QMap<QString, QString>* SubstitutionsManager::getSubstitutions() {
 		substitutions->insert(m_tableWidget->item(row, 0)->text(), m_tableWidget->item(row, 1)->text());
 	}
 	return substitutions;
+}
+
+void SubstitutionsManager::showEvent(QShowEvent *event) {
+	// Bug workaround: forces "clean" edit state - without it clicking on highlighted items ignored
+	m_tableWidget->clearSelection();
+	if (m_tableWidget->rowCount() > 0) {
+		QTableWidgetItem* item = m_tableWidget->item(0,1);
+		m_tableWidget->setCurrentItem(item);
+		item = m_tableWidget->item(0,0);
+		m_tableWidget->setCurrentItem(item);
+	}
+	QDialog::showEvent(event);
 }

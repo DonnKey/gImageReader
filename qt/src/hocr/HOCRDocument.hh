@@ -171,6 +171,7 @@ public:
 	void getPropagatableAttributes(QMap<QString, QMap<QString, QSet<QString> > >& occurrences) const;
 	QString toHtml(int indent = 0) const;
 	QPair<double, double> baseLine() const;
+	double textangle() const;
 	QString fontFamily() const {
 		return m_titleAttrs["x_font"];
 	}

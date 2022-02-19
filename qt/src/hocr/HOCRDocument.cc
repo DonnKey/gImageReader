@@ -24,6 +24,7 @@
 #include <QIcon>
 #include <QSet>
 #include <cmath>
+#include <QDebug>
 
 #include "common.hh"
 #include "HOCRDocument.hh"
@@ -1024,6 +1025,14 @@ QPair<double, double> HOCRItem::baseLine() const {
 		return qMakePair(match.captured(1).toDouble(), match.captured(2).toDouble());
 	}
 	return qMakePair(0.0, 0.0);
+}
+
+double HOCRItem::textangle() const {
+	static const QRegExp textangleRx = QRegExp("([+-]?\\d+\\.?\\d*)");
+	if(textangleRx.indexIn(m_titleAttrs["textangle"]) != -1) {
+		return textangleRx.cap(1).toFloat();
+	}
+	return 0;
 }
 
 bool HOCRItem::parseChildren(const QDomElement& element, QString language, const QString& defaultLanguage) {

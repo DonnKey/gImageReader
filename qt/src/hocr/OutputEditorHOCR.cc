@@ -1372,6 +1372,7 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 	QString itemClass = item->itemClass();
 	if(itemClass == "ocr_line") {
 		QPair<double, double> baseline = item->baseLine();
+		double textangle = item->textangle();
 		const QRect& lineRect = item->bbox();
 		for(HOCRItem* wordItem : item->children()) {
 			if(!wordItem->isEnabled()) {
@@ -1387,8 +1388,22 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 			font.setPointSizeF(wordItem->fontSize());
 			painter.setFont(font);
 			// See https://github.com/kba/hocr-spec/issues/15
-			double y = lineRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second;
-			painter.drawText(wordRect.x(), y, wordItem->text());
+			// double y is the y coordinate of the mid-point along the x axis on baseline for line first*x+second (mx+b)
+			if(std::abs(textangle) == 0) {
+				// Using the lineRect.bottom() for the whole line gives much more readable results on horizontal text.
+				double y = lineRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second;
+				painter.drawText(wordRect.x(), y, wordItem->text());
+			}
+			else {
+				// ... but wordRect.bottom is more accurate; for nonzero angles we'll choose that.
+				// The only actual value seen here has been 90.
+				double y = wordRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second;
+				painter.save();
+				painter.translate(wordRect.x()+(wordRect.right()-wordRect.left())*std::sin(textangle/180.0 * M_PI), y);
+				painter.rotate(-textangle);
+				painter.drawText(0, 0, wordItem->text());
+				painter.restore();
+			}
 		}
 	} else if(itemClass == "ocr_graphic") {
 		painter.drawImage(item->bbox(), m_tool->getSelection(item->bbox()));

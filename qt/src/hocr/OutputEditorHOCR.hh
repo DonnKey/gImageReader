@@ -170,10 +170,12 @@ private:
 	QString m_attrName;
 	QString m_origValue;
 	QString m_attrItemClass;
+	bool m_edited;
 
 private slots:
 	void updateValue(const QModelIndex& itemIndex, const QString& name, const QString& value);
 	void validateChanges(bool force = false);
+	void testForPick();
 };
 
 class HOCRAttributeCheckbox : public QCheckBox {

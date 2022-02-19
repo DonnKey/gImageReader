@@ -115,11 +115,22 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 
 HOCRAttributeEditor::HOCRAttributeEditor(const QString& value, HOCRDocument* doc, const QModelIndex& itemIndex, const QString& attrName, const QString& attrItemClass)
-	: QLineEdit(value), m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_origValue(value), m_attrItemClass(attrItemClass) {
+	: QLineEdit(value), m_doc(doc), m_itemIndex(itemIndex), m_attrName(attrName), m_origValue(value), m_attrItemClass(attrItemClass), m_edited(false) {
 	setFrame(false);
-	connect(m_doc, &HOCRDocument::itemAttributeChanged, this, &HOCRAttributeEditor::updateValue);
-	connect(this, &HOCRAttributeEditor::textChanged, this, [this] { validateChanges(); });
+	connect(m_doc, &HOCRDocument::itemAttributeChanged, this, 
+		[this] (const QModelIndex& index, const QString& name, const QString& value) {
+			m_edited = false;
+			updateValue(index, name, value);
+		});
+	connect(this, &HOCRAttributeEditor::textChanged, this, &HOCRAttributeEditor::testForPick);
 	connect(this, &QLineEdit::returnPressed, this, [this] { validateChanges(true); });
+	connect(this, &HOCRAttributeEditor::textEdited, this, [this] { m_edited = true; validateChanges(); });
+}
+
+void HOCRAttributeEditor::testForPick() {
+	if (!m_edited) {
+		validateChanges(true);
+	}
 }
 
 void HOCRAttributeEditor::focusOutEvent(QFocusEvent* ev) {

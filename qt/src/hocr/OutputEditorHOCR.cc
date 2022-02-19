@@ -702,7 +702,9 @@ void OutputEditorHOCR::expandCollapseItemClass(bool expand) {
 		}
 		next = m_document->nextIndex(next);
 	} while(next != start);
-	ui.treeViewHOCR->scrollTo(ui.treeViewHOCR->currentIndex());
+	if (expand) {
+		ui.treeViewHOCR->scrollTo(ui.treeViewHOCR->currentIndex());
+	}
 }
 
 void OutputEditorHOCR::blinkCombo() {
@@ -734,6 +736,7 @@ void OutputEditorHOCR::navigateNextPrev(bool next, const QString &t, bool advanc
 		blinkCombo();
 	}
 	ui.treeViewHOCR->setCurrentIndex(found);
+	ui.treeViewHOCR->scrollTo(found, QAbstractItemView::PositionAtCenter);
 }
 
 void OutputEditorHOCR::expandCollapseChildren(const QModelIndex& index, bool expand) const {
@@ -1249,6 +1252,7 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 	}
 	if(index.isValid()) {
 		ui.treeViewHOCR->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+		ui.treeViewHOCR->scrollTo(index, QAbstractItemView::PositionAtCenter);
 		m_proofReadWidget->updateWidget(true);
 	}
 }
@@ -1295,6 +1299,7 @@ void OutputEditorHOCR::bulkOperation(/*inout*/ QModelIndex &index, const std::fu
 		expandCollapseChildren(index, oldExpanded);
 	}
 	ui.treeViewHOCR->setCurrentIndex(index);
+	ui.treeViewHOCR->scrollTo(index, QAbstractItemView::PositionAtCenter);
 }
 
 void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
@@ -1373,6 +1378,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			ui.treeViewHOCR->selectionModel()->clear();
 			ui.treeViewHOCR->selectionModel()->blockSignals(false);
 			ui.treeViewHOCR->selectionModel()->setCurrentIndex(newIndex, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+			ui.treeViewHOCR->scrollTo(newIndex, QAbstractItemView::PositionAtCenter);
 		}
 		ui.treeViewHOCR->selectionModel()->blockSignals(false);
 		// Nothing else is allowed with multiple items selected
@@ -1476,6 +1482,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		QModelIndex newIndex = m_document->splitItem(index.parent(), index.row(), index.row());
 		ui.treeViewHOCR->selectionModel()->setCurrentIndex(newIndex, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 		expandCollapseChildren(newIndex, true);
+		ui.treeViewHOCR->scrollTo(newIndex, QAbstractItemView::PositionAtCenter);
 	} else if(clickedAction == actionNormalize) {
 		bulkOperation(index, [this, index]() {
 			QList<HOCRItem*>items = QList<HOCRItem*>({m_document->mutableItemAtIndex(index)});
@@ -1518,7 +1525,7 @@ void OutputEditorHOCR::moveUpDown(const QModelIndex& index, int by) {
 	expandCollapseChildren(newIndex, newExpanded);
 	QModelIndex index2 = m_document->index(index.row(), 0, index.parent()); // The old index doesn't work for this (some pointer changed?)
 	expandCollapseChildren(index2, oldExpanded);
-	ui.treeViewHOCR->scrollTo(by>0?index2:newIndex, QAbstractItemView::PositionAtCenter);
+	ui.treeViewHOCR->scrollTo(index2, QAbstractItemView::PositionAtCenter);
 
 	// Allow easy repeats: rebuild the menu (it might be different)
 	m_contextMenu->close();
@@ -1664,7 +1671,8 @@ void OutputEditorHOCR::pickItem(const QPoint& point, QMouseEvent* event) {
 				}
 			}
 		}
-	}
+	} 
+	ui.treeViewHOCR->scrollTo(ui.treeViewHOCR->currentIndex(), QAbstractItemView::PositionAtCenter);
 	MAIN->getDisplayer()->setFocus();
 }
 
@@ -1793,6 +1801,7 @@ bool OutputEditorHOCR::selectPage(int nr) {
 	QModelIndex index = m_document->indexAtItem(m_document->page(nr));
 	if(index.isValid()) {
 		ui.treeViewHOCR->setCurrentIndex(index);
+		ui.treeViewHOCR->scrollTo(index, QAbstractItemView::PositionAtCenter);
 	}
 	return index.isValid();
 }
@@ -1919,6 +1928,7 @@ bool OutputEditorHOCR::exportToPDF() {
 	menuPdfShortcuts.mapButtonBoxDefault();
 	if (menuPdfShortcuts.execWithMenu(&dialog) != QDialog::Accepted) {
 		ui.treeViewHOCR->setCurrentIndex(current);
+		ui.treeViewHOCR->scrollTo(current, QAbstractItemView::PositionAtCenter);
 		return false;
 	}
 	HOCRPdfExporter::PDFSettings& settings = dialog.getPdfSettings();
@@ -1944,6 +1954,7 @@ bool OutputEditorHOCR::exportToPDF() {
 	}
 	if(outname.isEmpty()) {
 		ui.treeViewHOCR->setCurrentIndex(current);
+		ui.treeViewHOCR->scrollTo(current, QAbstractItemView::PositionAtCenter);
 		return false;
 	}
 
@@ -1953,6 +1964,7 @@ bool OutputEditorHOCR::exportToPDF() {
 	MAIN->getDisplayer()->setBlockAutoscale(false);
 	newPage(item->page());
 	ui.treeViewHOCR->setCurrentIndex(current);
+	ui.treeViewHOCR->scrollTo(current, QAbstractItemView::PositionAtCenter);
 	return success;
 }
 
@@ -1992,6 +2004,7 @@ bool OutputEditorHOCR::exportToIndentedText() {
 	menuIndentedShortcuts.mapButtonBoxDefault();
 	if (menuIndentedShortcuts.execWithMenu(&dialog) != QDialog::Accepted) {
 		ui.treeViewHOCR->setCurrentIndex(current);
+		ui.treeViewHOCR->scrollTo(current, QAbstractItemView::PositionAtCenter);
 		return false;
 	}
 	HOCRIndentedTextExporter::IndentedTextSettings& settings = dialog.getIndentedTextSettings();
@@ -2006,6 +2019,7 @@ bool OutputEditorHOCR::exportToIndentedText() {
 			false, MAIN->getDialogHost());
 	if(outname.isEmpty()) {
 		ui.treeViewHOCR->setCurrentIndex(current);
+		ui.treeViewHOCR->scrollTo(current, QAbstractItemView::PositionAtCenter);
 		return false;
 	}
 
@@ -2014,6 +2028,7 @@ bool OutputEditorHOCR::exportToIndentedText() {
 	success = HOCRIndentedTextExporter().run(m_document, outname, &settings);
 	MAIN->getDisplayer()->setBlockAutoscale(false);
 	ui.treeViewHOCR->setCurrentIndex(current);
+	ui.treeViewHOCR->scrollTo(current, QAbstractItemView::PositionAtCenter);
 	return success;
 }
 
@@ -2091,6 +2106,7 @@ bool OutputEditorHOCR::findReplaceInItem(const QModelIndex& index, const QString
 	int pos = backwards ? item->text().lastIndexOf(searchstr, -1, cs) : item->text().indexOf(searchstr, 0, cs);
 	if(pos != -1) {
 		ui.treeViewHOCR->setCurrentIndex(index);
+		ui.treeViewHOCR->scrollTo(index, QAbstractItemView::PositionAtCenter);
 		ui.treeViewHOCR->edit(index);
 		delegate->setSelection(pos, searchstr.length());
 		return true;
@@ -2189,6 +2205,7 @@ void OutputEditorHOCR::sourceChanged() {
 		}
 		if(curIndex != pageIndex) {
 			ui.treeViewHOCR->setCurrentIndex(pageIndex);
+			ui.treeViewHOCR->scrollTo(pageIndex, QAbstractItemView::PositionAtCenter);
 		}
 	}
 	showPreview(OutputEditorHOCR::showMode::show);

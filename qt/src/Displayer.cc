@@ -554,7 +554,6 @@ void Displayer::keyPressEvent(QKeyEvent* event) {
 		return;
 	}
 	MAIN->getOutputEditor()->keyPressEvent(event);
-	QGraphicsView::keyPressEvent(event);
 }
 
 void Displayer::mousePressEvent(QMouseEvent* event) {

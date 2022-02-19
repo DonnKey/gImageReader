@@ -18,6 +18,8 @@
 #include <QVBoxLayout>
 #include <QWidgetAction>
 
+#include <TreeViewHOCR.hh>
+
 class UI_OutputEditorHOCR {
 public:
 	QMenu* menuInsertMode;
@@ -51,7 +53,7 @@ public:
 	QTabWidget* tabWidgetProps;
 
 	QSplitter* splitter;
-	QTreeView* treeViewHOCR;
+	TreeViewHOCR* treeViewHOCR;
 	QTableWidget* tableWidgetProperties;
 	OutputTextEdit* plainTextEditOutput;
 	SearchReplaceFrame* searchFrame;
@@ -161,7 +163,7 @@ public:
 		treeContainer->layout()->setContentsMargins(0, 0, 0, 0);
 		splitter->addWidget(treeContainer);
 
-		treeViewHOCR = new QTreeView(widget);
+		treeViewHOCR = new TreeViewHOCR(widget);
 		treeViewHOCR->setHeaderHidden(true);
 		treeViewHOCR->setSelectionMode(QTreeWidget::ExtendedSelection);
 		treeContainer->layout()->addWidget(treeViewHOCR);

@@ -23,6 +23,8 @@
 #include <QMap>
 #include <QFrame>
 
+#include <TreeViewHOCR.hh>
+
 class QLabel;
 class QSpinBox;
 class QTreeView;
@@ -32,7 +34,7 @@ class HOCRItem;
 class HOCRProofReadWidget : public QFrame {
 	Q_OBJECT
 public:
-	HOCRProofReadWidget(QTreeView* treeView, QWidget* parent = nullptr);
+	HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent = nullptr);
 	void setProofreadEnabled(bool enabled);
 	void clear();
 	QTreeView* documentTree() const { return m_treeView; }
@@ -43,7 +45,7 @@ public:
 private:
 	class LineEdit;
 
-	QTreeView* m_treeView = nullptr;
+	TreeViewHOCR* m_treeView = nullptr;
 	QVBoxLayout* m_linesLayout = nullptr;
 	const HOCRItem* m_currentLine = nullptr;
 	QWidget* m_controlsWidget = nullptr;
@@ -53,6 +55,7 @@ private:
 	QSpinBox* m_spinLinesAfter = nullptr;
 	int m_fontSizeDiff = 0;
 	bool m_enabled = false;
+	LineEdit *m_stub = nullptr;
 
 	// Disable auto tab handling
 	bool focusNextPrevChild(bool) override { return false; }

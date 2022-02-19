@@ -20,7 +20,6 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QTreeView>
 #include <QVBoxLayout>
 
 #include "Displayer.hh"
@@ -34,7 +33,7 @@
 
 class HOCRProofReadWidget::LineEdit : public QLineEdit {
 public:
-	LineEdit(HOCRProofReadWidget* proofReadWidget, HOCRItem* wordItem, QWidget* parent = nullptr) :
+	LineEdit(HOCRProofReadWidget* proofReadWidget, const HOCRItem* wordItem, QWidget* parent = nullptr) :
 		QLineEdit(wordItem->text(), parent), m_proofReadWidget(proofReadWidget), m_wordItem(wordItem) {
 		connect(this, &LineEdit::textChanged, this, &LineEdit::onTextChanged);
 
@@ -50,10 +49,24 @@ public:
 		ft.setBold(m_wordItem->fontBold());
 		ft.setItalic(m_wordItem->fontItalic());
 		setFont(ft);
+		setObjectName(wordItem->text());
+	}
+	LineEdit(HOCRProofReadWidget* proofReadWidget, QWidget* parent = nullptr) :
+		// Special for the invisible m_stub that gets focus when there aren't words to focus on.
+		QLineEdit("", parent), m_wordItem(nullptr), m_proofReadWidget(proofReadWidget) {
+		resize(0,0);
+		setObjectName("*stub*");
 	}
 	const HOCRItem* item() const { return m_wordItem; }
+	void setStubItem(const HOCRItem* item) {
+		Q_ASSERT(this == m_proofReadWidget->m_stub);
+		m_wordItem = item;
+	}
 
 private:
+	// Disable auto tab handling
+	bool focusNextPrevChild(bool) override { return false; }
+
 	HOCRProofReadWidget* m_proofReadWidget = nullptr;
 	const HOCRItem* m_wordItem = nullptr;
 	bool m_blockSetText = false;
@@ -117,22 +130,69 @@ private:
 	void keyPressEvent(QKeyEvent* ev) override {
 		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
 
-		bool nextLine = (ev->modifiers() == Qt::NoModifier && ev->key() == Qt::Key_Down) || (ev->key() == Qt::Key_Tab && m_wordItem == m_wordItem->parent()->children().last());
-		bool prevLine = (ev->modifiers() == Qt::NoModifier && ev->key() == Qt::Key_Up) || (ev->key() == Qt::Key_Backtab && m_wordItem == m_wordItem->parent()->children().first());
-		if(nextLine || prevLine) {
+		bool atWord = m_wordItem->itemClass() == "ocrx_word";
+		enum actions {none, prevLine, prevWhole, nextLine, beginCurrent, nextWord, prevWord} action = actions::none;
+
+		if(ev->modifiers() == Qt::NoModifier && ev->key() == Qt::Key_Down) {
+			action = nextLine;
+		}
+		else if(ev->modifiers() == Qt::NoModifier && ev->key() == Qt::Key_Up) {
+		    action = atWord ? prevLine : prevWhole;
+		}
+		else if(ev->key() == Qt::Key_Tab) {
+		    if(atWord) {
+			    if(m_wordItem == m_wordItem->parent()->children().last()) {
+					action = nextLine;
+				} else {
+					action = nextWord;
+				}
+		    } else {
+				action = beginCurrent;
+		    }
+		}
+		else if(ev->key() == Qt::Key_Backtab) {
+		    if(atWord) {
+			    if(m_wordItem == m_wordItem->parent()->children().first()) {
+					action = prevLine;
+				} else {
+					action = prevWord;
+				}
+		    } else {
+				action = prevWhole;
+		    }
+		}
+
+		if (action != none) {
 			bool next = false;
-			QModelIndex index;
-			if(nextLine) {
-				next = true;
-				index = document->indexAtItem(m_wordItem);
+			QModelIndex index = document->indexAtItem(m_wordItem);
+			switch(action) {
+			case nextLine:
 				// Move to first word of next line
-				index = document->prevOrNextIndex(next, index, "ocr_line");
+				index = document->prevOrNextIndex(true, index, "ocr_line");
 				index = document->prevOrNextIndex(true, index, "ocrx_word");
-			} else if(prevLine) {
-				index = document->indexAtItem(m_wordItem);
-				// Move to last word of prev line
+				break;
+			case prevLine:
+				// Move to last word of prev line (from a word within this line)
 				index = document->prevOrNextIndex(false, index, "ocr_line");
 				index = document->prevOrNextIndex(false, index, "ocrx_word");
+				break;
+			case prevWhole:
+				// Move to last word of prev line (from something enclosing)
+			case prevWord:
+				index = document->prevOrNextIndex(false, index, "ocrx_word");
+				break;
+			case nextWord:
+				index = document->prevOrNextIndex(true, index, "ocrx_word");
+				break;
+			case beginCurrent: {
+				// Move to first word below any parent items.
+				const HOCRItem* item = m_wordItem;
+				while (item->children().size() > 0 && item->itemClass() != "ocrx_word") {
+					item = item->children().first();
+				}
+				index = document->indexAtItem(item);
+				break;
+			} 
 			}
 			m_proofReadWidget->documentTree()->setCurrentIndex(index);
 		} else if(ev->key() == Qt::Key_Space && ev->modifiers() == Qt::ControlModifier) {
@@ -193,13 +253,25 @@ private:
 		} else if((ev->key() == Qt::Key_Minus || ev->key() == Qt::Key_Underscore) && ev->modifiers() & Qt::ControlModifier) {
 			m_proofReadWidget->adjustFontSize(-1);
 		} else {
-			QLineEdit::keyPressEvent(ev);
+			if(m_wordItem->itemClass() == "ocrx_word") {
+				// Tab/Backtab here just goes to the next widget (the next bbox!) by default,
+				// which ultmitately reaches showItemProperties. See also the top of this function.
+				QLineEdit::keyPressEvent(ev);
+			} else {
+				MAIN->getDisplayer()->keyPressEvent(ev);
+			}
 		}
 	}
 	void focusInEvent(QFocusEvent* ev) override {
-		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
-		m_proofReadWidget->documentTree()->setCurrentIndex(document->indexAtItem(m_wordItem));
-		m_proofReadWidget->setConfidenceLabel(m_wordItem->getTitleAttributes()["x_wconf"].toInt());
+		if(m_wordItem != nullptr && m_wordItem->itemClass() == "ocrx_word") {
+			HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
+			m_proofReadWidget->documentTree()->setCurrentIndex(document->indexAtItem(m_wordItem));
+			QMap<QString,QString> attrs = m_wordItem->getTitleAttributes();
+			QMap<QString,QString>::iterator i = attrs.find("x_wconf");
+			if(i != attrs.end()) {
+				m_proofReadWidget->setConfidenceLabel(i.value().toInt());
+			}
+		}
 		QLineEdit::focusInEvent(ev);
 		if(ev->reason() != Qt::MouseFocusReason) {
 			deselect();
@@ -209,12 +281,14 @@ private:
 };
 
 
-HOCRProofReadWidget::HOCRProofReadWidget(QTreeView* treeView, QWidget* parent)
+HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent)
 	: QFrame(parent), m_treeView(treeView) {
 	QVBoxLayout* layout = new QVBoxLayout;
 	layout->setContentsMargins(2, 2, 2, 2);
 	layout->setSpacing(2);
 	setLayout(layout);
+
+	m_stub = new LineEdit(this,this);
 
 	QWidget* linesWidget = new QWidget();
 	m_linesLayout = new QVBoxLayout();
@@ -354,11 +428,19 @@ void HOCRProofReadWidget::updateWidget(bool force) {
 	if(item->itemClass() == "ocrx_word") {
 		lineItem = item->parent();
 		wordItem = item;
-	} else if(item->itemClass() == "ocr_line") {
-		lineItem = item;
+		MAIN->getDisplayer()->setFocusProxy(nullptr);
 	} else {
-		clear();
-		return;
+		m_stub->setStubItem(item);
+		if(item->itemClass() != "ocr_line") {
+			// Build a mini-widget telling the user he can't edit with that selected.
+			clear();
+			m_currentLine = item; // for reposition
+			repositionWidget();	
+			MAIN->getDisplayer()->setFocusProxy(m_stub);
+			show();
+			return;
+		}
+		lineItem = item;
 	}
 
 	const QVector<HOCRItem*>& siblings = lineItem->parent()->children();
@@ -387,19 +469,25 @@ void HOCRProofReadWidget::updateWidget(bool force) {
 		repositionWidget();
 	}
 
-	// Select selected word or first item of middle line
-	const QObjectList children = m_currentLines[lineItem]->children();
-	LineEdit* focusLineEdit = static_cast<LineEdit*>(children.size() > 0 ? (children[wordItem ? wordItem->index() : 0]) : m_currentLines[lineItem]);
-	if(focusLineEdit && !m_treeView->hasFocus()) {
-		focusLineEdit->setFocus();
-		MAIN->getDisplayer()->setFocusProxy(focusLineEdit);
+	LineEdit* focusLineEdit;
+	if(item->itemClass() == "ocr_line") {
+		focusLineEdit = m_stub;
+	} else {
+		// Select selected word or first item of middle line
+		const QObjectList children = m_currentLines[lineItem]->children();
+		focusLineEdit = static_cast<LineEdit*>(children.size() > 0 ? (children[wordItem ? wordItem->index() : 0]) : m_currentLines[lineItem]);
 	}
-
+	if(focusLineEdit) {
+		MAIN->getDisplayer()->setFocusProxy(focusLineEdit);
+		if(!m_treeView->hasFocus()) {
+			focusLineEdit->setFocus();
+		}
+	}
 }
 
 void HOCRProofReadWidget::repositionWidget() {
 
-	if(m_currentLines.isEmpty() || !m_enabled) {
+	if(m_currentLine == nullptr) {
 		return;
 	}
 
@@ -408,6 +496,10 @@ void HOCRProofReadWidget::repositionWidget() {
 	int frameXmin = std::numeric_limits<int>::max();
 	int frameXmax = 0;
 	QPoint sceneCorner = displayer->getSceneBoundingRect().toRect().topLeft();
+	if(m_currentLines.isEmpty()) {
+		frameXmin = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomLeft()).x();
+		frameXmax = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomRight()).x() + 8;
+	} 
 	for(QWidget* lineWidget : m_currentLines) {
 		if(lineWidget->children().isEmpty()) {
 			continue;

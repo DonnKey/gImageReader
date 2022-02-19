@@ -1030,13 +1030,7 @@ bool OutputEditorHOCR::eventFilter(QObject* obj, QEvent* ev) {
 	if (obj == ui.treeViewHOCR) {
 		if(ev->type() == QEvent::Enter) {
 			ui.treeViewHOCR->setFocus();
-		}
-		if(ev->type() == QEvent::KeyPress) {
-			QKeyEvent* kev = static_cast<QKeyEvent*>(ev);
-			displayer->keyPressEvent(kev);
-			if (kev->isAccepted()) {
 			return true;
-			}
 		}
 		return false;
 	}
@@ -1058,6 +1052,10 @@ bool OutputEditorHOCR::eventFilter(QObject* obj, QEvent* ev) {
 		}
 	}
 	return false;
+}
+
+void OutputEditorHOCR::keyPressEvent(QKeyEvent *event) {
+	ui.treeViewHOCR->keyPressEvent(event);
 }
 
 void OutputEditorHOCR::pickItem(const QPoint& point) {

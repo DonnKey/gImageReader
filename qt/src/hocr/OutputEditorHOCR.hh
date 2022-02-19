@@ -60,6 +60,8 @@ public:
 	int positionOf(const QString& source, int sourcePage) const override;
 	bool crashSave(const QString& filename) const override;
 
+	void keyPressEvent(QKeyEvent* event) override;
+ 
 	HOCRDocument* getDocument() const { return m_document; }
 	DisplayerToolHOCR* getTool() const { return m_tool; }
 	bool open(InsertMode mode, QStringList files = QStringList());

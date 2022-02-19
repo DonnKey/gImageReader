@@ -1,4 +1,3 @@
-/* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * HOCRProofReadWidget.cc
  * Copyright (C) 2022 Sandro Mani <manisandro@gmail.com>
@@ -330,6 +329,10 @@ private:
 			// Merge
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			m_document->mergeItemText(index, (ev->modifiers() & Qt::ShiftModifier) != 0);
+		} else if(ev->key() == Qt::Key_Underscore && ev->modifiers() & Qt::ControlModifier) {
+			// Merge (right) with underscore
+			QModelIndex index = m_document->indexAtItem(m_wordItem);
+			m_document->mergeItemText(index, true, "_");
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == (Qt::ControlModifier|Qt::ShiftModifier)) {
 			QPersistentModelIndex index = m_document->indexAtItem(m_wordItem);
 			int currPage = m_wordItem->page()->pageNr();
@@ -1033,6 +1036,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+D</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Divide word at cursor position</td></tr>"
 	                           "<tr><td>Ctrl+M</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Merge with previous word</td></tr>"
 	                           "<tr><td>Ctrl+Shift+M</td>"            "<td> </td> <td> </td> <td>E</td> <td>Merge with next word</td></tr>"
+	                           "<tr><td>Ctrl+_</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Merge with next word insert _</td></tr>"
 	                           "<tr><td>Ctrl+W</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Insert new word/line at cursor</td></tr>"
 	                           "<tr><td>Ctrl+T</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Trim word height (heuristic)</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Delete current character</td></tr>"

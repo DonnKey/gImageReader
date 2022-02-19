@@ -70,7 +70,7 @@ public:
 	QModelIndex mergeItems(const QModelIndex& parent, int startRow, int endRow);
 	QModelIndex splitItem(const QModelIndex& itemIndex, int startRow, int endRow);
 	QModelIndex splitItemText(const QModelIndex& itemIndex, int pos);
-	QModelIndex mergeItemText(const QModelIndex& itemIndex, bool mergeNext);
+	QModelIndex mergeItemText(const QModelIndex& itemIndex, bool mergeNext, const QString& sep = QString());
 	QModelIndex addItem(const QModelIndex& parent, const QDomElement& element, int pos = -1);
 	bool removeItem(const QModelIndex& index);
 	void xlateItem(const QModelIndex& index, int u_d, int l_r, bool top = true);

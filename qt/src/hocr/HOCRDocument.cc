@@ -326,7 +326,7 @@ QModelIndex HOCRDocument::splitItemText(const QModelIndex& itemIndex, int pos) {
 	return itemIndex.sibling(itemIndex.row() + 1, 0);
 }
 
-QModelIndex HOCRDocument::mergeItemText(const QModelIndex& itemIndex, bool mergeNext) {
+QModelIndex HOCRDocument::mergeItemText(const QModelIndex& itemIndex, bool mergeNext, const QString& sep) {
 	HOCRItem* item = mutableItemAtIndex(itemIndex);
 	if(!item || item->itemClass() != "ocrx_word") {
 		return QModelIndex();
@@ -336,7 +336,7 @@ QModelIndex HOCRDocument::mergeItemText(const QModelIndex& itemIndex, bool merge
 	}
 	int offset = mergeNext ? 1 : -1;
 	HOCRItem* otherItem = item->parent()->children()[item->index() + offset];
-	QString newText = mergeNext ? item->text() + otherItem->text() : otherItem->text() + item->text();
+	QString newText = mergeNext ? item->text() + sep + otherItem->text() : otherItem->text() + sep + item->text();
 	QRect newBbox = item->bbox().united(otherItem->bbox());
 	setData(itemIndex, newText, Qt::EditRole);
 	editItemAttribute(itemIndex, "title:bbox", QString("%1 %2 %3 %4").arg(newBbox.left()).arg(newBbox.top()).arg(newBbox.right()).arg(newBbox.bottom()));

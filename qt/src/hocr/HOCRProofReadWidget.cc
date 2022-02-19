@@ -374,7 +374,7 @@ private:
 		QLineEdit::paintEvent(ev);
 		QPainter painter(this);
 		painter.setPen(QPen(Qt::darkMagenta,1));
-		QFontMetrics fm(font());
+		QFontMetricsF fm(font());
 		if (fm.horizontalAdvance(text()) > width()) {
 			painter.drawLine(rect().topRight(),rect().bottomRight());
 		}

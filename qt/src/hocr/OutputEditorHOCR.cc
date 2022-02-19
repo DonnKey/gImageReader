@@ -2317,7 +2317,7 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 			font.setBold(wordItem->fontBold());
 			font.setItalic(wordItem->fontItalic());
 			font.setPointSizeF(wordItem->fontSize());
-			QFontMetrics fm(font);
+			QFontMetricsF fm(font);
 			painter.setFont(font);
 
 			if (ui.outputDialogUi.checkBox_Overheight->isChecked() && wordItem->isOverheight()) {

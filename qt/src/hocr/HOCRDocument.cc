@@ -298,7 +298,7 @@ QModelIndex HOCRDocument::splitItem(const QModelIndex& itemIndex, int startRow, 
 		int newLeft = newItem->bbox().left();
 		QPair<double, double> baseline = item->baseLine();
 		int leftOffset = (newLeft-oldLeft)*baseline.first;
-		QString baselineStr = QString("%1 %2").arg(baseline.first).arg(baseline.second+leftOffset+(oldBottom-newBottom));
+		QString baselineStr = QString("%1 %2").arg(baseline.first, 0, 'f', 3).arg(baseline.second+leftOffset+(oldBottom-newBottom));
 		editItemAttribute(indexAtItem(newItem),"title:baseline", baselineStr);
 	}
 
@@ -315,7 +315,7 @@ QModelIndex HOCRDocument::splitItemText(const QModelIndex& itemIndex, int pos) {
 		return itemIndex;
 	}
 	// Compute new bounding box using font metrics with default font
-	QFontMetrics metrics((QFont()));
+	QFontMetricsF metrics((QFont()));
 	double fraction = metrics.horizontalAdvance(item->text().left(pos)) / double(metrics.horizontalAdvance(item->text()));
 	QRect bbox = item->bbox();
 	QRect leftBBox = bbox;
@@ -397,7 +397,7 @@ bool HOCRDocument::removeItem(const QModelIndex& index) {
 		// If removing this word changed the line position, compensate by adjusting the baseline.
 		int newBottom = parentItem->m_bbox.bottom();
 		QPair<double, double> baseline = parentItem->baseLine();
-		QString baselineStr = QString("%1 %2").arg(baseline.first).arg(baseline.second+oldBottom-newBottom);
+		QString baselineStr = QString("%1 %2").arg(baseline.first, 0, 'f', 3).arg(baseline.second+oldBottom-newBottom);
 		editItemAttribute(indexAtItem(parentItem),"title:baseline", baselineStr);
 		emit itemAttributeChanged(indexAtItem(parentItem), "title:baseline", baselineStr);
 	}
@@ -1117,7 +1117,7 @@ void HOCRDocument::fitToFont(const QModelIndex& index) {
 	font.setBold(item->fontBold());
 	font.setItalic(item->fontItalic());
 	font.setPointSizeF(item->fontSize());
-	QFontMetrics fm(font);
+	QFontMetricsF fm(font);
 
 	double fontHeight = (fm.capHeight())*pageDpi/72.0; // capHeight is "the usual" height
 	double fontDescent = (fm.descent())*pageDpi/72.0;
@@ -1134,7 +1134,7 @@ void HOCRDocument::fitToFont(const QModelIndex& index) {
 	if(-baseline.second > fontDescent) {
 		// The baseline is wrong... trim the bottom and adjust the baseline
 		double diff = -baseline.second-fontDescent;
-		QString baselineStr = QString("%1 %2").arg(baseline.first).arg(baseline.second+diff);
+		QString baselineStr = QString("%1 %2").arg(baseline.first, 0, 'f', 3).arg(baseline.second+diff);
 		editItemAttribute(indexAtItem(parent),"title:baseline", baselineStr);
 		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(qRound(bbox.bottom()-diff-fontHeight)).arg(bbox.right()).arg(qRound(bbox.bottom()-diff));
 		editItemAttribute(index,"title:bbox", bboxstr);
@@ -1488,7 +1488,7 @@ bool HOCRItem::isOverheight(bool force) const {
 	font.setBold(fontBold());
 	font.setItalic(fontItalic());
 	font.setPointSizeF(fontSize());
-	QFontMetrics fm(font);
+	QFontMetricsF fm(font);
 	int pageDpi = m_pageItem->resolution();
 	double fontHeight = (fm.capHeight()+fm.descent())*pageDpi/72;
 	if (m_bbox.height() > fontHeight) {

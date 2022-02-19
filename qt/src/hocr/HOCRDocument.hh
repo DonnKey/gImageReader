@@ -159,6 +159,12 @@ public:
 	QString text() const {
 		return m_text;
 	}
+	const QString *shadowText() const {
+		return m_shadowText;
+	}
+	void setShadowText(const QString* newText) {
+		m_shadowText = newText;
+	}
 	QString lang() const {
 		return m_attrs["lang"];
 	}
@@ -204,6 +210,7 @@ protected:
 	static QMap<QString, QString> s_langCache;
 
 	QString m_text;
+	const QString* m_shadowText = nullptr;
 	int m_misspelled = -1;
 	bool m_bold = false;
 	bool m_italic = false;
@@ -230,6 +237,7 @@ protected:
 	}
 	void setText(const QString& newText) {
 		m_text = newText;
+		m_shadowText = nullptr;
 	}
 	void setMisspelled(int misspelled) {
 		m_misspelled = misspelled;

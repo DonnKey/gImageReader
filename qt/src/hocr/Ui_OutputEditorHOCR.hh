@@ -43,6 +43,7 @@ public:
 	QAction* actionPreview;
 	QAction* actionProofread;
 	QAction* actionOverheight;
+	QAction* actionNonAscii;
 	QAction* actionNavigateNext;
 	QAction* actionNavigatePrev;
 	QAction* actionExpandAll;
@@ -136,6 +137,11 @@ public:
 			"<br>Right click Output tree item and select \"Trim\" to fix. See also Normalize. (Ctrl-T)"));
 		actionOverheight->setCheckable(true);
 		actionOverheight->setChecked(true);
+		actionNonAscii = new QAction(QIcon(":/icons/trimbox"), gettext("Show Non Latin-1 characters"), widget);
+		actionNonAscii->setToolTip(gettext("Highlight characters that are not Latin-1."
+			"<br>For computer text."));
+		actionNonAscii->setCheckable(true);
+		actionNonAscii->setChecked(true);
 
 		toolBarOutput = new QToolBar(widget);
 		toolBarOutput->setToolButtonStyle(Qt::ToolButtonIconOnly);
@@ -153,6 +159,7 @@ public:
 		toolBarOutput->addAction(actionProofread);
 		toolBarOutput->addAction(actionPreview);
 		toolBarOutput->addAction(actionOverheight);
+		toolBarOutput->addAction(actionNonAscii);
 		widget->addAction(actionOutputReplaceKey); // to some harmless parent
 
 		widget->layout()->addWidget(toolBarOutput);

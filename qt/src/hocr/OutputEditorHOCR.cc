@@ -405,6 +405,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionProofread, &QAction::toggled, m_proofReadWidget, &HOCRProofReadWidget::setProofreadEnabled);
 	connect(ui.actionOverheight, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(&m_previewTimer, &QTimer::timeout, this, [this] {showPreview(OutputEditorHOCR::showMode::show); }); 
+	connect(ui.actionNonAscii, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.searchFrame, &SearchReplaceFrame::findReplace, this, &OutputEditorHOCR::findReplace);
 	connect(ui.searchFrame, &SearchReplaceFrame::replaceAll, this, &OutputEditorHOCR::replaceAll);
 	connect(ui.searchFrame, &SearchReplaceFrame::applySubstitutions, this, &OutputEditorHOCR::applySubstitutions);
@@ -439,6 +440,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	ADD_SETTING(ActionSetting("displayconfidence", ui.actionToggleWConf, false));
 	ADD_SETTING(ActionSetting("displaypreview", ui.actionPreview, false));
 	ADD_SETTING(ActionSetting("displayoverheight", ui.actionOverheight, true));
+	ADD_SETTING(ActionSetting("displaynonascii", ui.actionNonAscii, true));
 
 	setFont();
 
@@ -1943,12 +1945,12 @@ void OutputEditorHOCR::updatePreview() {
 
 	const HOCRPage* page = item->page();
 	const QRect& bbox = page->bbox();
-	int pageDpi = page->resolution();
+	m_pageDpi = page->resolution();
 
 	QImage image(bbox.size(), QImage::Format_ARGB32);
 	image.fill(QColor(255, 255, 255, 63));
-	image.setDotsPerMeterX(pageDpi / 0.0254); // 1 in = 0.0254 m
-	image.setDotsPerMeterY(pageDpi / 0.0254);
+	image.setDotsPerMeterX(m_pageDpi / 0.0254); // 1 in = 0.0254 m
+	image.setDotsPerMeterY(m_pageDpi / 0.0254);
 	QPainter painter(&image);
 	painter.setRenderHint(QPainter::Antialiasing);
 
@@ -1960,6 +1962,7 @@ void OutputEditorHOCR::updatePreview() {
 	m_proofReadWidget->showWidget(true);
 }
 
+static const QString *useDefaultFlag = new QString();
 void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 	if(!item->isEnabled()) {
 		return;
@@ -1981,6 +1984,7 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 			font.setBold(wordItem->fontBold());
 			font.setItalic(wordItem->fontItalic());
 			font.setPointSizeF(wordItem->fontSize());
+			QFontMetrics fm(font);
 			painter.setFont(font);
 
 			if (ui.actionOverheight->isChecked() && wordItem->isOverheight()) {
@@ -1990,23 +1994,71 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 				painter.restore();
 
 			}
-			// See https://github.com/kba/hocr-spec/issues/15
-			// double y is the y coordinate of the mid-point along the x axis on baseline for line first*x+second (mx+b)
-			if(std::abs(textangle) == 0) {
-				// Using the lineRect.bottom() for the whole line gives much more readable results on horizontal text.
-				double y = lineRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second;
-				painter.drawText(wordRect.x(), y, wordItem->text());
+
+			QString displayText = wordItem->text();
+			const QString* shadowText = wordItem->shadowText();
+			bool usingShadowText = false;
+			if (!ui.actionNonAscii->isChecked()) {
+				// nothing
+			} else if (shadowText == nullptr) {
+				bool isAscii = true;
+				for (const QChar ch: displayText) {
+					if(ch >= 0x7f) {
+						isAscii = false;
+						break;
+					}
+				}
+
+				if (isAscii) {
+				    wordItem->setShadowText(useDefaultFlag);
+				} else {
+					QString* newText = new QString(displayText);
+					newText->replace(QChar('<'), QString("&lt;"), Qt::CaseSensitive);
+					QRegularExpression re = QRegularExpression("([^\\x{0000}-\\x{007f}]+)");
+					newText->replace(re,"<span style=\"background:#a0ffff00; color:magenta\">\\1</span>");
+					wordItem->setShadowText(newText);
+					displayText = *newText;
+					usingShadowText = true;
+				}
+			} 
+			else if (shadowText != useDefaultFlag) {
+				displayText = *shadowText;
+				usingShadowText = true;
 			}
-			else {
+
+			painter.save();
+			QTextDocument doc;
+			if (usingShadowText) {
+				doc.setHtml(displayText);
+			} else {
+				// If it's the default string, it might have bare '<'s in it.
+				doc.setPlainText(displayText);
+			} 
+			doc.setDocumentMargin(0);
+			doc.setDefaultFont(font);
+			doc.setTextWidth(100000); // for side-effect
+
+			double x, y;
+			if(textangle == 0) {
+				// See https://github.com/kba/hocr-spec/issues/15
+				// double y is the y coordinate of the mid-point along the x axis on baseline for line first*x+second (mx+b)
+				// Using the lineRect.bottom() for the whole line gives much more readable results on horizontal text.
+				x = wordRect.x();
+				y = lineRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second
+				    + (-doc.size().height()+fm.descent())*m_pageDpi/96.;
+			} else {
 				// ... but wordRect.bottom is more accurate; for nonzero angles we'll choose that.
 				// The only actual value seen here has been 90.
-				double y = wordRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second;
-				painter.save();
-				painter.translate(wordRect.x()+(wordRect.right()-wordRect.left())*std::sin(textangle/180.0 * M_PI), y);
-				painter.rotate(-textangle);
-				painter.drawText(0, 0, wordItem->text());
-				painter.restore();
+				x = wordRect.x()+(wordRect.right()-wordRect.left())*std::sin(textangle/180.0 * M_PI)
+				    + (-doc.size().height()+fm.descent())*m_pageDpi/96.;
+				y = wordRect.bottom() + (wordRect.center().x() - lineRect.x()) * baseline.first + baseline.second;
 			}
+
+			painter.translate(x,y);
+			painter.rotate(-textangle);
+			painter.scale(m_pageDpi/96., m_pageDpi/96.);
+			doc.drawContents(&painter);
+			painter.restore();
 		}
 	} else if(itemClass == "ocr_graphic") {
 		painter.drawImage(item->bbox(), m_tool->getSelection(item->bbox()));

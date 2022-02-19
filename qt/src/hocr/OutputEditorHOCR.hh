@@ -105,6 +105,7 @@ private:
 	QGraphicsPixmapItem* m_preview = nullptr;
 	QGraphicsPixmapItem* m_selectedItems = nullptr;
 	HOCRProofReadWidget* m_proofReadWidget = nullptr;
+	int m_pageDpi;
 	QTimer m_previewTimer;
 	UI_OutputEditorHOCR ui;
 	HTMLHighlighter* m_highlighter;

@@ -306,11 +306,11 @@ bool HOCRQPrinterPdfPrinter::createPage(double width, double height, double offs
 	} else {
 		// Need to create painter after setting paper size, otherwise default paper size is used for first page...
 		m_painter = new QPainter();
-		m_painter->setRenderHint(QPainter::Antialiasing);
 		if(!m_painter->begin(&m_printer)) {
 			errMsg = _("Failed to write to file");
 			return false;
 		}
+		m_painter->setRenderHint(QPainter::Antialiasing);
 		m_firstPage = false;
 	}
 	m_curFont = m_defaultFont;
@@ -321,7 +321,10 @@ bool HOCRQPrinterPdfPrinter::createPage(double width, double height, double offs
 }
 
 bool HOCRQPrinterPdfPrinter::finishDocument(QString& /*errMsg*/) {
-	return m_painter->end();
+	if (m_painter != nullptr) {
+		return m_painter->end();
+	}
+	return false;
 }
 
 void HOCRQPrinterPdfPrinter::drawImage(const QRect& bbox, const QImage& image, const HOCRPdfExporter::PDFSettings& settings) {

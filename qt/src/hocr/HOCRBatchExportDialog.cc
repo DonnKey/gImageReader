@@ -57,7 +57,9 @@ HOCRBatchExportDialog::HOCRBatchExportDialog(QWidget* parent)
 	m_previewTimer.setSingleShot(true);
 
 	MAIN->setOutputMode(MainWindow::OutputModeHOCR);
+	m_blinkTimer = new QTimer(this);
 
+	connect(m_blinkTimer, &QTimer::timeout, this, &HOCRBatchExportDialog::blinkFiles);
 	connect(ui.toolButtonSourceFolder, &QToolButton::clicked, this, &HOCRBatchExportDialog::setSourceFolder);
 	connect(ui.comboBoxFormat, qOverload<int>(&QComboBox::currentIndexChanged), this, &HOCRBatchExportDialog::setExportFormat);
 	connect(ui.spinBoxExportLevel, qOverload<int>(&QSpinBox::valueChanged), this, &HOCRBatchExportDialog::updateOutputTree);
@@ -66,15 +68,29 @@ HOCRBatchExportDialog::HOCRBatchExportDialog(QWidget* parent)
 	connect(&m_previewTimer, &QTimer::timeout, this, &HOCRBatchExportDialog::updateExportPreview);
 
 	ADD_SETTING(ComboSetting("batchexportformat", ui.comboBoxFormat));
+	ADD_SETTING(LineEditSetting("batchexportsourcefolder", ui.lineEditSourceFolder));
+
+	fillSourceFolder();
 }
 
 void HOCRBatchExportDialog::setSourceFolder() {
-	QString initialFolder = Utils::documentsFolder();
+	QString initialFolder = ConfigSettings::get<LineEditSetting>("batchexportsourcefolder")->getValue();
+	if (initialFolder.isEmpty()) {
+		initialFolder = Utils::documentsFolder();
+	}
 	QString dir = QFileDialog::getExistingDirectory(MAIN, _("Select folder..."), initialFolder);
 	if(dir.isEmpty()) {
 		return;
 	}
 	ui.lineEditSourceFolder->setText(dir);
+	fillSourceFolder();
+}
+
+void HOCRBatchExportDialog::fillSourceFolder() {
+	QString dir = ConfigSettings::get<LineEditSetting>("batchexportsourcefolder")->getValue();
+	if (dir.isEmpty()) {
+		return;
+	}
 	m_sourceTreeModel->clear();
 
 	QDirIterator it(dir, QStringList() << "*.html", QDir::Files, QDirIterator::Subdirectories);
@@ -87,7 +103,9 @@ void HOCRBatchExportDialog::setSourceFolder() {
 }
 
 void HOCRBatchExportDialog::setExportFormat() {
-	updateOutputTree();
+	delete m_pdfExportWidget;
+	m_pdfExportWidget = nullptr;
+
 	ExportMode mode = static_cast<ExportMode>(ui.comboBoxFormat->currentData().toInt());
 	if(mode == ExportPdf) {
 		if(!m_pdfExportWidget) {
@@ -101,6 +119,7 @@ void HOCRBatchExportDialog::setExportFormat() {
 		m_pdfExportWidget = nullptr;
 		ui.tabWidget->setTabEnabled(1, false);
 	}
+	updateOutputTree();
 }
 
 void HOCRBatchExportDialog::updateOutputTree() {
@@ -159,6 +178,11 @@ void HOCRBatchExportDialog::updateOutputTree() {
 }
 
 void HOCRBatchExportDialog::apply() {
+	if (m_outputMap.isEmpty()) {
+		blinkFiles();
+		return;
+	}
+
 	m_previewTimer.stop();
 
 	ui.progressBar->setRange(0, m_outputMap.size());
@@ -192,15 +216,34 @@ void HOCRBatchExportDialog::apply() {
 	delete exporter;
 
 	ui.progressBar->hide();
+	close();
 }
 
 void HOCRBatchExportDialog::updateExportPreview() {
-	if (m_outputMap.isEmpty()) {
-		return;
+	OutputEditorHOCR* editor = dynamic_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
+	if (m_pdfExportWidget == nullptr) {
+		// Nothing
+	} else if (editor != nullptr && !m_outputMap.isEmpty()) {
+		editor->open(OutputEditorHOCR::InsertMode::Replace, m_outputMap.first());
+		HOCRDocument* document = editor->getDocument();
+		editor->selectPage(0);
+		m_pdfExportWidget->setPreviewPage(document->pageCount() > 0 ? document : nullptr, document->pageCount() > 0 ? document->page(0) : nullptr);
+	} else {
+		m_pdfExportWidget->setPreviewPage(nullptr, nullptr);
 	}
-	OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
-	editor->open(OutputEditorHOCR::InsertMode::Replace, m_outputMap.first());
-	HOCRDocument* document = editor->getDocument();
-	editor->selectPage(0);
-	m_pdfExportWidget->setPreviewPage(document->pageCount() > 0 ? document : nullptr, document->pageCount() > 0 ? document->page(0) : nullptr);
+}
+
+void HOCRBatchExportDialog::blinkFiles() {
+	if (m_blinkCounter == 0) {
+		m_blinkCounter = 12;
+		m_blinkTimer->start(500);
+	}
+	if (m_blinkCounter-- % 2 == 1) {
+		ui.toolButtonSourceFolder->setStyleSheet("");
+	} else {
+		ui.toolButtonSourceFolder->setStyleSheet("background-color: red");
+	}
+	if (m_blinkCounter <= 0) {
+		m_blinkTimer->stop();
+	}
 }

@@ -256,8 +256,7 @@ void HOCRPdfExportWidget::updatePreview() {
 	}
 
 	if(pdfSettings.overlay) {
-		printer.drawImage(bbox, m_displayerTool->getSelection(bbox), pdfSettings);
-		painter.fillRect(0, 0, bbox.width(), bbox.height(), QColor(255, 255, 255, 127));
+		image.fill(QColor(Qt::transparent));
 	} else {
 		image.fill(Qt::white);
 	}

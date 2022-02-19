@@ -41,6 +41,10 @@ private:
 	enum ExportMode { ExportPdf, ExportOdt, ExportTxt };
 	Ui::BatchExportDialog ui;
 
+	void blinkFiles();
+	int m_blinkCounter = 0;
+	QTimer *m_blinkTimer;
+
 	FileTreeModel* m_sourceTreeModel = nullptr;
 	FileTreeModel* m_outputTreeModel = nullptr;
 	QMap<QString, QStringList> m_outputMap;
@@ -50,6 +54,7 @@ private:
 private slots:
 	void apply();
 	void setSourceFolder();
+	void fillSourceFolder();
 	void setExportFormat();
 	void updateExportPreview();
 	void updateOutputTree();

@@ -1675,8 +1675,11 @@ bool OutputEditorHOCR::exportToPDF() {
 	if(!newPage(page)) {
 		return false;
 	}
+
+	ui.treeViewHOCR->selectionModel()->clear();
 	HOCRPdfExportDialog dialog(m_tool, m_document, page, MAIN);
 	if(dialog.exec() != QDialog::Accepted) {
+		ui.treeViewHOCR->setCurrentIndex(current);
 		return false;
 	}
 	HOCRPdfExporter::PDFSettings settings = dialog.getPdfSettings();
@@ -1700,6 +1703,7 @@ bool OutputEditorHOCR::exportToPDF() {
 		break;
 	}
 	if(outname.isEmpty()) {
+		ui.treeViewHOCR->setCurrentIndex(current);
 		return false;
 	}
 
@@ -1707,6 +1711,7 @@ bool OutputEditorHOCR::exportToPDF() {
 	success = HOCRPdfExporter().run(m_document, outname, &settings);
 	MAIN->getDisplayer()->setBlockAutoscale(false);
 	newPage(item->page());
+	ui.treeViewHOCR->setCurrentIndex(current);
 	return success;
 }
 

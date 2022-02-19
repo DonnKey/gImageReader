@@ -677,6 +677,6 @@ void MainWindow::dictionaryAutoinstall() {
 }
 
 void MainWindow::batchExport() {
-	HOCRBatchExportDialog dialog;
+	HOCRBatchExportDialog dialog(this);
 	dialog.exec();
 }

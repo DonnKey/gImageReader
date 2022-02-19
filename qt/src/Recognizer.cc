@@ -243,6 +243,7 @@ void Recognizer::recognize(const QList<int>& pages, bool autodetectLayout) {
 	ProgressMonitor monitor(pages.size());
 	MAIN->showProgress(&monitor);
 	MAIN->getDisplayer()->setBlockAutoscale(true);
+	MAIN->getDisplayer()->blockSignals(true);
 	Utils::busyTask([&] {
 		int npages = pages.size();
 		int idx = 0;
@@ -291,6 +292,7 @@ void Recognizer::recognize(const QList<int>& pages, bool autodetectLayout) {
 		}
 		return true;
 	}, _("Recognizing..."));
+	MAIN->getDisplayer()->blockSignals(false);
 	MAIN->getDisplayer()->setBlockAutoscale(false);
 	MAIN->hideProgress();
 	MAIN->getOutputEditor()->finalizeRead(readSessionData);

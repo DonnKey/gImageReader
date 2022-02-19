@@ -146,6 +146,8 @@ private:
 	bool eventFilter(QObject* obj, QEvent* ev);
 	void doReplace(bool force);
 	QDomElement newLine(QDomDocument &doc, const QRect& bbox, QMap<QString, QMap<QString, QSet<QString>>>& propAttrs);
+	QDomElement newCarea(QDomDocument &doc, const QRect& bbox);
+	QDomElement newPar(QDomDocument &doc, const QRect& bbox);
 	QModelIndex pickLine(const QPoint& point);
 	void deselectChildren(QItemSelectionModel *model, QModelIndex& index);
 	QRectF getWidgetGeometry() override;

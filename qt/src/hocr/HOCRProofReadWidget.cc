@@ -153,11 +153,12 @@ private:
 	}
 	typedef enum {OCR_none, OCR_page, OCR_carea, OCR_par, OCR_line, OCRX_word} ClassOrdinal;
 	ClassOrdinal classNumber(const HOCRItem* item) {
-		if (m_wordItem->itemClass() == "ocrx_word") return OCRX_word;
-		if (m_wordItem->itemClass() == "ocr_line") return OCR_line;
-		if (m_wordItem->itemClass() == "ocr_par") return OCR_par;
-		if (m_wordItem->itemClass() == "ocr_carea") return OCR_carea;
-		if (m_wordItem->itemClass() == "ocr_page") return OCR_page;
+		if (item->itemClass() == "ocrx_word") return OCRX_word;
+		if (item->itemClass() == "ocr_line") return OCR_line;
+		if (item->itemClass() == "ocr_par") return OCR_par;
+		if (item->itemClass() == "ocr_carea") return OCR_carea;
+		if (item->itemClass() == "ocr_page") return OCR_page;
+		if (item->itemClass() == "ocr_graphic") return OCRX_word;
 		return OCR_none;
 	}
 	void moveToClass(ClassOrdinal target) {
@@ -165,6 +166,10 @@ private:
 		if (depth > target) {
 			QModelIndex newIndex = m_document->indexAtItem(m_wordItem->parent());
 			for (int d = depth-1; d > target; d--) {
+				QModelIndex t = newIndex.parent();
+				if (!t.isValid()) {
+					break;
+				}
 				newIndex = newIndex.parent();
 			}
 			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
@@ -194,10 +199,12 @@ private:
 				static_cast<TreeViewHOCR*>(m_proofReadWidget->documentTree())->tabToNext(ev, m_wordItem);
 		} else if(ev->key() == Qt::Key_Space && ev->modifiers() == Qt::ControlModifier) {
 			// Spelling menu
-			QModelIndex index = m_document->indexAtItem(m_wordItem);
-			QMenu menu;
-			m_document->addSpellingActions(&menu, index);
-			menu.exec(mapToGlobal(QPoint(0, -menu.sizeHint().height())));
+			if (m_wordItem->itemClass() == "ocrx_word") {
+				QModelIndex index = m_document->indexAtItem(m_wordItem);
+				QMenu menu;
+				m_document->addSpellingActions(&menu, index);
+				menu.exec(mapToGlobal(QPoint(0, -menu.sizeHint().height())));
+			}
 		} else if((ev->key() == Qt::Key_Enter || ev->key() == Qt::Key_Return) && ev->modifiers() & Qt::ControlModifier) {
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			m_document->addWordToDictionary(index);

@@ -45,7 +45,7 @@ void TreeViewHOCR::keyPressEvent(QKeyEvent *event) {
 void TreeViewHOCR::tabToNext(QKeyEvent* ev, const HOCRItem* currItem) {
     HOCRDocument* document = static_cast<HOCRDocument*>(model());
 
-    bool atWord = currItem->itemClass() == "ocrx_word";
+    bool atWord = currItem->itemClass() == "ocrx_word" || currItem->itemClass() == "ocr_graphic";
     enum actions {none, prevLine, prevWhole, nextLine, beginCurrent, nextWord, prevWord} action = actions::none;
 
     if((ev->modifiers() == Qt::NoModifier || ev->modifiers() == Qt::ShiftModifier) && ev->key() == Qt::Key_Down) {
@@ -83,21 +83,25 @@ void TreeViewHOCR::tabToNext(QKeyEvent* ev, const HOCRItem* currItem) {
         switch(action) {
         case nextLine:
             // Move to first word of next line
-            index = document->prevOrNextIndex(true, index, "ocr_line");
-            index = document->prevOrNextIndex(true, index, "ocrx_word");
+            index = document->prevOrNextIndex(true, index, "ocr_line", false, false, "ocr_graphic");
+            if (document->itemAtIndex(index)->itemClass() != "ocr_graphic") {
+                index = document->prevOrNextIndex(true, index, "ocrx_word", false, false, "ocr_graphic");
+            }
             break;
         case prevLine:
             // Move to last word of prev line (from a word within this line)
-            index = document->prevOrNextIndex(false, index, "ocr_line");
-            index = document->prevOrNextIndex(false, index, "ocrx_word");
+            index = document->prevOrNextIndex(false, index, "ocr_line", false, false, "ocr_graphic");
+            if (document->itemAtIndex(index)->itemClass() != "ocr_graphic") {
+                index = document->prevOrNextIndex(false, index, "ocrx_word", false, false, "ocr_graphic");
+            }
             break;
         case prevWhole:
             // Move to last word of prev line (from something enclosing)
         case prevWord:
-            index = document->prevOrNextIndex(false, index, "ocrx_word");
+            index = document->prevOrNextIndex(false, index, "ocrx_word", false, false, "ocr_graphic");
             break;
         case nextWord:
-            index = document->prevOrNextIndex(true, index, "ocrx_word");
+            index = document->prevOrNextIndex(true, index, "ocrx_word", false, false, "ocr_graphic");
             break;
         case beginCurrent: {
             // Move to first word below any parent items.

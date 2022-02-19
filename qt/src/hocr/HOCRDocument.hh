@@ -77,7 +77,7 @@ public:
 
 	QModelIndex nextIndex(const QModelIndex& current) const;
 	QModelIndex prevIndex(const QModelIndex& current) const;
-	QModelIndex prevOrNextIndex(bool next, const QModelIndex& current, const QString& ocrClass, bool misspelled = false, bool lowconf = false) const;
+	QModelIndex prevOrNextIndex(bool next, const QModelIndex& current, const QString& ocrClass, bool misspelled = false, bool lowconf = false, const QString& alternate = QString()) const;
 	bool indexIsMisspelledWord(const QModelIndex& index) const;
 	bool getItemSpellingSuggestions(const QModelIndex& index, QString& trimmedWord, QStringList& suggestions, int limit) const;
 

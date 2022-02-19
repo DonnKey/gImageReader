@@ -1053,6 +1053,22 @@ public:
 	}
 };
 
+QDomElement OutputEditorHOCR::newCarea(QDomDocument &doc, const QRect& bbox) {
+	QDomElement newElement;
+	newElement = doc.createElement("div");
+	newElement.setAttribute("class", "ocr_carea");
+	newElement.setAttribute("title", QString("bbox %1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom()));
+	return newElement;
+}
+
+QDomElement OutputEditorHOCR::newPar(QDomDocument &doc, const QRect& bbox) {
+	QDomElement newElement;
+	newElement = doc.createElement("p");
+	newElement.setAttribute("class", "ocr_par");
+	newElement.setAttribute("title", QString("bbox %1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom()));
+	return newElement;
+}
+
 QDomElement OutputEditorHOCR::newLine(QDomDocument &doc, const QRect& bbox, QMap<QString, QMap<QString, QSet<QString>>>& propAttrs) {
 	QDomElement newElement;
 
@@ -1092,13 +1108,9 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 		newElement.setAttribute("class", "ocr_graphic");
 		newElement.setAttribute("title", QString("bbox %1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom()));
 	} else if(action == DisplayerToolHOCR::ACTION_DRAW_CAREA_RECT) {
-		newElement = doc.createElement("div");
-		newElement.setAttribute("class", "ocr_carea");
-		newElement.setAttribute("title", QString("bbox %1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom()));
+		newElement = newCarea(doc, bbox);
 	} else if(action == DisplayerToolHOCR::ACTION_DRAW_PAR_RECT) {
-		newElement = doc.createElement("p");
-		newElement.setAttribute("class", "ocr_par");
-		newElement.setAttribute("title", QString("bbox %1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom()));
+		newElement = newPar(doc, bbox);
 	} else if(action == DisplayerToolHOCR::ACTION_DRAW_LINE_RECT) {
 		newElement = newLine(doc, bbox, propAttrs);
 	} else if(action == DisplayerToolHOCR::ACTION_DRAW_WORD_RECT) {
@@ -1110,14 +1122,15 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 			// CTRL-W: take location from current mouse
 			foundLine = pickLine(bbox.topLeft());
 			foundItem = m_document->itemAtIndex(foundLine);
-			if(!foundItem) {
-				return;
-			}
-			QRectF bigBox = foundItem->bbox();
-			// expand top, bottom 10%; left 30%, right 100%
-			bigBox = QRect(std::max(0.0, bigBox.x()-bigBox.width()*0.3), std::max(0.0, bigBox.y()-bigBox.height()*0.1), bigBox.width()*2.3, bigBox.height()*1.2);
-			if (bigBox.contains(bbox.topLeft())) {
-				mode = NewWordMode::NearestLine;
+			if(foundItem) {
+				QRectF bigBox = foundItem->bbox();
+				// expand top, bottom 10%; left 30%, right 100%
+				bigBox = QRect(std::max(0.0, bigBox.x()-bigBox.width()*0.3), std::max(0.0, bigBox.y()-bigBox.height()*0.1), bigBox.width()*2.3, bigBox.height()*1.2);
+				if (bigBox.contains(bbox.topLeft())) {
+					mode = NewWordMode::NearestLine;
+				} else {
+					mode = NewWordMode::NewLine;
+				}
 			} else {
 				mode = NewWordMode::NewLine;
 			}
@@ -1137,37 +1150,52 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 		}
 
 		if (mode == NewWordMode::NewLine) {
-			current = foundLine;
-			QModelIndex parent = current.parent();
-			const HOCRItem* parentItem = m_document->itemAtIndex(parent);
-			int newRow = current.row();
-			int top = bbox.top();
-			QVector<HOCRItem *>children = parentItem->children();
-			while(newRow > 0) {
-				if (top > children[newRow]->bbox().top()) {
-					break;
-				}
-				newRow--;
-			}
-			newRow += 1;
-			while(newRow < children.size()) {
-				if (top < children[newRow]->bbox().top()) {
-					break;
-				}
-				newRow++;
-			}
-			if (newRow >= children.size()) {
-				newRow = -1; // at end
-			}
-			if (parentItem->bbox().top() >= bbox.top()) {
-				newRow = 0;
-			}
 			QRect newBBox = bbox;
 			newBBox.setHeight(0);
-			propAttrs.clear();
-			parentItem->getPropagatableAttributes(propAttrs);
+			int newRow;
+			QModelIndex parent;
+			if (foundItem != nullptr) {
+				current = foundLine;
+				parent = current.parent();
+				const HOCRItem* parentItem = m_document->itemAtIndex(parent);
+				newRow = current.row();
+				int top = bbox.top();
+				QVector<HOCRItem *>children = parentItem->children();
+				while(newRow > 0) {
+					if (top > children[newRow]->bbox().top()) {
+						break;
+					}
+					newRow--;
+				}
+				newRow += 1;
+				while(newRow < children.size()) {
+					if (top < children[newRow]->bbox().top()) {
+						break;
+					}
+					newRow++;
+				}
+				if (newRow >= children.size()) {
+					newRow = -1; // at end
+				}
+				if (parentItem->bbox().top() >= bbox.top()) {
+					newRow = 0;
+				}
+				propAttrs.clear();
+				parentItem->getPropagatableAttributes(propAttrs);
+			} else {
+				// Place in new structure in page.
+				current = ui.treeViewHOCR->selectionModel()->currentIndex();
+				HOCRPage* page = m_document->itemAtIndex(current)->page();
+				current = m_document->indexAtItem(page);
+				QDomElement carea = newCarea(doc, newBBox);
+				current = m_document->addItem(current, carea, 0);
+				QDomElement par = newPar(doc, newBBox);
+				parent = m_document->addItem(current, par, 0);
+				propAttrs.clear();
+				newRow = 0;
+			}
 			QDomElement line = newLine(doc, newBBox, propAttrs);
-			current = m_document->addItem(current.parent(), line, newRow);
+			current = m_document->addItem(parent, line, newRow);
 			currentItem = m_document->itemAtIndex(current);
 			propAttrs.clear();
 			currentItem->getPropagatableAttributes(propAttrs);
@@ -1358,7 +1386,9 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		if(nIndices != 2) { // Swapping allowed
 			actionSwap->setEnabled(false);
 		}
-		actionNormalize = menu.addAction(_("&Normalize all selected"));
+		if (!graphics) {
+			actionNormalize = menu.addAction(_("&Normalize all selected"));
+		} 
 
 		QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
 		if(!clickedAction) {
@@ -1449,7 +1479,9 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	if(!menu.actions().isEmpty()) {
 		menu.addSeparator();
 	}
-	actionNormalize = menu.addAction(_("&Normalize"));
+	if (itemClass != "ocr_graphic") {
+		actionNormalize = menu.addAction(_("&Normalize"));
+	}
 	if(itemClass == "ocrx_word" && item->isOverheight()) {
 		actionFitWord = menu.addAction(_("Trim word &height"));
 		actionFitWord->setToolTip(_("Heuristic trim overheight word to font size; whole line variant usually preferred."));
@@ -1480,7 +1512,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	if(itemClass == "ocr_line") {
 		actionSortX = menu.addAction(_("Sort immediate children on &X position"));
 	}
-	if(itemClass != "ocr_word") {
+	if(itemClass != "ocr_word" && itemClass != "ocr_graphic") {
 		actionDespeckle = menu.addAction(_("Despec&kle"));
 	}
 	if(itemClass == "ocr_page" || itemClass == "ocr_carea") {
@@ -1683,12 +1715,8 @@ void OutputEditorHOCR::pickItem(const QPoint& point, QMouseEvent* event) {
 	QPoint newPoint( scale * (point.x() * std::cos(alpha) - point.y() * std::sin(alpha)) + 0.5 * page->bbox().width(),
 	                 scale * (point.x() * std::sin(alpha) + point.y() * std::cos(alpha)) + 0.5 * page->bbox().height());
 	QModelIndex index = m_document->searchAtCanvasPos(pageIndex, newPoint, page->resolution()/10);
-	if (!index.isValid()) {
-		MAIN->getDisplayer()->setFocus();
-		return;
-	}
-	const HOCRItem* item = m_document->itemAtIndex(index);
-	if(item->itemClass() == "ocrx_word") {
+	if(index.isValid() && 
+		(m_document->itemAtIndex(index)->itemClass() == "ocrx_word" || m_document->itemAtIndex(index)->itemClass() == "ocr_graphic")) {
 		QItemSelectionModel* sel = ui.treeViewHOCR->selectionModel();
 		QModelIndex origIndex = index;
 		QModelIndex parentIndex = index.parent();

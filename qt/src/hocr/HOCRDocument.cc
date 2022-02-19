@@ -504,7 +504,7 @@ void HOCRDocument::flatten(const QModelIndex& idx) {
 				empties.append(child);
 			} else {
 				sweep(target, child);
-				if (child->m_childItems.size() == 0) {
+				if (child->itemClass() != "ocr_graphic" && child->m_childItems.size() == 0) {
 					empties.append(child);
 				}
 			}
@@ -532,7 +532,7 @@ void HOCRDocument::cleanEmptyItems(const QModelIndex& idx) {
 	std::function<void (HOCRItem*)> sweep = [&] (HOCRItem* source) {
 		QVector<HOCRItem*> empties;
 		for(HOCRItem* child : source->m_childItems) {
-			if (child->itemClass() == "ocrx_word") {
+			if (child->itemClass() == "ocrx_word" || child->itemClass() == "ocr_graphic") {
 				return;
 			}
 			if (child->itemClass() != "ocr_line") {
@@ -782,7 +782,7 @@ QModelIndex HOCRDocument::prevIndex(const QModelIndex& current) const {
 	return idx;
 }
 
-QModelIndex HOCRDocument::prevOrNextIndex(bool next, const QModelIndex& current, const QString& ocrClass, bool misspelled, bool lowconf) const {
+QModelIndex HOCRDocument::prevOrNextIndex(bool next, const QModelIndex& current, const QString& ocrClass, bool misspelled, bool lowconf, const QString& alternate) const {
 	QModelIndex start = current;
 	if(!start.isValid()) {
 		start = index(0, 0);
@@ -790,7 +790,7 @@ QModelIndex HOCRDocument::prevOrNextIndex(bool next, const QModelIndex& current,
 	QModelIndex curr = next ? nextIndex(start) : prevIndex(start);
 	while(curr != start) {
 		const HOCRItem* item = itemAtIndex(curr);
-		if(item && item->itemClass() == ocrClass && (!misspelled || indexIsMisspelledWord(curr)) && (!lowconf || item->getTitleAttributes()["x_wconf"].toInt() < 90)) {
+		if(item && (item->itemClass() == ocrClass || item->itemClass() == alternate) && (!misspelled || indexIsMisspelledWord(curr)) && (!lowconf || item->getTitleAttributes()["x_wconf"].toInt() < 90)) {
 			break;
 		}
 		curr = next ? nextIndex(curr) : prevIndex(curr);
@@ -908,8 +908,9 @@ QModelIndex HOCRDocument::searchAtCanvasPos(const QModelIndex& idx, const QPoint
 	if(!idx.isValid()) {
 		return QModelIndex();
 	}
+	QRect pageBBox = itemAtIndex(idx)->bbox();
 	m_pickFuzzyMatch = nullptr;
-	QModelIndex newIdx = searchAtCanvasPos_inner(idx, pos, fuzz, 0, 0);
+	QModelIndex newIdx = searchAtCanvasPos_inner(idx, pos, fuzz, pageBBox.top(), pageBBox.bottom());
     if (!newIdx.isValid() && m_pickFuzzyMatch != nullptr) {
 		return indexAtItem(m_pickFuzzyMatch);
 	}
@@ -923,7 +924,7 @@ QModelIndex HOCRDocument::searchAtCanvasPos_inner(const QModelIndex& idx, const 
 	for(int iChild = 0, nChildren = item->children().size(); iChild < nChildren; ++iChild) {
 		const HOCRItem* childItem = item->children()[iChild];
 		QRect bbox = childItem->bbox();
-		if (childItem->itemClass() == "ocrx_word") {
+		if (childItem->itemClass() == "ocrx_word" || childItem->itemClass() == "ocr_graphic") {
 			QRect fuzzyBox = QRect(bbox.x()-fuzz, parentUB, bbox.width()+2*fuzz, parentLB);
 			if(fuzzyBox.contains(pos)) {
 				if(bbox.contains(pos)) {

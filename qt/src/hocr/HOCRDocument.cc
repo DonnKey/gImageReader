@@ -383,10 +383,24 @@ bool HOCRDocument::removeItem(const QModelIndex& index) {
 		return false;
 	}
 	HOCRItem* parentItem = item->parent();
+	bool wasWord = false;
+	int oldBottom = 0;
+	if(item->itemClass() == "ocrx_word") {
+		wasWord = true;
+		oldBottom = parentItem->m_bbox.bottom();
+	}
 	beginRemoveRows(index.parent(), index.row(), index.row());
 	deleteItem(item);
 	endRemoveRows();
 	recomputeBBoxes(parentItem);
+	if (wasWord) {
+		// If removing this word changed the line position, compensate by adjusting the baseline.
+		int newBottom = parentItem->m_bbox.bottom();
+		QPair<double, double> baseline = parentItem->baseLine();
+		QString baselineStr = QString("%1 %2").arg(baseline.first).arg(baseline.second+oldBottom-newBottom);
+		editItemAttribute(indexAtItem(parentItem),"title:baseline", baselineStr);
+		emit itemAttributeChanged(indexAtItem(parentItem), "title:baseline", baselineStr);
+	}
 	return true;
 }
 

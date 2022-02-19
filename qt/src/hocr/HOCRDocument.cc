@@ -323,21 +323,18 @@ QModelIndex HOCRDocument::splitItemText(const QModelIndex& itemIndex, int pos) {
 	QRect rightBBox = bbox;
 	rightBBox.setLeft(bbox.left() + bbox.width() * fraction);
 
-	QDomDocument doc;
-	QDomElement newElement = doc.createElement("span");
-	newElement.appendChild(doc.createTextNode(item->text().mid(pos)));
-	newElement.setAttribute("class", "ocrx_word");
-	QMap<QString, QString> attrs = item->getTitleAttributes();
-	attrs["bbox"] = QString("%1 %2 %3 %4").arg(rightBBox.left()).arg(rightBBox.top()).arg(rightBBox.right()).arg(rightBBox.bottom());
-	newElement.setAttribute("title", HOCRItem::serializeAttrGroup(attrs));
-	newElement.setAttribute("lang", item->lang());
-	HOCRItem* newItem = new HOCRItem(newElement, item->page(), item->parent(), item->index() + 1);
+	HOCRItem *newItem = new HOCRItem(*item, itemIndex.row() + 1);
 	beginInsertRows(itemIndex.parent(), item->index() + 1, item->index() + 1);
 	insertItem(item->parent(), newItem, item->index() + 1);
 	endInsertRows();
+	QModelIndex newIndex = itemIndex.sibling(itemIndex.row() + 1, 0);
+
+	setData(newIndex, item->text().mid(pos), Qt::EditRole);
+	editItemAttribute(newIndex, "title:bbox", QString("%1 %2 %3 %4").arg(rightBBox.left()).arg(rightBBox.top()).arg(rightBBox.right()).arg(rightBBox.bottom()));
+
 	setData(itemIndex, item->text().left(pos), Qt::EditRole);
 	editItemAttribute(itemIndex, "title:bbox", QString("%1 %2 %3 %4").arg(leftBBox.left()).arg(leftBBox.top()).arg(leftBBox.right()).arg(leftBBox.bottom()));
-	return itemIndex.sibling(itemIndex.row() + 1, 0);
+	return newIndex;
 }
 
 QModelIndex HOCRDocument::mergeItemText(const QModelIndex& itemIndex, bool mergeNext, const QString& sep) {

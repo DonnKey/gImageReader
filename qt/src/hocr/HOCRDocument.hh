@@ -148,6 +148,23 @@ public:
 	typedef QMap<QString, QMap<QString, int>> AttrOccurenceMap_t;
 
 	HOCRItem(const QDomElement& element, HOCRPage* page, HOCRItem* parent, int index = -1);
+	HOCRItem(const HOCRItem& old, int newIndex) {
+		m_text = old.m_text;
+		m_shadowText = nullptr;
+		m_misspelled = old.m_misspelled;
+		m_bold = old.m_bold;
+		m_italic = old.m_italic;
+		m_attrs = QMap<QString, QString>(old.m_attrs);
+		m_titleAttrs = QMap<QString, QString>(old.m_titleAttrs);
+		m_childItems = QVector<HOCRItem*>(old.m_childItems);
+		m_pageItem = old.m_pageItem;
+		m_parentItem = old.m_parentItem;
+		m_index = newIndex;
+		m_enabled = old.m_enabled;
+		m_isOverheight = old.m_isOverheight;
+		m_bbox = old.m_bbox;
+	}
+
 	virtual ~HOCRItem();
 	HOCRPage* page() const {
 		return m_pageItem;
@@ -225,7 +242,7 @@ protected:
 
 	static QMap<QString, QString> s_langCache;
 
-	QString m_text;
+	QString m_text = nullptr;;
 	const QString* m_shadowText = nullptr;
 	int m_misspelled = -1;
 	bool m_bold = false;

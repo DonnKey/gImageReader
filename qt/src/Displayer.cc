@@ -544,12 +544,12 @@ void Displayer::keyPressEvent(QKeyEvent* event) {
 	}
 
 	if(event->key() == Qt::Key_PageUp) {
-		ui.spinBoxPage->setValue(ui.spinBoxPage->value() - 1);
+		MAIN->getOutputEditor()->navigateNextPrev(false, "ocr_page");
 		event->accept();
 		return;
 	} 
 	if(event->key() == Qt::Key_PageDown) {
-		ui.spinBoxPage->setValue(ui.spinBoxPage->value() + 1);
+		MAIN->getOutputEditor()->navigateNextPrev(true, "ocr_page");
 		event->accept();
 		return;
 	}

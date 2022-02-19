@@ -65,6 +65,10 @@ public:
 	bool crashSave(const QString& filename) const override;
 
 	void keyPressEvent(QKeyEvent* event) override;
+	void navigateNextPrev(bool next, const QString& target = "") override {
+		navigateNextPrev(next, target, true);
+	}
+	void navigateNextPrev(bool next, const QString& target = "", bool advance = true);
 	void showSelections(const QItemSelection& selected, const QItemSelection& deselected);
  
 	HOCRDocument* getDocument() const { return m_document; }
@@ -126,7 +130,6 @@ private:
 	QWidget* createAttrWidget(const QModelIndex& itemIndex, const QString& attrName, const QString& attrValue, const QString& attrItemClass = QString(), bool multiple = false);
 	void expandCollapseChildren(const QModelIndex& index, bool expand) const;
 	void expandCollapseItemClass(bool expand);
-	void navigateNextPrev(bool next);
 	bool findReplaceInItem(const QModelIndex& index, const QString& searchstr, const QString& replacestr, bool matchCase, bool backwards, bool replace, bool& currentSelectionMatchesSearch);
 	bool newPage(const HOCRPage* page);
 	int currentPage();
@@ -156,10 +159,10 @@ private slots:
 	}
 	void navigateTargetChanged();
 	void navigateNext() {
-		navigateNextPrev(true);
+		navigateNextPrev(true, ui.comboBoxNavigate->itemData(ui.comboBoxNavigate->currentIndex()).toString(), true);
 	}
 	void navigatePrev() {
-		navigateNextPrev(false);
+		navigateNextPrev(false, ui.comboBoxNavigate->itemData(ui.comboBoxNavigate->currentIndex()).toString(), true);
 	}
 	void pickItem(const QPoint& point, QMouseEvent* event);
 	void setFont();

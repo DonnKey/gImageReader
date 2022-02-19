@@ -76,6 +76,7 @@ public:
 	virtual QRectF getWidgetGeometry() {
 		return QRectF();
 	}
+	virtual void navigateNextPrev(bool next, const QString& target = "") = 0;
 
 public slots:
 	virtual void onVisibilityChanged(bool /*visible*/) {}

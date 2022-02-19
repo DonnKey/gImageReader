@@ -137,6 +137,7 @@ public slots:
 private:
 	static void signalHandlerExec(int signal, bool tesseractCrash);
 	friend class BusyEventFilter;
+	friend class OutputEditorText;
 
 	static MainWindow* s_instance;
 

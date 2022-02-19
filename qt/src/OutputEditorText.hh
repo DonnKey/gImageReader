@@ -53,6 +53,7 @@ public:
 	void readError(const QString& errorMsg, ReadSessionData* data) override;
 	BatchProcessor* createBatchProcessor(const QMap<QString, QVariant>& options) const override { return new TextBatchProcessor(options["prependPage"].toBool()); }
 	bool crashSave(const QString& filename) const override;
+	void navigateNextPrev(bool next, const QString& target = "") override;
 
 public slots:
 	bool open(const QString& filename = QString()) override;

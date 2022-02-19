@@ -519,3 +519,12 @@ void OutputEditorText::prepareRecentMenu() {
 		m_recentMenu->addAction(_("No recent files"))->setEnabled(false);
 	}
 }
+
+void OutputEditorText::navigateNextPrev(bool next, const QString& target) {
+	// The only possible target for plain text is ocr_page
+	if (next) {
+		MAIN->ui.spinBoxPage->setValue(MAIN->ui.spinBoxPage->value() + 1);
+	} else {
+		MAIN->ui.spinBoxPage->setValue(MAIN->ui.spinBoxPage->value() - 1);
+	}
+}

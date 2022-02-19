@@ -633,7 +633,7 @@ void OutputEditorHOCR::expandCollapseItemClass(bool expand) {
 					ui.treeViewHOCR->setExpanded(parent, true);
 				}
 				for(QModelIndex child = m_document->index(0, 0, next); child.isValid(); child = child.sibling(child.row() + 1, 0)) {
-					expandCollapseChildren(child, false);
+					expandCollapseChildren(child, true);
 				}
 			} else {
 				expandCollapseChildren(next, false);
@@ -650,8 +650,8 @@ void OutputEditorHOCR::blinkCombo() {
 		[this]{ui.comboBoxNavigate->setStyleSheet("");}, this );
 }
 
-void OutputEditorHOCR::navigateNextPrev(bool next) {
-	QString target = ui.comboBoxNavigate->itemData(ui.comboBoxNavigate->currentIndex()).toString();
+void OutputEditorHOCR::navigateNextPrev(bool next, const QString &t, bool advance) {
+	QString target = t;
 	bool misspelled = false;
 	bool lowconf = false;
 	if(target == "ocrx_word_bad") {
@@ -662,6 +662,12 @@ void OutputEditorHOCR::navigateNextPrev(bool next) {
 		lowconf = true;
 	}
 	QModelIndex start = ui.treeViewHOCR->currentIndex();
+	if(!advance && start.isValid()) {
+		const HOCRItem* item = m_document->itemAtIndex(start);
+		if(item && item->itemClass() == target) {
+			return;
+		}
+	}
 	QModelIndex found = m_document->prevOrNextIndex(next, start, target, misspelled, lowconf);
 	if (found == start) {
 		blinkCombo();

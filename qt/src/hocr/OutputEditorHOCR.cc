@@ -1349,6 +1349,12 @@ bool OutputEditorHOCR::eventFilter(QObject* obj, QEvent* ev) {
 	if (obj == ui.treeViewHOCR) {
 		if(ev->type() == QEvent::Enter) {
 			ui.treeViewHOCR->setFocus();
+			m_proofReadWidget->setVisible(false);
+			return true;
+		}
+		if(ev->type() == QEvent::Leave) {
+			m_proofReadWidget->setVisible(true);
+			m_proofReadWidget->updateWidget(true);
 			return true;
 		}
 		return false;

@@ -315,8 +315,14 @@ private:
 			QModelIndex index = document->indexAtItem(m_wordItem);
 			document->mergeItemText(index, (ev->modifiers() & Qt::ShiftModifier) != 0);
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == (Qt::ControlModifier|Qt::ShiftModifier)) {
-			QModelIndex index = document->indexAtItem(m_wordItem);
-			document->removeItem(index);
+			QPersistentModelIndex index = document->indexAtItem(m_wordItem);
+			int currPage = m_wordItem->page()->pageNr();
+            QPersistentModelIndex newIndex = document->prevOrNextIndex(true, index, "ocrx_word");
+			if (document->itemAtIndex(newIndex)->page()->pageNr() != currPage) {
+				newIndex = document->prevOrNextIndex(false, index, "ocrx_word");
+			}
+			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
+			document->removeItem(index); // must be last!
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == Qt::ControlModifier) {
 			QModelIndex index = document->indexAtItem(m_wordItem);
 			document->toggleEnabledCheckbox(index);
@@ -365,6 +371,8 @@ private:
 			if(i != attrs.end()) {
 				m_proofReadWidget->setConfidenceLabel(i.value().toInt());
 			}
+			QModelIndex index = document->indexAtItem(m_wordItem);
+			m_proofReadWidget->documentTree()->setCurrentIndex(index);
 		}
 		QLineEdit::focusInEvent(ev);
 		if(ev->reason() != Qt::MouseFocusReason) {

@@ -44,6 +44,7 @@ public:
 
 private:
 	class LineEdit;
+	friend class OutputEditorHOCR;
 
 	TreeViewHOCR* m_treeView = nullptr;
 	QVBoxLayout* m_linesLayout = nullptr;

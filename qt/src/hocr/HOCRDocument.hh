@@ -92,6 +92,9 @@ public:
 	QModelIndex parent(const QModelIndex& child) const override;
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override;
 	int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+	HOCRItem* mutableItemAtIndex(const QModelIndex& index) const {
+		return index.isValid() ? static_cast<HOCRItem*>(index.internalPointer()) : nullptr;
+	}
 
 signals:
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);
@@ -113,9 +116,6 @@ private:
 	void resetMisspelled(const QModelIndex& index);
 	QList<QModelIndex> recheckItemSpelling(const QModelIndex& index) const;
 	void recomputeBBoxes(HOCRItem* item);
-	HOCRItem* mutableItemAtIndex(const QModelIndex& index) const {
-		return index.isValid() ? static_cast<HOCRItem*>(index.internalPointer()) : nullptr;
-	}
 };
 
 

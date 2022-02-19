@@ -98,6 +98,7 @@ gtk/src/Utils.hh
 [type: gettext/qtdesigner]qt/data/CrashHandler.ui
 [type: gettext/qtdesigner]qt/data/HOCRBatchExportDialog.ui
 [type: gettext/qtdesigner]qt/data/MainWindow.ui
+[type: gettext/qtdesigner]qt/data/NormalizeDialog.ui
 [type: gettext/qtdesigner]qt/data/PageRangeDialog.ui
 [type: gettext/qtdesigner]qt/data/PdfExportDialog.ui
 [type: gettext/qtdesigner]qt/data/PdfExportWidget.ui
@@ -129,6 +130,8 @@ qt/src/hocr/DisplayerToolHOCR.cc
 qt/src/hocr/DisplayerToolHOCR.hh
 qt/src/hocr/HOCRBatchExportDialog.cc
 qt/src/hocr/HOCRBatchExportDialog.hh
+qt/src/hocr/HOCRNormalize.cc
+qt/src/hocr/HOCRNormalize.hh
 qt/src/hocr/HOCRDocument.cc
 qt/src/hocr/HOCRDocument.hh
 qt/src/hocr/HOCRExporter.hh

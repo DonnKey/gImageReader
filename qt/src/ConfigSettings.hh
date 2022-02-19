@@ -22,6 +22,7 @@
 
 #include <QAction>
 #include <QAbstractButton>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QFontDialog>
 #include <QFontComboBox>
@@ -144,6 +145,31 @@ private:
 	QAbstractButton* m_button;
 };
 
+class SwitchSettingTri : public AbstractSetting {
+	Q_OBJECT
+public:
+	SwitchSettingTri(const QString& key, QCheckBox* button, Qt::CheckState defaultState = Qt::PartiallyChecked)
+		: AbstractSetting(key), m_button(button) {
+		button->setCheckState(static_cast<Qt::CheckState>(QSettings().value(m_key, defaultState).toUInt()));
+		connect(button, &QAbstractButton::toggled, this, &SwitchSettingTri::serialize);
+	}
+	void setValue(Qt::CheckState value) {
+		m_button->setCheckState(value);
+	}
+	Qt::CheckState getValue() const {
+		return m_button->checkState();
+	}
+
+public slots:
+	void serialize() override {
+		QSettings().setValue(m_key, static_cast<unsigned int>(m_button->checkState()));
+		emit changed();
+	}
+
+private:
+	QCheckBox* m_button;
+};
+
 class ActionSetting : public AbstractSetting {
 	Q_OBJECT
 public:
@@ -245,6 +271,9 @@ public:
 		: AbstractSetting(key), m_lineEdit(lineEdit) {
 		lineEdit->setText(QSettings().value(m_key, QVariant::fromValue(defaultValue)).toString());
 		connect(lineEdit, &QLineEdit::textChanged, this, &LineEditSetting::serialize);
+	}
+	QString getValue() const {
+		return m_lineEdit->text();
 	}
 
 public slots:

@@ -44,6 +44,7 @@
 #include "DisplayerToolHOCR.hh"
 #include "FileDialogs.hh"
 #include "HOCRDocument.hh"
+#include "HOCRNormalize.hh"
 #include "HOCROdtExporter.hh"
 #include "HOCRPdfExporter.hh"
 #include "HOCRProofReadWidget.hh"
@@ -833,6 +834,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		QAction* actionMerge = nullptr;
 		QAction* actionSplit = nullptr;
 		QAction* actionSwap = nullptr;
+		QAction* actionNormalize = nullptr;
 		if(consecutive && !graphics && !pages && sameClass) { // Merging allowed
 			actionMerge = menu.addAction(_("Merge"));
 			if(firstItem->itemClass() != "ocr_carea") {
@@ -843,6 +845,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		if(nIndices != 2) { // Swapping allowed
 			actionSwap->setEnabled(false);
 		}
+		actionNormalize = menu.addAction(_("Normalize all selected"));
 
 		QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
 		if(!clickedAction) {
@@ -857,6 +860,13 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			expandCollapseChildren(newIndex, true);
 		} else if(clickedAction == actionSwap) {
 			newIndex = m_document->swapItems(indices.first().parent(), rows.first(), rows.last());
+		} else if(clickedAction == actionNormalize) {
+			QList<HOCRItem*> items;
+			for (auto i:indices) {
+				items.append(m_document->mutableItemAtIndex(i));
+			}
+			HOCRNormalize().normalizeTree(m_document, &items);
+			newIndex = indices.last();
 		}
 		if(newIndex.isValid()) {
 			ui.treeViewHOCR->selectionModel()->blockSignals(true);
@@ -882,6 +892,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QAction* actionAddPar = nullptr;
 	QAction* actionAddLine = nullptr;
 	QAction* actionAddWord = nullptr;
+	QAction* actionNormalize = nullptr;
 	QAction* actionSplit = nullptr;
 	QAction* actionRemove = nullptr;
 	QAction* actionExpand = nullptr;
@@ -910,6 +921,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	if(!menu.actions().isEmpty()) {
 		menu.addSeparator();
 	}
+	actionNormalize = menu.addAction(_("Normalize"));
 	if(itemClass == "ocr_par" || itemClass == "ocr_line" || itemClass == "ocrx_word") {
 		actionSplit = menu.addAction(_("Split from parent"));
 	}
@@ -949,6 +961,10 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		QModelIndex newIndex = m_document->splitItem(index.parent(), index.row(), index.row());
 		ui.treeViewHOCR->selectionModel()->setCurrentIndex(newIndex, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 		expandCollapseChildren(newIndex, true);
+	} else if(clickedAction == actionNormalize) {
+		QList<HOCRItem*>items = QList<HOCRItem*>({m_document->mutableItemAtIndex(index)});
+		HOCRNormalize().normalizeTree(m_document, &items);
+		showItemProperties(index);
 	} else if(clickedAction == actionRemove) {
 		m_document->removeItem(ui.treeViewHOCR->selectionModel()->currentIndex());
 	} else if(clickedAction == actionExpand) {

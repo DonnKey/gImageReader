@@ -156,12 +156,18 @@ int SourceManager::addSources(const QStringList& files, bool suppressWarnings, b
 	}
 	ui.treeViewSources->setUpdatesEnabled(false);
 	if(!sel.isEmpty()) {
-		ui.treeViewSources->selectionModel()->select(sel, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Select | QItemSelectionModel::Rows);
+		ui.treeViewSources->selectionModel()->select(sel, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 		QModelIndex parent = sel.indexes().front().parent();
 		while(parent.isValid()) {
 			ui.treeViewSources->expand(parent);
 			parent = parent.parent();
 		}
+		ui.treeViewSources->setCurrentIndex(sel.indexes().front());
+		// For mysterious reasons, if sel contains duplicates of the current selection, we end up
+		// with NOTHING selected. There's possibly an interaction with multi-selection in the 
+		// Output Tree widget because this is seen only when that is doing a multi selection (not
+		// a contiguous selection). In any case, just doing it over again selects the single
+		// file/row we want (for both columns).
 		ui.treeViewSources->setCurrentIndex(sel.indexes().front());
 	}
 	ui.treeViewSources->selectionModel()->blockSignals(false);

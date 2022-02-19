@@ -199,8 +199,8 @@ protected:
 
 	QString m_text;
 	int m_misspelled = -1;
-	bool m_bold;
-	bool m_italic;
+	bool m_bold = false;
+	bool m_italic = false;
 
 	QMap<QString, QString> m_attrs;
 	QMap<QString, QString> m_titleAttrs;

@@ -836,6 +836,10 @@ HOCRItem::HOCRItem(const QDomElement& element, HOCRPage* page, HOCRItem* parent,
 		QString attrName = attributes.item(i).nodeName();
 		if(attrName == "title") {
 			m_titleAttrs = deserializeAttrGroup(attributes.item(i).nodeValue());
+		} else if(attrName == "bold") {
+			m_bold = attributes.item(i).nodeValue() != "0";
+		} else if(attrName == "italic") {
+			m_italic = attributes.item(i).nodeValue() != "0";
 		} else {
 			m_attrs[attrName] = attributes.item(i).nodeValue();
 		}
@@ -861,8 +865,8 @@ HOCRItem::HOCRItem(const QDomElement& element, HOCRPage* page, HOCRItem* parent,
 
 	if(itemClass() == "ocrx_word") {
 		m_text = element.text();
-		m_bold = !element.elementsByTagName("strong").isEmpty();
-		m_italic = !element.elementsByTagName("em").isEmpty();
+		m_bold |= !element.elementsByTagName("strong").isEmpty();
+		m_italic |= !element.elementsByTagName("em").isEmpty();
 		if (m_bbox.topLeft() == zeroPoint) {
 			// tesseract has a known bug (https://github.com/tesseract-ocr/tesseract/issues/1192)
 			// that causes it to occasionally emit an entry at (0,0) with full page size. 

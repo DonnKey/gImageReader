@@ -215,12 +215,11 @@ private:
 		} else if(ev->key() == Qt::Key_P && ev->modifiers() == Qt::ControlModifier) {
 			// show widget settings
 			emit m_proofReadWidget->m_settingsButton->click();
-			/* to be deleted in later change
 		} else if(ev->key() == Qt::Key_T && ev->modifiers() == Qt::ControlModifier) {
-			// Trim
+			// Context menu on item
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
-			m_document->fitToFont(index);
-			*/
+			QRect pos = static_cast<TreeViewHOCR*>(widget->documentTree())->visualRect(index);
+			emit static_cast<TreeViewHOCR*>(widget->documentTree())->customContextMenuRequested(pos.center());
 		} else if((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && ev->modifiers() & Qt::ControlModifier) {
 			// Adjust bbox top/bottom
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
@@ -942,6 +941,7 @@ void HOCRProofReadWidget::innerRepositionWidget() {
 }
 
 void HOCRProofReadWidget::repositionPointer() {
+	QCoreApplication::processEvents();
 	m_pointerTimer.start(10);
 }
 
@@ -1047,8 +1047,8 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+_</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Merge with next word insert _</td></tr>"
 	                           "<tr><td>Ctrl+W</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Insert new word/line at cursor</td></tr>"
 	                           "<tr><td>Ctrl+J</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Join line with next line (sorted X)</td></tr>"
-	                           "<tr><td>Ctrl+T</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Trim word height (heuristic)</td></tr>"
 	                           "<tr><td>Ctrl+K</td>"                  "<td>D</td> <td> </td> <td> </td> <td>Show this help</td></tr>"
+	                           "<tr><td>Ctrl+T</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Show context menu on current item</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Delete current character</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td>T</td> <td> </td> <td>(Hard) delete current item</td></tr>"
 	                           "<tr><td>Ctrl+Delete</td>"             "<td>D</td> <td>T</td> <td>E</td> <td>Toggle Disable current item</td></tr>"

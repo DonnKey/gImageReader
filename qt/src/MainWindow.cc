@@ -178,7 +178,9 @@ MainWindow::MainWindow(const QStringList& files)
 	connect(m_acquirer, &Acquirer::scanPageAvailable, m_sourceManager, [this](const QString & source) { m_sourceManager->addSource(source); });
 	connect(m_sourceManager, &SourceManager::sourceChanged, this, &MainWindow::onSourceChanged);
 	connect(ui.actionToggleOutputPane, &QAction::toggled, ui.dockWidgetOutput, &QDockWidget::setVisible);
-	connect(ui.comboBoxOCRMode, qOverload<int>(&QComboBox::currentIndexChanged), this, [this] { setOutputMode(static_cast<OutputMode>(ui.comboBoxOCRMode->currentData().toInt())); });
+	connect(ui.comboBoxOCRMode, qOverload<int>(&QComboBox::currentIndexChanged), this, [this] { 
+		// This can fail on user input, but it "undoes" everything on failure, so we can ignore that
+		setOutputMode(static_cast<OutputMode>(ui.comboBoxOCRMode->currentData().toInt())); });
 	connect(m_recognitionMenu, &RecognitionMenu::languageChanged, this, &MainWindow::languageChanged);
 	connect(m_recognitionMenu, &RecognitionMenu::psmChanged, this, [this] {
 		ui.SegMode->setText(MAIN->getRecognitionMenu()->getSegModeName());
@@ -249,6 +251,7 @@ MainWindow::MainWindow(const QStringList& files)
 	m_sourceManager->addSources(otherFiles);
 	if(!hocrFiles.isEmpty()) {
 		if(setOutputMode(OutputModeHOCR)) {
+			// Theoretically, this line could fail, but since we don't do anything different if it does...
 			static_cast<OutputEditorHOCR*>(m_outputEditor)->open(OutputEditorHOCR::InsertMode::Append, hocrFiles);
 			ui.dockWidgetOutput->setVisible(true);
 		}
@@ -677,6 +680,9 @@ void MainWindow::dictionaryAutoinstall() {
 }
 
 void MainWindow::batchExport() {
+	if (!MAIN->setOutputMode(MainWindow::OutputModeHOCR)) {
+		return;
+	}
 	HOCRBatchExportDialog dialog(this);
 	dialog.exec();
 }

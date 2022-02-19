@@ -59,7 +59,6 @@ HOCRBatchExportDialog::HOCRBatchExportDialog(QWidget* parent)
 
 	m_previewTimer.setSingleShot(true);
 
-	MAIN->setOutputMode(MainWindow::OutputModeHOCR);
 	m_blinkTimer = new QTimer(this);
 
 	connect(m_blinkTimer, &QTimer::timeout, this, &HOCRBatchExportDialog::blinkFiles);
@@ -216,7 +215,9 @@ void HOCRBatchExportDialog::apply() {
 	OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
 
 	for(auto it = m_outputMap.begin(), itEnd = m_outputMap.end(); it != itEnd; ++it) {
-		editor->open(OutputEditorHOCR::InsertMode::Replace, it.value());
+		if (!editor->open(OutputEditorHOCR::InsertMode::Replace, it.value())) {
+			break;
+		}
 		exporter->run(editor->getDocument(), it.key(), settings);
 		ui.progressBar->setValue(ui.progressBar->value() + 1);
 	}
@@ -232,7 +233,9 @@ void HOCRBatchExportDialog::updateExportPreview() {
 	if (m_exporterWidget == nullptr) {
 		// Nothing
 	} else if (editor != nullptr && !m_outputMap.isEmpty()) {
-		editor->open(OutputEditorHOCR::InsertMode::Replace, m_outputMap.first());
+		if (!editor->open(OutputEditorHOCR::InsertMode::Replace, m_outputMap.first())) {
+			return;
+		}
 		HOCRDocument* document = editor->getDocument();
 		editor->selectPage(0);
 		m_exporterWidget->setPreviewPage(document->pageCount() > 0 ? document : nullptr, document->pageCount() > 0 ? document->page(0) : nullptr);

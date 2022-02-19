@@ -131,6 +131,7 @@ private:
 
 	HOCRDocument* m_document;
 	FocusableMenu* m_keyParent;
+	bool m_sourceBeingChanged = false;
 
 	QWidget* createAttrWidget(const QModelIndex& itemIndex, const QString& attrName, const QString& attrValue, const QString& attrItemClass = QString(), bool multiple = false);
 	void expandCollapseChildren(const QModelIndex& index, bool expand) const;

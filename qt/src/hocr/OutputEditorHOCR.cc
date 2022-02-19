@@ -2206,6 +2206,10 @@ void OutputEditorHOCR::removePageByPosition(int position) {
 }
 
 void OutputEditorHOCR::sourceChanged() {
+	if (m_sourceBeingChanged) {
+		return;
+	}
+	m_sourceBeingChanged = true;
 	int page;
 	QString path = MAIN->getDisplayer()->getCurrentImage(page);
 	// Check if source is in document tree
@@ -2226,6 +2230,7 @@ void OutputEditorHOCR::sourceChanged() {
 	if (MAIN->getDisplayer()->underMouse()) {
 		m_proofReadWidget->showWidget(true);
 	}
+	m_sourceBeingChanged = false;
 }
 
 void OutputEditorHOCR::previewToggled() {

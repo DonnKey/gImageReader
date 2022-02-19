@@ -160,6 +160,13 @@ private:
 		}
 	}
 	void keyPressEvent(QKeyEvent* ev) override {
+		if(ev->modifiers() == Qt::KeypadModifier && ev->key() == Qt::Key_Enter) {
+			if(ev->isAutoRepeat()) {
+				return;
+			}
+			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(true);
+		}
+
 		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
 
 		bool atWord = m_wordItem->itemClass() == "ocrx_word";
@@ -339,6 +346,15 @@ private:
 				MAIN->getDisplayer()->keyPressEvent(ev);
 			}
 		}
+	}
+	void keyReleaseEvent(QKeyEvent* ev) override {
+		if(ev->modifiers() == Qt::KeypadModifier && ev->key() == Qt::Key_Enter) {
+			if(ev->isAutoRepeat()) {
+				return;
+			}
+			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(false);
+		}
+		QLineEdit::keyReleaseEvent(ev);
 	}
 	void focusInEvent(QFocusEvent* ev) override {
 		if(m_wordItem != nullptr && m_wordItem->itemClass() == "ocrx_word") {
@@ -681,6 +697,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+S</td>"                  "<td>D</td> <td>T</td> <td>F</td> <td>Open Save HOCR</td></tr>"
 	                           "<tr><td>F3, Shift+F3</td>"            "<td>D</td> <td>T</td> <td>F</td> <td>Next/Prev Page/Paragraph/Line in Tree</td></tr>"
 	                           "<tr><td></td>"                        "<td> </td> <td> </td> <td> </td> <td>(see Output dropdown)</td></tr>"
+	                           "<tr><td>Enter+Keypad (hold)</td>"     "<td>D</td> <td> </td> <td> </td> <td>Toggle preview state</td></tr>"
 	                           "<tr><td>&lt;print&gt;</td>"           "<td> </td> <td> </td> <td>E</td> <td>Insert the character</td></tr>"
 	                           "<tr><td>&lt;print&gt;</td>"           "<td>D</td> <td>T</td> <td> </td> <td>Search to item beginning with &lt;print&gt;</td></tr>"
 							   "<tr><td>L-Click</td>"                 "<td>D</td> <td>T</td> <td>E</td> <td>Select</td></tr>"

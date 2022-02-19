@@ -73,6 +73,7 @@ public:
 	int m_blinkCounter = 0;
 	QTimer *m_blinkTimer;
 	void addWordAtCursor();
+	void showPreview(bool invert);
 
 public slots:
 	bool open(const QString& filename) override { return open(InsertMode::Replace, {filename}); }

@@ -1830,8 +1830,12 @@ void OutputEditorHOCR::previewToggled() {
 }
 
 void OutputEditorHOCR::updatePreview() {
+	showPreview(false);
+}
+
+void OutputEditorHOCR::showPreview(bool invert) {
 	const HOCRItem* item = m_document->itemAtIndex(ui.treeViewHOCR->currentIndex());
-	if(!ui.actionPreview->isChecked() || !item) {
+	if((!ui.actionPreview->isChecked() ^ invert) || !item) {
 		m_preview->setVisible(false);
 		return;
 	}

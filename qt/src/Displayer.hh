@@ -217,7 +217,7 @@ protected:
 	void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
 
 signals:
-	void geometryChanged(QRectF rect);
+	void geometryChanged(QRectF rect, bool affectsChildren);
 
 private:
 	typedef void(*ResizeHandler)(const QPointF&, QPointF&, QPointF&);

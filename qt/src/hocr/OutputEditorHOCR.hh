@@ -158,7 +158,7 @@ private slots:
 	void toggleWConfColumn();
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);
 	void updateSourceText();
-	void updateCurrentItemBBox(QRect bbox);
+	void updateCurrentItemBBox(QRect bbox, bool affectsChildren);
 	void findReplace(const QString& searchstr, const QString& replacestr, bool matchCase, bool backwards, bool replace);
 	void replaceAll(const QString& searchstr, const QString& replacestr, bool matchCase);
 	void applySubstitutions(const QMap<QString, QString>& substitutions, bool matchCase);

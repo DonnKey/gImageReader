@@ -266,6 +266,31 @@ private:
 			}
 			QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
 			document->editItemAttribute(index, "title:bbox", bboxstr);
+		} else if((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down || ev->key() == Qt::Key_Left || ev->key() == Qt::Key_Right) && ev->modifiers() & Qt::AltModifier) {
+			// Move bbox 
+			QModelIndex index;
+			if ((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && m_wordItem->itemClass() == "ocrx_word") {
+				m_wordItem = m_wordItem->parent();
+				index = document->indexAtItem(m_wordItem);
+				m_proofReadWidget->documentTree()->setCurrentIndex(index);
+			} else {
+				index = document->indexAtItem(m_wordItem);
+			}
+
+			switch(ev->key()) {
+			case Qt::Key_Up:
+				document->xlateItem(index, -1, 0);
+				break;
+			case Qt::Key_Down:
+				document->xlateItem(index, +1, 0);
+				break;
+			case Qt::Key_Left: 
+				document->xlateItem(index, 0, -1);
+				break;
+			case Qt::Key_Right: 
+				document->xlateItem(index, 0, +1);
+				break;
+			}
 		} else if(ev->key() == Qt::Key_W && ev->modifiers() == Qt::ControlModifier) {
 			// Add word
 			QPoint p = QCursor::pos();
@@ -643,6 +668,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+Shift+{Up,Down}</td>"    "<td> </td> <td> </td> <td>E</td> <td>Adjust bottom bounding box edge</td></tr>"
 	                           "<tr><td>Ctrl++</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Increase <em>tool</em> font size</td></tr>"
 	                           "<tr><td>Ctrl+-</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Decrease <em>tool</em> font size</td></tr>"
+	                           "<tr><td>Alt+{Left,Right,Up,Down}</td>""<td>D</td> <td> </td> <td> </td> <td>Move item (vertical moves whole lines)</td></tr>"
 	                           "<tr><td>PageUp, PageDown</td>"        "<td>D</td> <td> </td> <td>E</td> <td>Previous/Next Page</td></tr>"
 	                           "<tr><td>PageUp, PageDown</td>"        "<td> </td> <td>T</td> <td> </td> <td>Up/down one table screen</td></tr>"
 	                           "<tr><td>Keypad+{1-5}</td>"            "<td> </td> <td>T</td> <td> </td> <td>Nearest word,line,para,section,page</td></tr>"
@@ -655,9 +681,10 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 							   "<tr><td>L-Click</td>"                 "<td>D</td> <td>T</td> <td>E</td> <td>Select</td></tr>"
 							   "<tr><td>L-2Click</td>"                "<td> </td> <td>T</td> <td>E</td> <td>Expand/Open for edit</td></tr>"
 							   "<tr><td>R-Click</td>"                 "<td> </td> <td>T</td> <td> </td> <td>Open context menu</td></tr>"
-							   "<tr><td>L-Mouse Drag</td>"            "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"
+							   "<tr><td>M-Mouse Drag</td>"            "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"
 							   "<tr><td>L-Mouse Drag Box Edge</td>"   "<td>D</td> <td> </td> <td> </td> <td>Resize Box</td></tr>"
-							   "<tr><td>M-Mouse Drag Any</td>"        "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"
+							   "<tr><td>L-Mouse Drag Box Center</td>" "<td>D</td> <td> </td> <td> </td> <td>Move Box (when all-cursor shows)</td></tr>"
+							   "<tr><td>L-Mouse Drag Other</td>"      "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"
 							   "<tr><td>Wheel</td>"                   "<td>D</td> <td> </td> <td> </td> <td>Pan Up/Down</td></tr>"
 							   "<tr><td>Shift+Wheel</td>"             "<td>D</td> <td> </td> <td> </td> <td>Pan Left/Right</td></tr>"
 							   "<tr><td>Ctrl+Wheel</td>"              "<td>D</td> <td> </td> <td> </td> <td>Zoom (around position)</td></tr>"

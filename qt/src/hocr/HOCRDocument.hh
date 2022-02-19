@@ -73,6 +73,7 @@ public:
 	QModelIndex mergeItemText(const QModelIndex& itemIndex, bool mergeNext);
 	QModelIndex addItem(const QModelIndex& parent, const QDomElement& element, int pos = -1);
 	bool removeItem(const QModelIndex& index);
+	void xlateItem(const QModelIndex& index, int u_d, int l_r, bool top = true);
 
 	QModelIndex nextIndex(const QModelIndex& current) const;
 	QModelIndex prevIndex(const QModelIndex& current) const;

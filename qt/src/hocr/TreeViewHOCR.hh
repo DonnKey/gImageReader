@@ -33,6 +33,11 @@ public:
 
     void keyPressEvent(QKeyEvent *event) override {
         // Override to make public for ProofReadWidget
+        if ((event->modifiers() & Qt::AltModifier) && (event->key() == Qt::Key_Up || event->key() == Qt::Key_Down
+                                                    || event->key() == Qt::Key_Left || event->key() == Qt::Key_Right)) {
+            // Alt-arrow is an easy and irritating accident here
+            return;
+        }
         QTreeView::keyPressEvent(event);
     }
 

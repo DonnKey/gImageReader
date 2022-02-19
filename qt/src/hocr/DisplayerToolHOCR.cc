@@ -167,7 +167,7 @@ void DisplayerToolHOCR::clearSelection() {
 	m_selection = nullptr;
 }
 
-void DisplayerToolHOCR::selectionChanged(QRectF rect) {
+void DisplayerToolHOCR::selectionChanged(QRectF rect, bool affectsChildren) {
 	QRect r = rect.translated(-m_displayer->getSceneBoundingRect().toRect().topLeft()).toRect();
-	emit bboxChanged(r);
+	emit bboxChanged(r, affectsChildren);
 }

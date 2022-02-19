@@ -63,7 +63,7 @@ public:
 signals:
 	void displayedSourceChanged();
 	void bboxDrawn(QRect rect, int action);
-	void bboxChanged(QRect rect);
+	void bboxChanged(QRect rect, bool affectsChildren);
 	void positionPicked(QPoint pos);
 	void actionChanged(int action);
 
@@ -75,7 +75,7 @@ private:
 	int m_mouseMoves = 0;
 
 private slots:
-	void selectionChanged(QRectF rect);
+	void selectionChanged(QRectF rect, bool affectsChildren);
 };
 
 #endif // DISPLAYERTOOLHOCR_HH

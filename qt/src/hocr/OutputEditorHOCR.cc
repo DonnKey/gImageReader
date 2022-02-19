@@ -749,10 +749,20 @@ QWidget* OutputEditorHOCR::createAttrWidget(const QModelIndex& itemIndex, const 
 	}
 }
 
-void OutputEditorHOCR::updateCurrentItemBBox(QRect bbox) {
+void OutputEditorHOCR::updateCurrentItemBBox(QRect bbox, bool affectsChildren) {
 	QModelIndex current = ui.treeViewHOCR->selectionModel()->currentIndex();
-	QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
-	m_document->editItemAttribute(current, "title:bbox", bboxstr);
+	if (affectsChildren) {
+		const HOCRItem* currentItem = m_document->itemAtIndex(current);
+		QRect oldBbox = currentItem->bbox();
+		QPoint moved = bbox.topLeft() - oldBbox.topLeft();
+		// Assume rigid motion here.
+		m_document->xlateItem(current, moved.y(), moved.x());
+	} else {
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+		m_document->editItemAttribute(current, "title:bbox", bboxstr);
+	}
+	// Move ProofReadWidget correspndingly; note: widget content order won't change because that's in hOCR order, not graphical order.
+	emit MAIN->getDisplayer()->imageChanged();
 }
 
 void OutputEditorHOCR::updateSourceText() {

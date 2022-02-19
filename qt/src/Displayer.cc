@@ -905,10 +905,10 @@ void DisplayerSelection::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
 
 void DisplayerSelection::mouseReleaseEvent(QGraphicsSceneMouseEvent* /*event*/) {
 	if(!m_resizeHandlers.isEmpty()) {
-		emit geometryChanged(rect());
+		emit geometryChanged(rect(),false);
 		m_resizeHandlers.clear();
 	} else if(m_translating) {
-		emit geometryChanged(rect());
+		emit geometryChanged(rect(),true);
 		m_translating = false;
 	}
 }

@@ -60,6 +60,20 @@ void HOCRDocument::resetMisspelled(const QModelIndex& index) {
 	}
 }
 
+void HOCRDocument::dictionaryChanged(const QModelIndex& index) {
+	if(hasChildren(index)) {
+		for(int i = 0, n = rowCount(index); i < n; ++i) {
+			dictionaryChanged(this->index(i, 0, index));
+		}
+	} else {
+		HOCRItem* item = mutableItemAtIndex(index);
+		if (item->isMisspelled()) {
+			item->setMisspelled(-1);
+			emit dataChanged(index, index, {Qt::ForegroundRole});
+		}
+	}
+}
+
 void HOCRDocument::addSpellingActions(QMenu* menu, const QModelIndex& index) {
 	QStringList suggestions;
 	QString trimmedWord;
@@ -75,11 +89,11 @@ void HOCRDocument::addSpellingActions(QMenu* menu, const QModelIndex& index) {
 			menu->addSeparator();
 			menu->addAction(_("Add to dictionary"), menu, [this, trimmedWord, index] {
 				m_spell->addWordToDictionary(trimmedWord);
-				resetMisspelled(index);
+				dictionaryChanged();
 			});
 			menu->addAction(_("Ignore spelling"), menu, [this, trimmedWord, index] {
 				m_spell->ignoreWord(trimmedWord);
-				resetMisspelled(index);
+				dictionaryChanged();
 			});
 		}
 	}
@@ -90,7 +104,7 @@ void HOCRDocument::addWordToDictionary(const QModelIndex& index) {
 	if(item && item->isMisspelled()) {
 		QString trimmedWord = HOCRItem::trimmedWord(item->text());
 		m_spell->addWordToDictionary(trimmedWord);
-		resetMisspelled(index);
+		dictionaryChanged();
 	}
 }
 

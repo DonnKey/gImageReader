@@ -120,6 +120,7 @@ private:
 	void deleteItem(HOCRItem* item);
 	void takeItem(HOCRItem* item);
 	void resetMisspelled(const QModelIndex& index);
+	void dictionaryChanged(const QModelIndex& index = QModelIndex());
 	QList<QModelIndex> recheckItemSpelling(const QModelIndex& index) const;
 	void recomputeBBoxes(HOCRItem* item);
 	QModelIndex searchAtCanvasPos_inner(const QModelIndex& pageIndex, const QPoint& pos, int fuzz, int parentUB, int parentLB) const;

@@ -539,6 +539,7 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 	m_controlsWidget->layout()->addWidget(settingsButton);
 
 	m_pointer = new PointerWidget(parent);
+	m_lineMap = new LineMap;
 
 	setObjectName("proofReadWidget");
 	setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
@@ -603,8 +604,12 @@ void HOCRProofReadWidget::setProofreadEnabled(bool enabled) {
 }
 
 void HOCRProofReadWidget::clear() {
-	qDeleteAll(m_currentLines);
-	m_currentLines.clear();
+	for (auto ii:(*m_lineMap)) {
+		qDeleteAll(*(ii.second));
+		delete ii.second;
+		delete ii.first;
+	}
+	m_lineMap->clear();
 	m_currentLine = nullptr;
 	m_confidenceLabel->setText("");
 	m_confidenceLabel->setStyleSheet("");
@@ -654,28 +659,39 @@ void HOCRProofReadWidget::updateWidget(bool force) {
 		lineItem = item;
 	}
 
+	// Note: QT will rearrange the order of its widget children as it sees fit. (raise() will do that.)
+	// Keep a (2D) map of lineEdit widgets in the order we need them in (e.g. for tabbing) in parallel.
+	// QMap will create entries for operator[] on the right... use value() instead if probing for existence.
 	const QVector<HOCRItem*>& siblings = lineItem->parent()->children();
 	int targetLine = lineItem->index();
 	if(lineItem != m_currentLine || force) {
 		// Rebuild widget
-		QMap<const HOCRItem*, QWidget*> newLines;
+		LineMap* newLines = new LineMap;
 		int insPos = 0;
 		for(int i = qMax(0, targetLine - nrLinesBefore), j = qMin(siblings.size() - 1, targetLine + nrLinesAfter); i <= j; ++i) {
 			HOCRItem* linei = siblings[i];
-			if(m_currentLines.contains(linei)) {
-				newLines[linei] = m_currentLines.take(linei);
-				insPos = m_linesLayout->indexOf(newLines[linei]) + 1;
+			if(m_lineMap->contains(linei)) {
+				(*newLines)[linei] = m_lineMap->take(linei);
+				m_linesLayout->insertWidget(insPos++, (*newLines)[linei].first);
 			} else {
 				QWidget* lineWidget = new QWidget();
+				(*newLines)[linei].first = lineWidget;
+				RowMap *row = new RowMap;
+				(*newLines)[linei].second = row;
 				for(HOCRItem* word : siblings[i]->children()) {
-					new LineEdit(this, word, lineWidget); // Add as child to lineWidget
+					LineEdit* editor = new LineEdit(this, word, lineWidget); // Add as child to lineWidget
+					(*row)[word] = editor;
 				}
 				m_linesLayout->insertWidget(insPos++, lineWidget);
-				newLines.insert(linei, lineWidget);
 			}
 		}
-		qDeleteAll(m_currentLines);
-		m_currentLines = newLines;
+		for (auto ii:*m_lineMap) {
+			qDeleteAll(*(ii.second));
+			delete ii.second;
+			delete ii.first;
+		}
+		delete m_lineMap;
+		m_lineMap = newLines;
 		m_currentLine = lineItem;
 		repositionWidget();
 	} else {
@@ -688,8 +704,9 @@ void HOCRProofReadWidget::updateWidget(bool force) {
 		focusLineEdit = m_stub;
 	} else {
 		// Select selected word or first item of middle line
-		const QObjectList children = m_currentLines[lineItem]->children();
-		focusLineEdit = static_cast<LineEdit*>(children.size() > 0 ? (children[wordItem ? wordItem->index() : 0]) : m_currentLines[lineItem]);
+		focusLineEdit = m_lineMap->size() > 0
+			? (wordItem ? (*(*m_lineMap)[lineItem].second)[wordItem] : (*(*m_lineMap)[lineItem].second)[lineItem->children().at(0)] )
+			: static_cast<LineEdit*>((*m_lineMap)[lineItem].first);
 	}
 	if(focusLineEdit) {
 		MAIN->getDisplayer()->setFocusProxy(focusLineEdit);
@@ -714,17 +731,17 @@ void HOCRProofReadWidget::repositionWidget() {
 	int frameXmin = std::numeric_limits<int>::max();
 	int frameXmax = 0;
 	QPoint sceneCorner = displayer->getSceneBoundingRect().toRect().topLeft();
-	if(m_currentLines.isEmpty()) {
+	if(m_lineMap->isEmpty()) {
 		frameXmin = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomLeft()).x();
 		frameXmax = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomRight()).x();
 	} 
-	for(QWidget* lineWidget : m_currentLines) {
-		if(lineWidget->children().isEmpty()) {
+	for(LineMap::const_iterator lineIter = m_lineMap->begin(); lineIter != m_lineMap->end(); ++lineIter) { 
+        const HOCRItem* item = lineIter.key();
+		if(item->children().isEmpty()) {
 			continue;
 		}
-		// First word
-		LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[0]);
-		QPoint bottomLeft = displayer->mapFromScene(lineEdit->item()->bbox().translated(sceneCorner).bottomLeft());
+		// line widget bounding bbox
+		QPoint bottomLeft = displayer->mapFromScene(item->bbox().translated(sceneCorner).bottomLeft());
 		frameXmin = std::min(frameXmin, bottomLeft.x());
 	}
 	frameXmin -= framePadding;
@@ -737,9 +754,10 @@ void HOCRProofReadWidget::repositionWidget() {
 	m_sceneBoxRight = 0;
 
 	// First pass: min scaling factor, move to correct location
-	for(QWidget* lineWidget : m_currentLines) {
-		for(int i = 0, n = lineWidget->children().count(); i < n; ++i) {
-			LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[i]);
+	for(LineMap::const_iterator lineIter = m_lineMap->begin(); lineIter != m_lineMap->end(); ++lineIter) { 
+		RowMap* row = lineIter.value().second;
+		for(RowMap::const_iterator rowIter = row->begin(); rowIter != row->end(); ++rowIter) {
+			LineEdit* lineEdit = (*row)[rowIter.key()];
 			QRect bbox = lineEdit->item()->bbox();
 			m_sceneBoxLeft = std::min(m_sceneBoxLeft, bbox.left());
 			m_sceneBoxRight = std::max(m_sceneBoxRight, bbox.right());
@@ -777,14 +795,16 @@ void HOCRProofReadWidget::repositionWidget() {
 	ft.setPointSizeF(ft.pointSizeF() + m_fontSizeDiff);
 	QFontMetrics fm = QFontMetrics(ft);
 	int linePos = 0;
-	for(QWidget* lineWidget : m_currentLines) {
-		for(int i = 0, n = lineWidget->children().count(); i < n; ++i) {
-			LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[i]);
+	for(LineMap::const_iterator lineIter = m_lineMap->begin(); lineIter != m_lineMap->end(); ++lineIter) { 
+		RowMap* row = lineIter.value().second;
+		for(RowMap::const_iterator rowIter = row->begin(); rowIter != row->end(); ++rowIter) {
+			LineEdit *lineEdit = (*row)[rowIter.key()];
 			QFont lineEditFont = lineEdit->font();
 			lineEditFont.setPointSizeF(ft.pointSizeF());
 			lineEdit->setFont(lineEditFont);
 			lineEdit->setFixedHeight(fm.height() + 5);
 		}
+		QWidget* lineWidget = lineIter->first;
 		lineWidget->setFixedHeight(fm.height() + 10);
 		// Bug workaround: line positions not always correct without this, causing repositionPointer
 		// to get incorrect top/bottom. Occurs rarely but repeatably. updateGeometry() doesn't help.
@@ -794,7 +814,7 @@ void HOCRProofReadWidget::repositionWidget() {
 	updateGeometry();
 	setMinimumWidth(2*clipMargin);
 	resize(frameXmax - frameXmin + widgetMargins + 2 * layout()->spacing(), 
-		m_currentLines.size() * (fm.height() + editLineSpacing) + 2 * layout()->spacing() + m_controlsWidget->sizeHint().height());
+		m_lineMap->size() * (fm.height() + editLineSpacing) + 2 * layout()->spacing() + m_controlsWidget->sizeHint().height());
 
 	int frameY;
 	repositionPointer(frameY);
@@ -819,7 +839,7 @@ void HOCRProofReadWidget::repositionPointer(int &frameY) {
 	int editLineTop = 0;
 	int editLineBottom = height() - m_controlsWidget->sizeHint().height() - 2*layout()->spacing() - widgetMargins - frameWidth();
 	if(m_currentLine->itemClass() == "ocr_line") {
-		QWidget* lineWidget = m_currentLines[m_currentLine];
+		QWidget* lineWidget = (*m_lineMap)[m_currentLine].first;
 		if (!lineWidget->children().isEmpty()) {
 			LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[0]);
 			editLineTop = lineEdit->mapTo(this,lineEdit->rect().topLeft()).y();
@@ -863,6 +883,15 @@ void HOCRProofReadWidget::repositionPointer(int &frameY) {
 	m_pointer->move(widgetBoxLeft, wordY);
 	m_pointer->triangle(base1, base2, target, pageDpi);
 	m_pointer->updateGeometry();
+
+	for(LineMap::const_iterator lineIter = m_lineMap->begin(); lineIter != m_lineMap->end(); ++lineIter) { 
+		RowMap* row = lineIter.value().second;
+		LineEdit *lineEdit = row->value(currentItem, nullptr);
+		if (lineEdit != nullptr) {
+			lineEdit->raise();
+			return;
+		}
+	}
 }
 
 void HOCRProofReadWidget::showShortcutsDialog() {

@@ -53,7 +53,6 @@ private:
 	const HOCRItem* m_currentLine = nullptr;
 	QWidget* m_controlsWidget = nullptr;
 	QLabel* m_confidenceLabel = nullptr;
-	QMap<const HOCRItem*, QWidget*> m_currentLines;
 	QSpinBox* m_spinLinesBefore = nullptr;
 	QSpinBox* m_spinLinesAfter = nullptr;
 	QSpinBox* m_gapWidth = nullptr;
@@ -64,6 +63,10 @@ private:
 	int m_sceneBoxLeft;
 	int m_sceneBoxRight;
 	bool m_hidden = false;
+	typedef QMap<const HOCRItem*, LineEdit*> RowMap;
+	typedef QPair<QWidget*, RowMap*> RowHeader;
+	typedef QMap<const HOCRItem*, RowHeader> LineMap;
+	LineMap* m_lineMap = nullptr;
 
 	// Disable auto tab handling
 	bool focusNextPrevChild(bool) override { return false; }

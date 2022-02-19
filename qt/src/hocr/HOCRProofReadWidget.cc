@@ -402,6 +402,15 @@ private:
 		m_savedCursor = cursorPosition();
 		QLineEdit::focusOutEvent(ev);
 	}
+	void paintEvent(QPaintEvent *ev) {
+		QLineEdit::paintEvent(ev);
+		QPainter painter(this);
+		painter.setPen(QPen(Qt::darkMagenta,1));
+		QFontMetrics fm(font());
+		if (fm.horizontalAdvance(text()) > width()) {
+			painter.drawLine(rect().topRight(),rect().bottomRight());
+		}
+	}
 };
 
 const HOCRItem* HOCRProofReadWidget::LineEdit::m_currentEditedItem = nullptr;

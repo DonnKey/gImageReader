@@ -95,7 +95,6 @@ private:
 	UI_OutputEditorHOCR ui;
 	HTMLHighlighter* m_highlighter;
 	bool m_modified = false;
-	bool m_blockSourceChanged = false;
 	QString m_filebasename;
 	InsertMode m_insertMode = InsertMode::Append;
 	bool m_replace = false;
@@ -107,7 +106,7 @@ private:
 	void expandCollapseItemClass(bool expand);
 	void navigateNextPrev(bool next);
 	bool findReplaceInItem(const QModelIndex& index, const QString& searchstr, const QString& replacestr, bool matchCase, bool backwards, bool replace, bool& currentSelectionMatchesSearch);
-	bool showPage(const HOCRPage* page);
+	bool newPage(const HOCRPage* page);
 	int currentPage();
 	void drawPreview(QPainter& painter, const HOCRItem* item);
     void removePageByPosition(int position); 

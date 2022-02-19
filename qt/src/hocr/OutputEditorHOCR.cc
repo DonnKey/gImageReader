@@ -548,14 +548,9 @@ void OutputEditorHOCR::expandCollapseChildren(const QModelIndex& index, bool exp
 	}
 }
 
-bool OutputEditorHOCR::showPage(const HOCRPage* page) {
-	m_blockSourceChanged = true;
-	bool success = page && MAIN->getSourceManager()->addSource(page->sourceFile(), true) && MAIN->getDisplayer()->setup(&page->pageNr(), &page->resolution(), &page->angle());
-	m_blockSourceChanged = false;
-	if(success) {
-		sourceChanged();
-	}
-	return success;
+
+bool OutputEditorHOCR::newPage(const HOCRPage* page) {
+	return page && MAIN->getSourceManager()->addSource(page->sourceFile(), true) && MAIN->getDisplayer()->setup(&page->pageNr(), &page->resolution(), &page->angle());
 }
 
 int OutputEditorHOCR::currentPage() {
@@ -629,11 +624,7 @@ void OutputEditorHOCR::showItemProperties(const QModelIndex& index, const QModel
 
 	ui.plainTextEditOutput->setPlainText(currentItem->toHtml());
 
-	if(showPage(page)) {
-		// Update preview if necessary
-		if(!prevItem || prevItem->page() != page) {
-			updatePreview();
-		}
+	if(newPage(page)) {
 		// Minimum bounding box
 		QRect minBBox;
 		if(currentItem->itemClass() == "ocr_page") {
@@ -1107,7 +1098,7 @@ bool OutputEditorHOCR::exportToPDF() {
 	const HOCRItem* item = m_document->itemAtIndex(current);
 	const HOCRPage* page = item ? item->page() : m_document->page(0);
 	bool success = false;
-	if(!showPage(page)) {
+	if(!newPage(page)) {
 		return false;
 	}
 	HOCRPdfExportDialog dialog(m_tool, m_document, page, MAIN);
@@ -1141,6 +1132,7 @@ bool OutputEditorHOCR::exportToPDF() {
 	MAIN->getDisplayer()->setBlockAutoscale(true);
 	success = HOCRPdfExporter().run(m_document, outname, &settings);
 	MAIN->getDisplayer()->setBlockAutoscale(false);
+	newPage(item->page());
 	return success;
 }
 
@@ -1320,9 +1312,6 @@ void OutputEditorHOCR::removePageByPosition(int position) {
 }
 
 void OutputEditorHOCR::sourceChanged() {
-	if(m_blockSourceChanged) {
-		return;
-	}
 	int page;
 	QString path = MAIN->getDisplayer()->getCurrentImage(page);
 	// Check if source is in document tree

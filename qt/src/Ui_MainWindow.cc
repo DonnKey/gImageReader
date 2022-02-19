@@ -241,6 +241,7 @@ void UI_MainWindow::setupUi(QMainWindow* mainWindow) {
 	keyParent->addAction(_("Zoom Ou&t"), [this] {actionZoomOut->trigger();});
 	keyParent->addAction(_("Original Si&ze"), [this] {actionOriginalSize->trigger();});
 	keyParent->addAction(_("&Best Fit"), [this] {actionBestFit->trigger();});
+	keyParent->addAction(_("&Tight Fit"), [this] {actionTightFit->trigger();});
 	keyParent->addSeparator();
 	keyParent->addAction(_("Rotate &Left"), [this] {actionRotateLeft->trigger();});
 	keyParent->addAction(_("Rotate Rig&ht"), [this] {actionRotateRight->trigger();});

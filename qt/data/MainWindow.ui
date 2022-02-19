@@ -299,6 +299,7 @@
    <addaction name="actionZoomOut"/>
    <addaction name="actionOriginalSize"/>
    <addaction name="actionBestFit"/>
+   <addaction name="actionTightFit"/>
    <addaction name="separator"/>
    <addaction name="actionRotateLeft"/>
    <addaction name="actionRotateRight"/>
@@ -854,6 +855,21 @@
    </property>
    <property name="toolTip">
     <string>Batch Export</string>
+   </property>
+  </action>
+  <action name="actionTightFit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="zoom-fit-best">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>Tight Fit</string>
+   </property>
+   <property name="toolTip">
+    <string>Tight fit</string>
    </property>
   </action>
  </widget>

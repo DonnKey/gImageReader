@@ -76,6 +76,9 @@ public:
 	virtual QRectF getWidgetGeometry() {
 		return QRectF();
 	}
+	virtual QRectF getVisibleText() {
+		return QRectF();
+	}
 	virtual void navigateNextPrev(bool next, const QString& target = "") = 0;
 	virtual void setAngle(double angle) {}
 

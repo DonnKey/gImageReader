@@ -39,9 +39,7 @@ class Displayer : public QGraphicsView {
 public:
 	Displayer(const UI_MainWindow& _ui, QWidget* parent = nullptr);
 	~Displayer();
-	void setTool(DisplayerTool* tool) {
-		m_tool = tool;
-	}
+	void setTool(DisplayerTool* tool);
 	bool setSources(QList<Source*> sources);
 	bool setup(const int* page = nullptr, const int* resolution = nullptr, const double* angle = nullptr);
 	int getCurrentPage() const;
@@ -84,10 +82,11 @@ signals:
 
 public slots:
 	void autodetectOCRAreas();
+	void queueZoom();
 
 private:
 	enum class RotateMode { CurrentPage, AllPages, Auto } m_rotateMode;
-	enum class Zoom { In, Out, Fit, Original, InStage2 } m_zoomStage;
+	enum class Zoom { Default, NewImage, In, Out, Fit, Tight, Original, InStage2 } m_zoomStage;
 	const UI_MainWindow& ui;
 	GraphicsScene* m_scene;
 	QList<Source*> m_sources;
@@ -105,16 +104,21 @@ private:
 	QTransform m_viewportTransform;
 	QColor guessBackground(QPixmap& image);
 	QCursor m_zoomCursor;
+	QTimer m_zoomTimer;
+	bool m_zoomInit = false;
 
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
 	void mouseReleaseEvent(QMouseEvent* event) override;
 	void resizeEvent(QResizeEvent* event) override;
 	void wheelEvent(QWheelEvent* event) override;
+	bool setAngle(double angle);
 
 	void setZoom(Zoom action, QGraphicsView::ViewportAnchor anchor = QGraphicsView::AnchorViewCenter);
+	void setDisplayerAngle(double angle);
 	void zoomInClear();
 	void resetZoom();
+	double computeFit();
 	void generateThumbnails();
 	void thumbnailsToggled(bool active);
 
@@ -129,8 +133,6 @@ private slots:
 	void queueRenderImage();
 	bool renderImage();
 	void rotate90();
-	void setAngle(double angle);
-	void setEditorAngle(double angle);
 	void setRotateMode(QAction* action);
 	void setScaledImage(QImage image);
 	void zoomIn() {
@@ -141,6 +143,9 @@ private slots:
 	}
 	void zoomFit() {
 		setZoom(Zoom::Fit);
+	}
+	void zoomTight() {
+		setZoom(Zoom::Tight);
 	}
 	void zoomOriginal() {
 		setZoom(Zoom::Original);

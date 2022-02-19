@@ -485,6 +485,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 		QRect pos = ui.treeViewHOCR->visualRect(ui.treeViewHOCR->currentIndex());
 		emit ui.treeViewHOCR->customContextMenuRequested(pos.center());
 	} );
+	MAIN->ui.actionTightFit->setVisible(true);
 
 	connect(ui.menuInsertMode, &QMenu::triggered, this, &OutputEditorHOCR::setInsertMode);
 	connect(ui.toolButtonOpen, &QToolButton::clicked, this, 
@@ -629,6 +630,7 @@ void OutputEditorHOCR::finalizeRead(ReadSessionData* data) {
 	}
 	selectPage(hdata->beginIndex);
 	OutputEditor::finalizeRead(data);
+	MAIN->getDisplayer()->queueZoom();
 }
 
 void OutputEditorHOCR::setAngle(double angle) {
@@ -2230,6 +2232,7 @@ void OutputEditorHOCR::sourceChanged() {
 	if (MAIN->getDisplayer()->underMouse()) {
 		m_proofReadWidget->showWidget(true);
 	}
+	MAIN->getDisplayer()->queueZoom();
 	m_sourceBeingChanged = false;
 }
 
@@ -2449,4 +2452,24 @@ void OutputEditorHOCR::doReplace(bool force) {
 
 QRectF OutputEditorHOCR::getWidgetGeometry() {
 	return MAIN->getDisplayer()->mapToScene(m_proofReadWidget->geometry()).boundingRect();
+}
+
+QRectF OutputEditorHOCR::getVisibleText() {
+	QModelIndex idx = ui.treeViewHOCR->currentIndex();
+	if (!idx.isValid()) {
+		return QRectF();
+	}
+	const HOCRPage* page = m_document->itemAtIndex(idx)->page();
+	return getVisibleText(page);
+}
+
+QRectF OutputEditorHOCR::getVisibleText(const HOCRPage* page) {
+	if (page == nullptr) {
+		return QRectF();
+	}
+	QRect bbox;
+	for (auto child : page->children()) {
+		bbox = bbox.united(child->bbox());
+	}
+	return bbox;
 }

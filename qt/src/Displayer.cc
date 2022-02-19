@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -75,6 +75,7 @@ Displayer::Displayer(const UI_MainWindow& _ui, QWidget* parent)
 
 	m_renderTimer.setSingleShot(true);
 	m_scaleTimer.setSingleShot(true);
+	m_zoomTimer.setSingleShot(true);
 
 	ui.actionRotateLeft->setData(270.0);
 	ui.actionRotateRight->setData(90.0);
@@ -85,8 +86,7 @@ Displayer::Displayer(const UI_MainWindow& _ui, QWidget* parent)
 	connect(ui.menuRotation, &QMenu::triggered, this, &Displayer::setRotateMode);
 	connect(ui.actionRotateLeft, &QAction::triggered, this, &Displayer::rotate90);
 	connect(ui.actionRotateRight, &QAction::triggered, this, &Displayer::rotate90);
-	connect(ui.spinBoxRotation, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &Displayer::setAngle);
-	connect(ui.spinBoxRotation, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &Displayer::setEditorAngle);
+	connect(ui.spinBoxRotation, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &Displayer::setDisplayerAngle);
 	connect(ui.spinBoxPage, qOverload<int>(&QSpinBox::valueChanged), this, &Displayer::queueRenderImage);
 	connect(ui.spinBoxBrightness, qOverload<int>(&QSpinBox::valueChanged), this, &Displayer::queueRenderImage);
 	connect(ui.spinBoxContrast, qOverload<int>(&QSpinBox::valueChanged), this, &Displayer::queueRenderImage);
@@ -95,9 +95,11 @@ Displayer::Displayer(const UI_MainWindow& _ui, QWidget* parent)
 	connect(ui.actionZoomIn, &QAction::triggered, this, &Displayer::zoomIn);
 	connect(ui.actionZoomOut, &QAction::triggered, this, &Displayer::zoomOut);
 	connect(ui.actionBestFit, &QAction::triggered, this, &Displayer::zoomFit);
+	connect(ui.actionTightFit, &QAction::triggered, this, &Displayer::zoomTight);
 	connect(ui.actionOriginalSize, &QAction::triggered, this, &Displayer::zoomOriginal);
 	connect(&m_renderTimer, &QTimer::timeout, this, &Displayer::renderImage);
 	connect(&m_scaleTimer, &QTimer::timeout, this, &Displayer::scaleImage);
+	connect(&m_zoomTimer, &QTimer::timeout, this, [this] {setZoom(Zoom::Default);} );
 	connect(&m_scaleWatcher, &QFutureWatcher<QImage>::finished, this, [this] { setScaledImage(m_scaleWatcher.future().result()); });
 	connect(&m_thumbnailWatcher, &QFutureWatcher<QImage>::resultReadyAt, this, &Displayer::setThumbnail);
 	connect(ui.listWidgetThumbnails, &QListWidget::currentRowChanged, [this](int idx) {
@@ -115,8 +117,12 @@ Displayer::Displayer(const UI_MainWindow& _ui, QWidget* parent)
 	connect(horizontalScrollBar(), &QScrollBar::rangeChanged, this, &Displayer::checkViewportChanged);
 	connect(verticalScrollBar(), &QScrollBar::valueChanged, this, &Displayer::checkViewportChanged);
 	connect(verticalScrollBar(), &QScrollBar::rangeChanged, this, &Displayer::checkViewportChanged);
+	connect(this, &Displayer::imageChanged, this, [this] {setZoom(Zoom::NewImage);} );
+
 
 	ADD_SETTING(SwitchSetting("thumbnails", ui.checkBoxThumbnails, true));
+	ADD_SETTING(ActionSetting("tightfit", ui.actionTightFit, false));
+	ADD_SETTING(ActionSetting("bestfit", ui.actionBestFit, false));
 }
 
 Displayer::~Displayer() {
@@ -130,6 +136,7 @@ bool Displayer::setSources(QList<Source*> sources) {
 	}
 
 	m_scaleTimer.stop();
+	m_zoomTimer.stop();
 	m_scaleWatcher.waitForFinished();
 	m_thumbnailWatcher.cancel();
 	m_thumbnailWatcher.waitForFinished();
@@ -148,7 +155,6 @@ bool Displayer::setSources(QList<Source*> sources) {
 	m_pageMap.clear();
 	m_pixmap = QPixmap();
 	m_imageItem = nullptr;
-	ui.actionBestFit->setChecked(true);
 	ui.actionPage->setVisible(false);
 	ui.pageMenuAction->setVisible(false);
 	ui.spinBoxPage->blockSignals(true);
@@ -232,12 +238,14 @@ bool Displayer::setup(const int* page, const int* resolution, const double* angl
 		Utils::setSpinBlocked(ui.spinBoxResolution, *resolution);
 	}
 	if(angle) {
-		changed |= !ui.actionBestFit->isChecked();  // if setAngle doesn't render, we must.
-		setAngle(*angle);
-	}
+		changed |= setAngle(*angle);
+	} 
 	if(changed && !renderImage()) {
 		return false;
 	}
+	if (changed) {
+		queueZoom();
+	} 
 	return true;
 }
 
@@ -258,6 +266,7 @@ bool Displayer::renderImage() {
 	}
 
 	m_scaleTimer.stop();
+	m_zoomTimer.stop();
 	m_scaleWatcher.waitForFinished();
 
 	int oldResolution = m_currentSource ? m_currentSource->resolution : -1;
@@ -400,13 +409,57 @@ bool Displayer::eventFilter(QObject* target, QEvent* ev) {
 void Displayer::zoomInClear() {
 	QApplication::instance()->removeEventFilter(this);
 	QApplication::restoreOverrideCursor();
-	m_zoomStage = Zoom::Fit;
-	resetZoom();
+}
+
+const int narrowMargin = 20;
+double Displayer::computeFit() {
+	if(ui.actionOriginalSize->isChecked()) {
+		return 1.0;
+	}
+	QRectF bb = m_imageItem->sceneBoundingRect();
+	QRectF port = viewport()->rect();
+	double pageFit = std::min(port.width() / bb.width(), port.height() / bb.height());
+	double scale = pageFit;
+	if(ui.actionTightFit->isChecked()) {
+		QRectF visibleBb = MAIN->getOutputEditor()->getVisibleText();
+		if (visibleBb.isValid()) {
+			// Size must allow for scroll bars.
+			visibleBb = QRectF(visibleBb.topLeft()+QPointF(-narrowMargin, -narrowMargin), visibleBb.size()+QSize(3*narrowMargin, 3*narrowMargin));
+			double newFit = std::min(port.width() / visibleBb.width(), port.height() / visibleBb.height());
+			if (newFit > 1.8*pageFit) {
+				newFit = 1.8*pageFit;
+			}
+			bb = visibleBb.translated(m_imageItem->sceneBoundingRect().toRect().topLeft());
+			centerOn(bb.center());
+			scale = newFit;
+		} 
+	} 
+	return scale;
+}
+
+void Displayer::queueZoom() {
+	// Any sort of image change should delay the zoom until everything has been completed.
+	// In particular, the viewport could be out of date.
+	// Note: the viewport is a QRectF, and has floating-point variance issues, so it's
+	// not quite the same each time each time it's recalculated, causing small artifacts.
+	m_zoomTimer.start(50);
 }
 
 void Displayer::setZoom(Zoom action, ViewportAnchor anchor) {
+	if (!m_zoomInit) {
+		if(ui.actionBestFit->isChecked()) {
+			action = Zoom::Fit;
+		} else if(ui.actionBestFit->isVisible() && ui.actionTightFit->isChecked()) {
+			action = Zoom::Tight;
+		} else {
+			action = Zoom::Fit;
+		}
+		m_zoomInit = true;
+	}
+
 	if(!m_imageItem) {
 		zoomInClear();
+		m_zoomStage = action;
 		return;
 	}
 	m_scaleTimer.stop();
@@ -414,7 +467,7 @@ void Displayer::setZoom(Zoom action, ViewportAnchor anchor) {
 	setUpdatesEnabled(false);
 
 	QRectF bb = m_imageItem->sceneBoundingRect();
-	double fit = std::min(viewport()->width() / bb.width(), viewport()->height() / bb.height());
+	double pageFit = std::min(viewport()->width() / bb.width(), viewport()->height() / bb.height());
 
 	switch (action) {
 	case Zoom::In: {
@@ -425,30 +478,61 @@ void Displayer::setZoom(Zoom action, ViewportAnchor anchor) {
 	}
 	case Zoom::Out: {
 		m_scale = std::max(0.05, m_scale * 0.8);
+		if(m_scale / pageFit >= 0.9 && m_scale / pageFit <= 1.09) {
+			m_scale = pageFit;
+		}
+		m_zoomStage = Zoom::In;
 		break;
 	}
 	case Zoom::Fit: {
+		ui.actionBestFit->setChecked(true);
+		ui.actionTightFit->setChecked(false);
+		ui.actionOriginalSize->setChecked(false);
+		m_scale = computeFit();
+		m_zoomStage = Zoom::Fit;
+		break;
+	}
+	case Zoom::Tight: {
+		ui.actionBestFit->setChecked(false);
+		ui.actionTightFit->setChecked(true);
+		ui.actionOriginalSize->setChecked(false);
+		m_scale = computeFit();
+		m_zoomStage = Zoom::Fit;
 		break;
 	}
 	case Zoom::Original: {
+		ui.actionBestFit->setChecked(false);
+		ui.actionTightFit->setChecked(false);
+		ui.actionOriginalSize->setChecked(true);
 		m_scale = 1.0;
+		m_zoomStage = Zoom::Fit;
 		break;
 	}
 	case Zoom::InStage2: {
 		zoomInClear();
 		anchor = ViewportAnchor::AnchorUnderMouse;
 		m_scale = std::min(10., m_scale * 1.25);
+		if(m_scale / pageFit >= 0.9 && m_scale / pageFit <= 1.09) {
+			m_scale = pageFit;
+		}
+		m_zoomStage = Zoom::In;
+		break;
+	}
+	case Zoom::NewImage: {
+		m_zoomStage = Zoom::Fit;
+		queueZoom(); // avoid blinking
+		return;
+	}
+	case Zoom::Default: {
+		// something else changed (the page bbox, probably), redraw
+		if(m_zoomStage == Zoom::Fit || m_zoomStage == Zoom::Tight) {
+			m_scale = computeFit();
+		}
 		break;
 	}
 	}
 
-	m_zoomStage = Zoom::Fit;
-	ui.actionBestFit->setChecked(false);
-	if(action == Zoom::Fit || (m_scale / fit >= 0.9 && m_scale / fit <= 1.09)) {
-		m_scale = fit;
-		ui.actionBestFit->setChecked(true);
-	}
-	Qt::ScrollBarPolicy scrollPolicy = m_scale <= fit ? Qt::ScrollBarAlwaysOff : Qt::ScrollBarAsNeeded;
+	Qt::ScrollBarPolicy scrollPolicy = m_scale <= pageFit ? Qt::ScrollBarAlwaysOff : Qt::ScrollBarAsNeeded;
 	setHorizontalScrollBarPolicy(scrollPolicy);
 	setVerticalScrollBarPolicy(scrollPolicy);
 	ui.actionOriginalSize->setChecked(m_scale == 1.0);
@@ -478,7 +562,13 @@ void Displayer::resetZoom() {
 	checkViewportChanged();
 }
 
-void Displayer::setAngle(double angle) {
+void Displayer::setTool(DisplayerTool* tool) {
+	m_tool = tool;
+	m_zoomInit = false;
+	queueZoom();
+}
+
+bool Displayer::setAngle(double angle) {
 	if(m_imageItem) {
 		angle = angle < 0.0 ? angle + 360.0 : angle >= 360.0 ? angle - 360.0 : angle,
 		angle = std::round(angle * 10.0) / 10.0; // get rid of FP noise (several places, actually observed)
@@ -502,21 +592,23 @@ void Displayer::setAngle(double angle) {
 		m_imageItem->setRotation(angle);
 		if(m_tool && std::abs(delta) > 0.001) {
 			m_tool->rotationChanged(delta);
-		}
-		// Set zoom to fit new rotation
-		m_scene->setSceneRect(m_imageItem->sceneBoundingRect());
-		if(ui.actionBestFit->isChecked()) {
-			setZoom(Zoom::Fit);
+			m_scene->setSceneRect(m_imageItem->sceneBoundingRect());
+			return true;
 		}
 	}
+	return false;
 }
 
-void Displayer::setEditorAngle(double angle) {
+
+void Displayer::setDisplayerAngle(double angle) {
 	MAIN->getOutputEditor()->setAngle(angle);
+	setAngle(angle);
+	queueZoom();
 }
 
 void Displayer::rotate90() {
 	setAngle(ui.spinBoxRotation->value() + qobject_cast<QAction*>(QObject::sender())->data().toDouble());
+	queueZoom();
 }
 
 void Displayer::applyDeskew(double skew) {
@@ -525,12 +617,14 @@ void Displayer::applyDeskew(double skew) {
 	}
 	int sourcePage = m_pageMap[getCurrentPage()].second;
 	setAngle(skew +	m_currentSource->angle[sourcePage]);
+	queueZoom();
 }
 
 void Displayer::resizeEvent(QResizeEvent* event) {
 	QGraphicsView::resizeEvent(event);
-	if(ui.actionBestFit->isChecked()) {
-		setZoom(Zoom::Fit);
+	if (event->spontaneous()) {
+		// Otherwise we get an iteration at (large) tight zoom as the viewport changes.
+		queueZoom();
 	}
 }
 
@@ -566,7 +660,7 @@ void Displayer::keyPressEvent(QKeyEvent* event) {
 }
 
 void Displayer::mousePressEvent(QMouseEvent* event) {
-	if(m_zoomStage != Zoom::Fit) {
+	if(m_zoomStage == Zoom::InStage2) {
 		setZoom(Zoom::InStage2);
 		return;
 	}
@@ -785,6 +879,9 @@ void Displayer::ensureWidgetVisible(const QGraphicsItem *item, int xmargin, int 
 }
 
 void Displayer::ensureWidgetVisible(const QRectF &itemBox, int xmargin, int ymargin) {
+	if(ui.actionTightFit->isChecked()) {
+		xmargin = ymargin = 0;
+	}
 	QRectF widgetBox = MAIN->getOutputEditor()->getWidgetGeometry();
 	QRectF res;
 	if (itemBox.topLeft().y() > widgetBox.topLeft().y()) {

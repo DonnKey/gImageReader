@@ -314,6 +314,7 @@ void HOCRNormalize::normalizeSelection(PreferenceChoice *pref, bool substituteOn
 		return true;
 	}, _("Normalizing ..."));
 	m_doc->endLayoutChange();
+	MAIN->getDisplayer()->queueZoom();
 }
 
 void HOCRNormalize::normalizeItem(const HOCRItem* item, PreferenceChoice *pref, bool substituteOnly) {

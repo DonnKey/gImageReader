@@ -97,6 +97,7 @@ OutputEditorText::OutputEditorText(FocusableMenu* keyParent) {
 		QKeyEvent * ev1 = new QKeyEvent(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier, "");
 		qApp->postEvent(stubMenu,(QEvent *)ev1);
 	});
+	MAIN->ui.actionTightFit->setVisible(false);
 
 		FocusableMenu* menuFindReplace = new FocusableMenu(_("&Find and Replace"), keyParent);
 		ui.searchFrame->setKeyMenu(menuFindReplace);

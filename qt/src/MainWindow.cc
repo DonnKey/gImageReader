@@ -168,6 +168,7 @@ MainWindow::MainWindow(const QStringList& files)
 	m_idleActions.addAction(ui.actionZoomOut);
 	m_idleActions.addAction(ui.actionOriginalSize);
 	m_idleActions.addAction(ui.actionBestFit);
+	m_idleActions.addAction(ui.actionTightFit);
 	m_idleActions.addAction(ui.actionRotateLeft);
 	m_idleActions.addAction(ui.actionRotateRight);
 	m_idleActions.addAction(ui.actionAutodetectLayout);

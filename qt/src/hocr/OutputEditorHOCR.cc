@@ -30,6 +30,7 @@
 #include <QPointer>
 #include <QStandardItemModel>
 #include <QSyntaxHighlighter>
+#include <QTimer>
 #include <QtSpell.hpp>
 #include <algorithm>
 #include <cmath>
@@ -346,6 +347,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ConfigSettings::get<SwitchSetting>("systemoutputfont"), &FontSetting::changed, this, &OutputEditorHOCR::setFont);
 	connect(ui.treeViewHOCR->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &OutputEditorHOCR::showItemProperties);
 	connect(ui.treeViewHOCR, &QTreeView::customContextMenuRequested, this, &OutputEditorHOCR::showTreeWidgetContextMenu);
+	connect(this, &OutputEditorHOCR::customContextMenuRequested2, this, &OutputEditorHOCR::showTreeWidgetContextMenu_inner);
 	connect(ui.tabWidgetProps, &QTabWidget::currentChanged, this, &OutputEditorHOCR::updateSourceText);
 	connect(m_tool, &DisplayerToolHOCR::bboxChanged, this, &OutputEditorHOCR::updateCurrentItemBBox);
 	connect(m_tool, &DisplayerToolHOCR::bboxDrawn, this, &OutputEditorHOCR::bboxDrawn);
@@ -778,6 +780,17 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 }
 
 void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
+	QModelIndex idx = ui.treeViewHOCR->currentIndex();
+	QRect rect = ui.treeViewHOCR->visualRect(idx);
+	if (rect.isValid()) {
+		m_contextMenuLocation = QPoint(point.x(),rect.bottom()+1);
+	} else {
+		m_contextMenuLocation = point;
+	}
+	showTreeWidgetContextMenu_inner(m_contextMenuLocation);
+}
+
+void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QModelIndexList indices = ui.treeViewHOCR->selectionModel()->selectedRows();
 	int nIndices = indices.size();
 	if(nIndices > 1) {
@@ -843,13 +856,15 @@ void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
 		// Nothing else is allowed with multiple items selected
 		return;
 	}
-	QModelIndex index = ui.treeViewHOCR->indexAt(point);
+
+	QModelIndex index = indices.front();
 	const HOCRItem* item = m_document->itemAtIndex(index);
 	if(!item) {
 		return;
 	}
 
 	QMenu menu;
+	m_contextMenu = &menu;
 	QAction* actionAddGraphic = nullptr;
 	QAction* actionAddCArea = nullptr;
 	QAction* actionAddPar = nullptr;
@@ -892,6 +907,17 @@ void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
 		actionExpand = menu.addAction(_("Expand all"));
 		actionCollapse = menu.addAction(_("Collapse all"));
 	}
+	m_contextIndexUp = nullptr;
+	if(index.row() > 0) {
+		actionMoveUp = menu.addAction(_("Move Up (U)"));
+		m_contextIndexUp = &index;
+	}
+	m_contextIndexDown = nullptr;
+	if(index.row() < index.model()->rowCount(index.parent()) - 1) {
+		actionMoveDown = menu.addAction(_("Move Down (D)"));
+		m_contextIndexDown = &index;
+	}
+	menu.installEventFilter(this);
 
 	QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
 	if(!clickedAction) {
@@ -917,7 +943,56 @@ void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
 		expandCollapseChildren(index, true);
 	} else if(clickedAction == actionCollapse) {
 		expandCollapseChildren(index, false);
+	} else if(clickedAction == actionMoveUp) {
+		moveUpDown(index,-1);
+	} else if(clickedAction == actionMoveDown) {
+		moveUpDown(index,+1);
 	}
+	menu.setAttribute(Qt::WA_DeleteOnClose, true);
+}
+
+void OutputEditorHOCR::moveUpDown(const QModelIndex& index, int by) {
+	QModelIndex newIndex = m_document->index(index.row()+by, 0, index.parent());
+	bool newExpanded = ui.treeViewHOCR->isExpanded(index);
+	bool oldExpanded = ui.treeViewHOCR->isExpanded(newIndex);
+	m_document->swapItems(index.parent(), index.row(), index.row()+by);
+	newIndex = m_document->index(index.row()+by, 0, index.parent());
+	ui.treeViewHOCR->selectionModel()->setCurrentIndex(newIndex, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+	expandCollapseChildren(newIndex, newExpanded);
+	QModelIndex index2 = m_document->index(index.row(), 0, index.parent()); // The old index doesn't work for this (some pointer changed?)
+	expandCollapseChildren(index2, oldExpanded);
+	ui.treeViewHOCR->scrollTo(by>0?index2:newIndex, QAbstractItemView::PositionAtCenter);
+
+	// Allow easy repeats: rebuild the menu (it might be different)
+	m_contextMenu->close();
+	QTimer::singleShot(0, [this] {
+		// The scroll isn't finished until we get here.
+		QModelIndex idx = ui.treeViewHOCR->selectionModel()->currentIndex();
+		QRect rect = ui.treeViewHOCR->visualRect(idx);
+		if (rect.isValid()) {
+			m_contextMenuLocation = QPoint(m_contextMenuLocation.x(),rect.bottom()+1);
+		}
+		customContextMenuRequested2(m_contextMenuLocation);} ); // not recursive!
+}
+
+bool OutputEditorHOCR::eventFilter(QObject* /*obj*/, QEvent* ev) {
+	// To be replaced in future version...
+	if(ev->type() == QEvent::KeyPress) {
+		QKeyEvent* kev = static_cast<QKeyEvent*>(ev);
+		if (kev->key() == Qt::Key_U) {
+			if (m_contextIndexUp != nullptr) {
+				moveUpDown(*m_contextIndexUp,-1);
+			}
+			return true;
+		}
+		if (kev->key() == Qt::Key_D) {
+			if (m_contextIndexDown != nullptr) {
+				moveUpDown(*m_contextIndexDown,+1);
+			}
+			return true;
+		}
+	}
+	return false;
 }
 
 void OutputEditorHOCR::pickItem(const QPoint& point) {

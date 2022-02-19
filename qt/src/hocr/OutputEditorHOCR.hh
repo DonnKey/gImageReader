@@ -98,6 +98,10 @@ private:
 	QString m_filebasename;
 	InsertMode m_insertMode = InsertMode::Append;
 	bool m_replace = false;
+	QPoint m_contextMenuLocation;
+	QMenu *m_contextMenu;
+	QModelIndex* m_contextIndexUp;
+	QModelIndex* m_contextIndexDown;
 
 	HOCRDocument* m_document;
 
@@ -110,6 +114,11 @@ private:
 	int currentPage();
 	void drawPreview(QPainter& painter, const HOCRItem* item);
     void removePageByPosition(int position); 
+	void moveUpDown(const QModelIndex& index, int by);
+	bool eventFilter(QObject* /*obj*/, QEvent* ev);
+
+signals:
+    void customContextMenuRequested2(const QPoint &pos);
 
 private slots:
 	void bboxDrawn(const QRect& bbox, int action);
@@ -133,6 +142,7 @@ private slots:
 	void setModified();
 	void showItemProperties(const QModelIndex& index, const QModelIndex& prev = QModelIndex());
 	void showTreeWidgetContextMenu(const QPoint& point);
+	void showTreeWidgetContextMenu_inner(const QPoint& point);
 	void toggleWConfColumn();
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);
 	void updateSourceText();

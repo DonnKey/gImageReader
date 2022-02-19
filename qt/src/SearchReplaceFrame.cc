@@ -25,7 +25,7 @@ SearchReplaceFrame::SearchReplaceFrame(QWidget* parent, Qt::WindowFlags f)
 	: QFrame(parent, f) {
 	ui.setupUi(this);
 
-	m_substitutionsManager = new SubstitutionsManager(this);
+	m_substitutionsManager = new SubstitutionsManager("substitutionslist", this);
 
 	connect(ui.checkBoxMatchCase, &QCheckBox::toggled, this, &SearchReplaceFrame::clearErrorState);
 	connect(ui.lineEditSearch, &QLineEdit::textChanged, this, &SearchReplaceFrame::clearErrorState);

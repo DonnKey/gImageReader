@@ -202,6 +202,38 @@
      <string>Trim Height</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="openSubst_0">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>120</y>
+      <width>111</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Substitute Strings: opens string editor</string>
+    </property>
+    <property name="text">
+     <string>Substitute</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applySubst_0">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>120</y>
+      <width>16</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Automatically substitute strings</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
   </widget>
   <widget class="QDialogButtonBox" name="buttonBoxCancel">
    <property name="geometry">
@@ -417,6 +449,38 @@
      <string>Trim Height</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="applySubst_1">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>120</y>
+      <width>16</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Automatically substitute strings</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="openSubst_1">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>120</y>
+      <width>111</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Substitute Strings: opens string editor</string>
+    </property>
+    <property name="text">
+     <string>Substitute</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_2">
    <property name="geometry">
@@ -603,6 +667,38 @@
      <string>Trim Height</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="applySubst_2">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>120</y>
+      <width>16</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Automatically substitute strings</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="openSubst_2">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>120</y>
+      <width>111</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Substitute Strings: opens string editor</string>
+    </property>
+    <property name="text">
+     <string>Substitute</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_3">
    <property name="geometry">
@@ -787,6 +883,38 @@
     </property>
     <property name="text">
      <string>Trim Height</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applySubst_3">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>120</y>
+      <width>16</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Automatically substitute strings</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="openSubst_3">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>120</y>
+      <width>111</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Substitute Strings: opens string editor</string>
+    </property>
+    <property name="text">
+     <string>Substitute</string>
     </property>
    </widget>
   </widget>

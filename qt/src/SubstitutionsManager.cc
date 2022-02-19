@@ -31,7 +31,7 @@
 #include "SubstitutionsManager.hh"
 #include "Utils.hh"
 
-SubstitutionsManager::SubstitutionsManager(QWidget* parent)
+SubstitutionsManager::SubstitutionsManager(QString key, QWidget* parent)
 	: QDialog(parent) {
 	setWindowTitle(_("Substitutions"));
 
@@ -97,12 +97,16 @@ SubstitutionsManager::SubstitutionsManager(QWidget* parent)
 	connect(m_removeAction, &QAction::triggered, this, &SubstitutionsManager::removeRows);
 	connect(m_tableWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SubstitutionsManager::onTableSelectionChanged);
 
-	ADD_SETTING(TableSetting("substitutionslist", m_tableWidget));
+	ADD_SETTING(TableSetting(key, m_tableWidget));
 
 	if (m_tableWidget->rowCount() > 0) {
 		QTableWidgetItem* item = m_tableWidget->item(0,0);
 		m_tableWidget->setCurrentItem(item);
 	}
+}
+
+SubstitutionsManager::~SubstitutionsManager() {
+	ConfigSettings::get<TableSetting>("substitutionslist")->serialize();
 }
 
 void SubstitutionsManager::openList(bool append) {
@@ -224,4 +228,12 @@ void SubstitutionsManager::emitApplySubstitutions() {
 		substitutions.insert(m_tableWidget->item(row, 0)->text(), m_tableWidget->item(row, 1)->text());
 	}
 	emit applySubstitutions(substitutions);
+}
+
+QMap<QString, QString>* SubstitutionsManager::getSubstitutions() {
+	QMap<QString, QString>* substitutions = new QMap<QString, QString>();
+	for(int row = 0, nRows = m_tableWidget->rowCount(); row < nRows; ++row) {
+		substitutions->insert(m_tableWidget->item(row, 0)->text(), m_tableWidget->item(row, 1)->text());
+	}
+	return substitutions;
 }

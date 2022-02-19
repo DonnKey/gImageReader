@@ -29,6 +29,7 @@
 #include <QModelIndex>
 
 class PreferenceChoice;
+class SubstitutionsManager;
 
 class HOCRNormalize : public QObject {
 	Q_OBJECT
@@ -38,8 +39,8 @@ public:
 	void currentDefault(QString &title, int& number);
 
 private:
-	void normalizeSelection(PreferenceChoice *pref);
-	void normalizeItem(const HOCRItem* item, PreferenceChoice *pref);
+	void normalizeSelection(PreferenceChoice *pref, bool substituteOnly);
+	void normalizeItem(const HOCRItem* item, PreferenceChoice *pref, bool substituteOnly);
 
 	class HOCRNormalizeDialog : public QDialog {
 	public:
@@ -52,6 +53,8 @@ private:
 		void fontName(int index, const QFont& font, QFontComboBox *fontBox);
 		void fontSize(int index, int size, QSpinBox *editBox);
 		void apply(int index);
+		void openSubst(int index);
+		void applySubstitutionsToSelected(const int index, const QMap<QString, QString>& substitutions);
 	};
 
 	HOCRNormalizeDialog* m_dialog;

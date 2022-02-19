@@ -30,7 +30,9 @@ class QTableWidget;
 class SubstitutionsManager : public QDialog {
 	Q_OBJECT
 public:
-	SubstitutionsManager(QWidget* parent = nullptr);
+	SubstitutionsManager(QString key, QWidget* parent = nullptr);
+	~SubstitutionsManager();
+	QMap<QString, QString>* getSubstitutions();
 
 signals:
 	void applySubstitutions(const QMap<QString, QString>& substitutions);

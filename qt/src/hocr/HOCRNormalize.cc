@@ -23,6 +23,7 @@
 #include "Displayer.hh"
 #include "OutputEditorHOCR.hh"
 #include "Utils.hh"
+#include "SubstitutionsManager.hh"
 
 #include <algorithm>
 #include <QDebug>
@@ -33,9 +34,11 @@ class PreferenceChoice {
 	public:
 	PreferenceChoice(const QString& instance) : m_instance(instance) {}
 
-	const QString m_instance = 0;
+	const QString m_instance = nullptr;
 	const QFont* m_preferredFont = nullptr;
 	int m_preferredSize = 8;
+	SubstitutionsManager *m_subManager;
+	const QMap<QString, QString>* m_substitutions;
 
 	bool getNormalizeBBox() {
 		QString name = "normalizeBBox_" + m_instance;
@@ -71,9 +74,17 @@ class PreferenceChoice {
 	int getFontSize() {
 	    return m_preferredSize;
 	}
+	bool getApplySubst() {
+		QString name = "normalizeApplySubst_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
 	const QString getTitle() {
 		QString name = "normalizeTitle_" + m_instance;
 	    return ConfigSettings::get<LineEditSetting>(name)->getValue();
+	}
+
+	~PreferenceChoice() {
+		delete m_substitutions;
 	}
 };
 
@@ -91,12 +102,17 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_0", ui.setBold_0, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_0", ui.setItalic_0, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_0", ui.title_0));
+	ADD_SETTING(SwitchSetting("normalizeApplySubst_0", ui.applySubst_0, false));
 
 	connect(ui.preferredFont_0, &QFontComboBox::currentFontChanged, this, [this] (const QFont& font) {fontName(0, font, ui.preferredFont_0);} );
 	ADD_SETTING(FontComboSetting("normalizePreferredFont_0", ui.preferredFont_0));
 
 	connect(ui.preferredSize_0, qOverload<int>(&QSpinBox::valueChanged), this, [this] (int size) {fontSize(0, size, ui.preferredSize_0);} );
 	ADD_SETTING(SpinSetting("normalizePreferredSize_0", ui.preferredSize_0,8));
+
+	pref->m_subManager = new SubstitutionsManager("normalizesubst_0", this);
+	connect(ui.openSubst_0, &QPushButton::clicked, this, [this] (bool) {openSubst(0);} );
+	connect(pref->m_subManager, &SubstitutionsManager::applySubstitutions, this, [this] (const QMap<QString, QString>& p) { applySubstitutionsToSelected(0, p);} );
 
 	connect(ui.buttonBoxApply_0->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this] {apply(0);} );
 
@@ -110,12 +126,17 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_1", ui.setBold_1, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_1", ui.setItalic_1, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_1", ui.title_1));
+	ADD_SETTING(SwitchSetting("normalizeApplySubst_1", ui.applySubst_1, false));
 
 	connect(ui.preferredFont_1, &QFontComboBox::currentFontChanged, this, [this] (const QFont& font) {fontName(1, font, ui.preferredFont_1);} );
 	ADD_SETTING(FontComboSetting("normalizePreferredFont_1", ui.preferredFont_1));
 
 	connect(ui.preferredSize_1, qOverload<int>(&QSpinBox::valueChanged), this, [this] (int size) {fontSize(1, size, ui.preferredSize_1);} );
 	ADD_SETTING(SpinSetting("normalizePreferredSize_1", ui.preferredSize_1,8));
+
+	pref->m_subManager = new SubstitutionsManager("normalizesubst_1", this);
+	connect(ui.openSubst_1, &QPushButton::clicked, this, [this] (bool) {openSubst(1);} );
+	connect(pref->m_subManager, &SubstitutionsManager::applySubstitutions, this, [this] (const QMap<QString, QString>& p) { applySubstitutionsToSelected(1, p);} );
 
 	connect(ui.buttonBoxApply_1->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this] {apply(1);} );
 
@@ -129,12 +150,17 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_2", ui.setBold_2, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_2", ui.setItalic_2, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_2", ui.title_2));
+	ADD_SETTING(SwitchSetting("normalizeApplySubst_2", ui.applySubst_2, false));
 
 	connect(ui.preferredFont_2, &QFontComboBox::currentFontChanged, this, [this] (const QFont& font) {fontName(2, font, ui.preferredFont_2);} );
 	ADD_SETTING(FontComboSetting("normalizePreferredFont_2", ui.preferredFont_2));
 
 	connect(ui.preferredSize_2, qOverload<int>(&QSpinBox::valueChanged), this, [this] (int size) {fontSize(2, size, ui.preferredSize_2);} );
 	ADD_SETTING(SpinSetting("normalizePreferredSize_2", ui.preferredSize_2,8));
+
+	pref->m_subManager = new SubstitutionsManager("normalizesubst_2", this);
+	connect(ui.openSubst_2, &QPushButton::clicked, this, [this] (bool) {openSubst(2);} );
+	connect(pref->m_subManager, &SubstitutionsManager::applySubstitutions, this, [this] (const QMap<QString, QString>& p) { applySubstitutionsToSelected(2, p);} );
 
 	connect(ui.buttonBoxApply_2->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this] {apply(2);} );
 
@@ -148,12 +174,17 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_3", ui.setBold_3, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_3", ui.setItalic_3, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_3", ui.title_3));
+	ADD_SETTING(SwitchSetting("normalizeApplySubst_3", ui.applySubst_3, false));
 
 	connect(ui.preferredFont_3, &QFontComboBox::currentFontChanged, this, [this] (const QFont& font) {fontName(3, font, ui.preferredFont_3);} );
 	ADD_SETTING(FontComboSetting("normalizePreferredFont_3", ui.preferredFont_3));
 
 	connect(ui.preferredSize_3, qOverload<int>(&QSpinBox::valueChanged), this, [this] (int size) {fontSize(3, size, ui.preferredSize_3);} );
 	ADD_SETTING(SpinSetting("normalizePreferredSize_3", ui.preferredSize_3,8));
+
+	pref->m_subManager = new SubstitutionsManager("normalizesubst_3", this);
+	connect(ui.openSubst_3, &QPushButton::clicked, this, [this] (bool) {openSubst(3);} );
+	connect(pref->m_subManager, &SubstitutionsManager::applySubstitutions, this, [this] (const QMap<QString, QString>& p) { applySubstitutionsToSelected(3, p);} );
 
 	connect(ui.buttonBoxApply_3->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this] {apply(3);} );
 
@@ -170,10 +201,24 @@ void HOCRNormalize::HOCRNormalizeDialog::fontSize(int index, int size, QSpinBox 
 	m_parent->m_preferences[index]->m_preferredSize = size;
 }
 
+void HOCRNormalize::HOCRNormalizeDialog::openSubst(const int index) {
+	for (int i=0; i<4; i++) {
+		m_parent->m_preferences[i]->m_subManager->hide();
+	}
+	m_parent->m_preferences[index]->m_subManager->show();
+	m_parent->m_preferences[index]->m_subManager->raise();
+}
+
+void HOCRNormalize::HOCRNormalizeDialog::applySubstitutionsToSelected(const int index, const QMap<QString, QString>& substitutions) {
+	// For user pressing Apply in subst manager window from Normalize: just substitute, nothing else
+	PreferenceChoice* pref = m_parent->m_preferences[index];
+	m_parent->normalizeSelection(pref, true);
+}
+
 void HOCRNormalize::HOCRNormalizeDialog::apply(const int index) {
 	ConfigSettings::get<VarSetting<int>>("normalizePreference")->setValue(index);
 	PreferenceChoice* pref = m_parent->m_preferences[index];
-	m_parent->normalizeSelection(pref);
+	m_parent->normalizeSelection(pref, false);
 	close();
 }
 
@@ -189,7 +234,9 @@ void HOCRNormalize::normalizeSingle(HOCRDocument* hocrdocument, const HOCRItem* 
 	m_doc = hocrdocument;
 	m_dialog = new HOCRNormalizeDialog(this);
 	int currentChoice = ConfigSettings::get<VarSetting<int>>("normalizePreference")->getValue();
-	normalizeItem(item, m_preferences[currentChoice]);
+	// Don't substitute here... this is for add-word.
+	m_preferences[currentChoice]->m_substitutions = nullptr; 
+	normalizeItem(item, m_preferences[currentChoice], false);
 }
 
 void HOCRNormalize::currentDefault(QString& title, int& number) {
@@ -199,21 +246,37 @@ void HOCRNormalize::currentDefault(QString& title, int& number) {
 	number++; // one-based to user
 }
 
-void HOCRNormalize::normalizeSelection(PreferenceChoice *pref) {
-	bool success = Utils::busyTask([this, pref] {
+void HOCRNormalize::normalizeSelection(PreferenceChoice *pref, bool substituteOnly) {
+	if (pref->getApplySubst() || substituteOnly) {
+		pref->m_substitutions = pref->m_subManager->getSubstitutions();
+	} else {
+		pref->m_substitutions = nullptr;
+	}
+	bool success = Utils::busyTask([this, pref, substituteOnly] {
 		for (HOCRItem* item:*m_items) {
-			normalizeItem(item, pref);
+			normalizeItem(item, pref, substituteOnly);
 		}
 		return true;
 	}, _("Normalizing ..."));
 }
 
-void HOCRNormalize::normalizeItem(const HOCRItem* item, PreferenceChoice *pref) {
+void HOCRNormalize::normalizeItem(const HOCRItem* item, PreferenceChoice *pref, bool substituteOnly) {
 	QString itemClass = item->itemClass();
 	const QMap<QString,QString> attr = item->getAttributes();
 
 	QModelIndex index = m_doc->indexAtItem(item);
 	if(itemClass == "ocrx_word") {
+		if (pref->m_substitutions != nullptr) {
+			Qt::CaseSensitivity cs = Qt::CaseSensitive;
+			for(auto it = pref->m_substitutions->begin(), itEnd = pref->m_substitutions->end(); it != itEnd; ++it) {
+				QString search = it.key();
+				QString replace = it.value();
+				m_doc->setData(index, item->text().replace(search, replace, cs), Qt::EditRole);
+			}
+		}
+		if (substituteOnly) {
+			return;
+		}
 		if(pref->getNormalizeFont()) {
 			m_doc->editItemAttribute(index, "title:x_font", pref->getFont()->family(), itemClass);
 		}
@@ -247,6 +310,6 @@ void HOCRNormalize::normalizeItem(const HOCRItem* item, PreferenceChoice *pref) 
 	} 
 
 	for(int i = 0, n = item->children().size(); i < n; ++i) {
-		normalizeItem(item->children()[i], pref);
+		normalizeItem(item->children()[i], pref, substituteOnly);
 	}
 }

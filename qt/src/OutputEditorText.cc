@@ -153,6 +153,14 @@ OutputEditorText::~OutputEditorText() {
 	delete m_widget;
 }
 
+bool OutputEditorText::getModified() {
+	bool modified = false;
+	for(int i = 0, n = ui.tabWidget->count(); i < n; ++i) {
+		modified |= textEdit(i)->document()->isModified();
+	}
+	return modified;
+}
+
 int OutputEditorText::addTab(const QString& title) {
 	OutputTextEdit* textEdit = new OutputTextEdit;
 

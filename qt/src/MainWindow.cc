@@ -419,10 +419,20 @@ void MainWindow::closeEvent(QCloseEvent* ev) {
 	}
 }
 
+void MainWindow::onSourceModified() {
+	QList<Source*> sources = m_sourceManager->getSelectedSources();
+	QString flag;
+	if (MAIN->getOutputEditor() && MAIN->getOutputEditor()->getModified()) {
+		flag = "*";
+	}
+	setWindowTitle(QString("%1%2 - %3").arg(sources.size() == 1 ? sources.front()->displayname : _("Multiple sources (%1)").arg(sources.size())).arg(flag).arg(PACKAGE_NAME));
+}
+
 void MainWindow::onSourceChanged() {
 	QList<Source*> sources = m_sourceManager->getSelectedSources();
 	if(m_displayer->setSources(sources) && !sources.empty()) {
-		setWindowTitle(QString("%1 - %2").arg(sources.size() == 1 ? sources.front()->displayname : _("Multiple sources (%1)").arg(sources.size())).arg(PACKAGE_NAME));
+		onSourceModified();
+		//setWindowTitle(QString("%1 - %2").arg(sources.size() == 1 ? sources.front()->displayname : _("Multiple sources (%1)").arg(sources.size())).arg(PACKAGE_NAME));
 		if(m_stateStack.top().first == State::Idle) {
 			pushState(State::Normal, _("Ready"));
 		}

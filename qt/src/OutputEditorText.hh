@@ -57,6 +57,7 @@ public:
 	bool crashSave(const QString& filename) const override;
 	void navigateNextPrev(bool next, const QString& target = "") override;
 	void setModified();
+	bool getModified() override;
 
 public slots:
 	bool open(const QString& filename = QString());

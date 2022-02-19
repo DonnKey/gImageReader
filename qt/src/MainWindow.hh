@@ -189,6 +189,7 @@ private:
 private slots:
 	void checkVersion(const QString& newver);
 	void onSourceChanged();
+	void onSourceModified();
 	void showAbout();
 	void showConfig();
 	void openDownloadUrl();

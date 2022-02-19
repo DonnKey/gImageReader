@@ -84,6 +84,7 @@ public:
 	bool m_suspended = false;
 	void showPreview(showMode mode);
 	void setModified();
+	bool getModified();
 
 public slots:
  	bool open(const QString& filename) { return open(InsertMode::Replace, {filename}); }

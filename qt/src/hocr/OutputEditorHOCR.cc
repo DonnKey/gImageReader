@@ -339,6 +339,10 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 
+bool OutputEditorHOCR::getModified() {
+	return m_modified;
+}
+
 void OutputEditorHOCR::HOCRBatchProcessor::writeHeader(QIODevice* dev, tesseract::TessBaseAPI* tess, const PageInfo& pageInfo) const {
 	QString header = QString(
 	                     "<!DOCTYPE html>\n"
@@ -573,6 +577,7 @@ void OutputEditorHOCR::setInsertMode(QAction* action) {
 }
 
 void OutputEditorHOCR::setModified() {
+	emit MAIN->onSourceModified();
 	ui.actionOutputSaveHOCR->setEnabled(m_document->pageCount() > 0);
 	ui.toolButtonOutputExport->setEnabled(m_document->pageCount() > 0);
 	ui.toolBarNavigate->setEnabled(m_document->pageCount() > 0);

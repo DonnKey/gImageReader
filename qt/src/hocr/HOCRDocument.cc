@@ -138,7 +138,7 @@ bool HOCRDocument::editItemAttribute(const QModelIndex& index, const QString& na
 		return false;
 	}
 
-	item->setAttribute(name, value, attrItemClass);
+	setAttributes(name, value, attrItemClass, index);
 	if(name == "title:x_wconf") {
 		QModelIndex colIdx = index.sibling(index.row(), 1);
 		emit dataChanged(colIdx, colIdx, {Qt::DisplayRole});
@@ -146,7 +146,6 @@ bool HOCRDocument::editItemAttribute(const QModelIndex& index, const QString& na
 	if(name == "lang") {
 		resetMisspelled(index);
 	}
-	emit itemAttributeChanged(index, name, value);
 	if(name == "title:bbox") {
 		recomputeBBoxes(item->parent());
 	}
@@ -777,6 +776,19 @@ void HOCRDocument::takeItem(HOCRItem* item) {
 	}
 }
 
+void HOCRDocument::setAttributes(const QString& name, const QString& value, const QString& attrItemClass, const QModelIndex &index) {
+	HOCRItem* item = mutableItemAtIndex(index);
+	if(!attrItemClass.isEmpty() && item->itemClass() != attrItemClass) {
+        int rows = rowCount(index); 
+        for(int row=0; row<rows; row++) { 
+			setAttributes(name, value, attrItemClass, this->index(row, 0, index));
+		}
+		return;
+	}
+	item->setAttribute(name, value);
+	emit itemAttributeChanged(index, name, value);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 QMap<QString, QString> HOCRItem::s_langCache = QMap<QString, QString>();
@@ -979,13 +991,8 @@ void HOCRItem::getPropagatableAttributes(QMap<QString, QMap<QString, QSet<QStrin
 	}
 }
 
-void HOCRItem::setAttribute(const QString& name, const QString& value, const QString& attrItemClass) {
-	if(!attrItemClass.isEmpty() && itemClass() != attrItemClass) {
-		for(HOCRItem* child : m_childItems) {
-			child->setAttribute(name, value, attrItemClass);
-		}
-		return;
-	}
+
+void HOCRItem::setAttribute(const QString& name, const QString& value) {
 	QStringList parts = name.split(":");
 	if(name == "bold") {
 		m_bold = value == "1";

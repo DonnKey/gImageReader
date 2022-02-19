@@ -45,9 +45,11 @@ public:
 		setReadOnly(!m_wordItem->isEnabled());
 		setStyleSheet( getStyle( document->indexIsMisspelledWord(index), m_wordItem->isEnabled() ) );
 
-		QFont ft = font();
+		QFont ft = m_wordItem->fontFamily();
 		ft.setBold(m_wordItem->fontBold());
 		ft.setItalic(m_wordItem->fontItalic());
+		// Don't change the widget font size - be sure it remains readable 
+		ft.setPointSize(font().pointSize());
 		setFont(ft);
 		setObjectName(wordItem->text());
 	}
@@ -111,10 +113,12 @@ private:
 	void onAttributeChanged(const QModelIndex& index, const QString& name, const QString& /*value*/) {
 		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
 		if(document->itemAtIndex(index) == m_wordItem) {
-			if(name == "bold" || name == "italic") {
-				QFont ft = font();
+			if(name == "bold" || name == "italic" || name == "title:x_font" || name == "title:x_fsize") {
+				QFont ft = m_wordItem->fontFamily();
 				ft.setBold(m_wordItem->fontBold());
 				ft.setItalic(m_wordItem->fontItalic());
+				// Don't change the widget font size - be sure it remains readable 
+				ft.setPointSize(font().pointSize());
 				setFont(ft);
 			} else if(name == "title:bbox") {
 				QPoint sceneCorner = MAIN->getDisplayer()->getSceneBoundingRect().toRect().topLeft();
@@ -507,7 +511,7 @@ void HOCRProofReadWidget::repositionWidget() {
 		// First word
 		LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[0]);
 		QPoint bottomLeft = displayer->mapFromScene(lineEdit->item()->bbox().translated(sceneCorner).bottomLeft());
-		frameXmin = std::min(frameXmin, bottomLeft.x());
+		frameXmin = std::min(frameXmin, bottomLeft.x()-4); // 4:padding
 	}
 	QPoint bottomLeft = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomLeft());
 	QPoint topLeft = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).topLeft());
@@ -515,7 +519,6 @@ void HOCRProofReadWidget::repositionWidget() {
 
 	// Recompute font sizes so that text matches original as closely as possible
 	QFont ft = font();
-	QFontMetrics fm(ft);
 	double avgFactor = 0.0;
 	int nFactors = 0;
 	// First pass: min scaling factor, move to correct location
@@ -525,11 +528,16 @@ void HOCRProofReadWidget::repositionWidget() {
 			QRect sceneBBox = lineEdit->item()->bbox().translated(sceneCorner);
 			QPoint bottomLeft = displayer->mapFromScene(sceneBBox.bottomLeft());
 			QPoint bottomRight = displayer->mapFromScene(sceneBBox.bottomRight());
-			// Factor weighed by length
+			// Factor weighted by length
+			QFont actualFont = lineEdit->item()->fontFamily();
+			//QFont actualFont = lineEdit->font();
+			//actualFont.setPointSizeF(ft.pointSizeF());
+			QFontMetrics fm(actualFont);
 			double factor = (bottomRight.x() - bottomLeft.x()) / double(fm.horizontalAdvance(lineEdit->text()));
 			avgFactor += lineEdit->text().length() * factor;
 			nFactors += lineEdit->text().length();
-			lineEdit->move(bottomLeft.x() - frameXmin, 0);
+
+			lineEdit->move(bottomLeft.x() - frameXmin - 4, 0); // 4: allow for cursor at left
 			lineEdit->setFixedWidth(bottomRight.x() - bottomLeft.x() + 8); // 8: border + padding
 			frameXmax = std::max(frameXmax, bottomRight.x() + 8);
 		}
@@ -538,12 +546,13 @@ void HOCRProofReadWidget::repositionWidget() {
 
 	// Second pass: apply font sizes, set line heights
 	ft.setPointSizeF(ft.pointSizeF() * avgFactor);
-	fm = QFontMetrics(ft);
+	ft.setPointSizeF(ft.pointSizeF() + m_fontSizeDiff);
+	QFontMetrics fm = QFontMetrics(ft);
 	for(QWidget* lineWidget : m_currentLines) {
 		for(int i = 0, n = lineWidget->children().count(); i < n; ++i) {
 			LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[i]);
 			QFont lineEditFont = lineEdit->font();
-			lineEditFont.setPointSizeF(ft.pointSizeF() + m_fontSizeDiff);
+			lineEditFont.setPointSizeF(ft.pointSizeF());
 			lineEdit->setFont(lineEditFont);
 			lineEdit->setFixedHeight(fm.height() + 5);
 		}

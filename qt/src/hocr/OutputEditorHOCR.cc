@@ -422,8 +422,10 @@ void OutputEditorHOCR::setModified() {
 	ui.actionOutputSaveHOCR->setEnabled(m_document->pageCount() > 0);
 	ui.toolButtonOutputExport->setEnabled(m_document->pageCount() > 0);
 	ui.toolBarNavigate->setEnabled(m_document->pageCount() > 0);
-	m_preview->setVisible(false);
-	m_previewTimer.start(100); // Use a timer because setModified is potentially called a large number of times when the HOCR tree changes
+    if(!m_previewTimer.isActive()) { 
+		m_previewTimer.start(100); // Use a timer because setModified is potentially called a large number of times when the HOCR tree changes
+		// but don't let auto-repeat keys block all updates.
+	}
 	m_modified = true;
 }
 

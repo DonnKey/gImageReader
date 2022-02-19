@@ -96,6 +96,7 @@ public:
 		return index.isValid() ? static_cast<HOCRItem*>(index.internalPointer()) : nullptr;
 	}
 	bool toggleEnabledCheckbox(const QModelIndex& index);
+	void setAttributes(const QString& name, const QString& value, const QString& attrItemClass, const QModelIndex &index);
 
 signals:
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);
@@ -229,7 +230,7 @@ protected:
 	int isMisspelled() const {
 		return m_misspelled;
 	}
-	void setAttribute(const QString& name, const QString& value, const QString& attrItemClass = QString());
+	void setAttribute(const QString& name, const QString& value);
 	bool parseChildren(const QDomElement& element, QString language, const QString& defaultLanguage);
 };
 

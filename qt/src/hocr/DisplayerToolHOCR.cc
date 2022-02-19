@@ -23,6 +23,7 @@
 
 #include <QGraphicsRectItem>
 #include <QMouseEvent>
+#include <QKeyEvent>
 
 
 DisplayerToolHOCR::DisplayerToolHOCR(Displayer* displayer, QObject* parent)
@@ -32,6 +33,10 @@ DisplayerToolHOCR::DisplayerToolHOCR(Displayer* displayer, QObject* parent)
 }
 
 DisplayerToolHOCR::~DisplayerToolHOCR() {
+	if (m_helpBox != nullptr) {
+		m_helpBox->close();
+	}
+	m_helpBox = nullptr;
 	clearSelection();
 }
 
@@ -51,6 +56,11 @@ void DisplayerToolHOCR::mousePressEvent(QMouseEvent* event) {
 }
 
 void DisplayerToolHOCR::mouseMoveEvent(QMouseEvent* event) {
+	if (m_helpBox != nullptr && m_mouseMoves++ > 1) {
+		m_helpBox->close();
+		m_helpBox = nullptr;
+		m_displayer->repaint();
+	}
 	if(m_selection && m_currentAction >= ACTION_DRAW_GRAPHIC_RECT && m_currentAction <= ACTION_DRAW_WORD_RECT) {
 		QPointF p = m_displayer->mapToSceneClamped(event->pos());
 		m_selection->setPoint(p);
@@ -80,6 +90,26 @@ void DisplayerToolHOCR::mouseReleaseEvent(QMouseEvent* event) {
 	setAction(ACTION_NONE, false);
 }
 
+void DisplayerToolHOCR::keyPressEvent(QKeyEvent* event) {
+	if(m_currentAction >= ACTION_DRAW_GRAPHIC_RECT && m_currentAction <= ACTION_DRAW_WORD_RECT) {
+		// Any key resets draw mode, but ignored otherwise
+		if (m_helpBox != nullptr) {
+			m_helpBox->close();
+			m_helpBox = nullptr;
+			m_displayer->repaint();
+		}
+		setAction(ACTION_NONE);
+		event->accept();
+		return;
+	}
+}
+
+static QString hintText = QString(_(
+						"<table>"
+						"<tr><td>Cross Cursor&nbsp;&nbsp;&nbsp;</td><td>Draw New Region</td></tr>"
+						"</table>"
+					));
+
 void DisplayerToolHOCR::setAction(Action action, bool clearSel) {
 	if(action != m_currentAction) {
 		emit actionChanged(action);
@@ -90,6 +120,22 @@ void DisplayerToolHOCR::setAction(Action action, bool clearSel) {
 	m_currentAction = action;
 	if(m_currentAction >= ACTION_DRAW_GRAPHIC_RECT && m_currentAction <= ACTION_DRAW_WORD_RECT) {
 		m_displayer->setCursor(Qt::CrossCursor);
+		m_displayer->setFocus();
+
+		m_helpBox = new QLabel(m_displayer);
+		m_helpBox->setAttribute(Qt::WA_DeleteOnClose, true);
+		m_helpBox->setText(hintText);
+		m_helpBox->setStyleSheet("background-color: yellow; border: 1px solid black;");
+		m_helpBox->show(); // render to get final size
+
+		m_mouseMoves = 0;
+		QRect hbGeom = m_helpBox->geometry();
+		QPoint offset = m_displayer->mapToParent(QPoint(hbGeom.width(),0));
+		QPoint topRight = m_displayer->geometry().topRight();
+		m_helpBox->move(topRight-offset);
+		hbGeom = m_helpBox->geometry();
+		m_displayer->cursor().setPos(m_displayer->mapToGlobal(QPoint(hbGeom.bottomLeft().x()-2,hbGeom.bottomLeft().y()+2)));
+		m_helpBox->repaint();
 	} else {
 		m_displayer->setCursor(Qt::ArrowCursor);
 	}

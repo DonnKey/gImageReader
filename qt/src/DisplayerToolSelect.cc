@@ -42,6 +42,10 @@ DisplayerToolSelect::DisplayerToolSelect(Displayer* displayer, QObject* parent)
 }
 
 DisplayerToolSelect::~DisplayerToolSelect() {
+	if (m_helpBox != nullptr) {
+		m_helpBox->close();
+	}
+	m_helpBox = nullptr;
 	clearSelections();
 }
 
@@ -60,6 +64,10 @@ void DisplayerToolSelect::mousePressEvent(QMouseEvent* event) {
 }
 
 void DisplayerToolSelect::mouseMoveEvent(QMouseEvent* event) {
+	if (m_helpBox != nullptr) {
+		m_helpBox->close();
+		m_helpBox = nullptr;
+	}
 	if(m_curSel) {
 		QPointF p = m_displayer->mapToSceneClamped(event->pos());
 		m_curSel->setPoint(p);
@@ -144,6 +152,19 @@ void DisplayerToolSelect::updateRecognitionModeLabel() {
 	MAIN->getRecognizer()->setRecognizeMode(m_selections.isEmpty() ? _("Recognize all") : _("Recognize selection"));
 }
 
+static QString hintText = QString(_(
+						"<table>"
+						"<tr><td>L-Mouse Drag</td><td>Pan (when zoomed) or drag region handle</td></tr>"
+						"<tr><td>L-Mouse Drag+Shift  </td><td>Create new region</td></tr>"
+						"<tr><td>L-Mouse Click+Ctrl</td><td>Clear all regions</td></tr>"
+						"<tr><td>M-Mouse Drag</td><td>Pan (unconditionally)</td></tr>"
+						"<tr><td>R-Mouse Click</td><td>Open context menu on region</td></tr>"
+						"<tr><td>Wheel</td><td>Pan Up/Down</td></tr>"
+						"<tr><td>Wheel+Shift</td><td>Pan Left/Right</td></tr>"
+						"<tr><td>Wheel+Ctrl</td><td>Zoom (around position)</td></tr>"
+						"</table>"
+					));
+
 void DisplayerToolSelect::autodetectLayout(bool noDeskew) {
 	clearSelections();
 
@@ -208,6 +229,12 @@ void DisplayerToolSelect::autodetectLayout(bool noDeskew) {
 			m_displayer->scene()->addItem(m_selections.back());
 		}
 		updateRecognitionModeLabel();
+
+		m_helpBox = new QLabel(getDisplayer());
+		m_helpBox->setAttribute(Qt::WA_DeleteOnClose, true);
+		m_helpBox->setText(hintText);
+		m_helpBox->setStyleSheet("background-color: yellow; border: 1px solid black;");
+		m_helpBox->show();
 	}
 }
 

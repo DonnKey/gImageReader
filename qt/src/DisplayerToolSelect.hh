@@ -24,6 +24,7 @@
 #include <QGraphicsSceneContextMenuEvent>
 #include <QSpinBox>
 #include <QWidgetAction>
+#include <QLabel>
 #include "Displayer.hh"
 
 class NumberedDisplayerSelection;
@@ -57,6 +58,7 @@ private:
 	friend class NumberedDisplayerSelection;
 	NumberedDisplayerSelection* m_curSel = nullptr;
 	QList<NumberedDisplayerSelection*> m_selections;
+	QLabel *m_helpBox = nullptr;
 
 	void clearSelections();
 	void removeSelection(int num);

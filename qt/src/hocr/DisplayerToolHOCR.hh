@@ -20,6 +20,8 @@
 #ifndef DISPLAYERTOOLHOCR_HH
 #define DISPLAYERTOOLHOCR_HH
 
+#include <QLabel>
+#include <QKeyEvent>
 #include "Displayer.hh"
 
 class DisplayerToolHOCR : public DisplayerTool {
@@ -48,6 +50,7 @@ public:
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
 	void mouseReleaseEvent(QMouseEvent* event) override;
+	void keyPressEvent(QKeyEvent* event) override;
 
 	void setAction(Action action, bool clearSel = true);
 	void setSelection(const QRect& rect, const QRect& minRect);
@@ -65,6 +68,8 @@ private:
 	DisplayerSelection* m_selection = nullptr;
 	Action m_currentAction = ACTION_NONE;
 	bool m_pressed = false;
+	QLabel *m_helpBox = nullptr;
+	int m_mouseMoves = 0;
 
 private slots:
 	void selectionChanged(QRectF rect);

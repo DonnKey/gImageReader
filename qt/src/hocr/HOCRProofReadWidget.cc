@@ -228,52 +228,122 @@ private:
 			QRect pos = static_cast<TreeViewHOCR*>(widget->documentTree())->visualRect(index);
 			emit static_cast<TreeViewHOCR*>(widget->documentTree())->customContextMenuRequested(pos.center());
 		} else if((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && ev->modifiers() & Qt::ControlModifier) {
-			// Adjust bbox top/bottom
-			QModelIndex index = m_document->indexAtItem(m_wordItem);
-			QRect bbox = m_wordItem->bbox();
-			if(ev->modifiers() & Qt::ShiftModifier) {
-				bbox.setBottom(bbox.bottom() + (ev->key() == Qt::Key_Up ? -1 : 1));
+			OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
+			if (m_wordItem->itemClass() == "ocr_page" && editor->ui.outputDialogUi.checkBox_Grid->isChecked()) {
+				// Adjust grid top/bottom
+				QModelIndex index = m_document->indexAtItem(m_wordItem);
+				HOCRPage* page = static_cast<HOCRPage*>(m_document->mutableItemAtIndex(index));
+				QRectF grid = page->grid();
+				if (!grid.isValid()) {
+					grid = editor->defaultGrid(page);
+				}
+				if(ev->key() == Qt::Key_Up) {
+					editor->ui.outputDialogUi.doubleSpinBox_Spacing->stepDown();
+				} else {
+					editor->ui.outputDialogUi.doubleSpinBox_Spacing->stepUp();
+				}
+				grid.setHeight(editor->ui.outputDialogUi.doubleSpinBox_Spacing->value());
+				page->setGrid(grid);
+				editor->updateGrid();
+				page->commitGrid();
 			} else {
-				bbox.setTop(bbox.top() + (ev->key() == Qt::Key_Up ? -1 : 1));
+				// Adjust bbox top/bottom
+				QModelIndex index = m_document->indexAtItem(m_wordItem);
+				QRect bbox = m_wordItem->bbox();
+				if(ev->modifiers() & Qt::ShiftModifier) {
+					bbox.setBottom(bbox.bottom() + (ev->key() == Qt::Key_Up ? -1 : 1));
+				} else {
+					bbox.setTop(bbox.top() + (ev->key() == Qt::Key_Up ? -1 : 1));
+				}
+				QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+				m_document->editItemAttribute(index, "title:bbox", bboxstr);
 			}
-			QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
-			m_document->editItemAttribute(index, "title:bbox", bboxstr);
 		} else if((ev->key() == Qt::Key_Left || ev->key() == Qt::Key_Right) && ev->modifiers() & Qt::ControlModifier) {
-			// Adjust bbox left/right
-			QModelIndex index = m_document->indexAtItem(m_wordItem);
-			QRect bbox = m_wordItem->bbox();
-			if(ev->modifiers() & Qt::ShiftModifier) {
-				bbox.setRight(bbox.right() + (ev->key() == Qt::Key_Left ? -1 : 1));
+			OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
+			if (m_wordItem->itemClass() == "ocr_page" && editor->ui.outputDialogUi.checkBox_Grid->isChecked()) {
+				// Adjust grid left/right
+				QModelIndex index = m_document->indexAtItem(m_wordItem);
+				HOCRPage* page = static_cast<HOCRPage*>(m_document->mutableItemAtIndex(index));
+				QRectF grid = page->grid();
+				if (!grid.isValid()) {
+					grid = editor->defaultGrid(page);
+				}
+				if(ev->key() == Qt::Key_Right) {
+					editor->ui.outputDialogUi.doubleSpinBox_Pitch->stepUp();
+				} else {
+					editor->ui.outputDialogUi.doubleSpinBox_Pitch->stepDown();
+				}
+				grid.setWidth(editor->ui.outputDialogUi.doubleSpinBox_Pitch->value());
+				page->setGrid(grid);
+				editor->updateGrid();
+				page->commitGrid();
 			} else {
-				bbox.setLeft(bbox.left() + (ev->key() == Qt::Key_Left ? -1 : 1));
+				// Adjust bbox left/right
+				QModelIndex index = m_document->indexAtItem(m_wordItem);
+				QRect bbox = m_wordItem->bbox();
+				if(ev->modifiers() & Qt::ShiftModifier) {
+					bbox.setRight(bbox.right() + (ev->key() == Qt::Key_Left ? -1 : 1));
+				} else {
+					bbox.setLeft(bbox.left() + (ev->key() == Qt::Key_Left ? -1 : 1));
+				}
+				QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+				m_document->editItemAttribute(index, "title:bbox", bboxstr);
 			}
-			QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
-			m_document->editItemAttribute(index, "title:bbox", bboxstr);
 		} else if((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down || ev->key() == Qt::Key_Left || ev->key() == Qt::Key_Right) && ev->modifiers() & Qt::AltModifier) {
-			// Move bbox 
-			QModelIndex index;
-			if ((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && m_wordItem->itemClass() == "ocrx_word") {
-				HOCRItem* parent = m_wordItem->parent();
-				index = m_document->indexAtItem(parent);
-				widget->documentTree()->setCurrentIndex(index);
+			OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
+			if (m_wordItem->itemClass() == "ocr_page" && editor->ui.outputDialogUi.checkBox_Grid->isChecked()) {
+				// Move grid
+				QModelIndex index = m_document->indexAtItem(m_wordItem);
+				HOCRPage* page = static_cast<HOCRPage*>(m_document->mutableItemAtIndex(index));
+				QRectF grid = page->grid();
+				if (!grid.isValid()) {
+					grid = editor->defaultGrid(page);
+				}
+				switch(ev->key()) {
+				case Qt::Key_Up:
+					grid.translate(0,-1);
+					break;
+				case Qt::Key_Down:
+					grid.translate(0,1);
+					break;
+				case Qt::Key_Left: {
+					grid.translate(-1,0);
+					break;
+				}
+				case Qt::Key_Right: {
+					grid.translate(1,0);
+					break;
+				}
+				}
+				page->setGrid(grid);
+				editor->updateGrid();
+				page->commitGrid();
 			} else {
-				index = m_document->indexAtItem(m_wordItem);
-			}
+				// Move bbox 
+				QModelIndex index;
+				if ((ev->key() == Qt::Key_Up || ev->key() == Qt::Key_Down) && m_wordItem->itemClass() == "ocrx_word") {
+					HOCRItem* parent = m_wordItem->parent();
+					index = m_document->indexAtItem(parent);
+					widget->documentTree()->setCurrentIndex(index);
+				} else {
+					index = m_document->indexAtItem(m_wordItem);
+				}
 
-			switch(ev->key()) {
-			case Qt::Key_Up:
-				m_document->xlateItem(index, -1, 0);
-				break;
-			case Qt::Key_Down:
-				m_document->xlateItem(index, +1, 0);
-				break;
-			case Qt::Key_Left: 
-				m_document->xlateItem(index, 0, -1);
-				break;
-			case Qt::Key_Right:
-				m_document->xlateItem(index, 0, +1);
-				break;
-			}
+				switch(ev->key()) {
+				case Qt::Key_Up:
+					m_document->xlateItem(index, -1, 0);
+					break;
+				case Qt::Key_Down:
+					m_document->xlateItem(index, +1, 0);
+					break;
+				case Qt::Key_Left: 
+					m_document->xlateItem(index, 0, -1);
+					break;
+				case Qt::Key_Right:
+					m_document->xlateItem(index, 0, +1);
+					break;
+				}
+			} 
 		} else if(ev->key() == Qt::Key_W && ev->modifiers() == Qt::ControlModifier) {
 			// Add word
 			QPoint p = QCursor::pos();

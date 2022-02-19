@@ -330,6 +330,20 @@ Baseline</string>
 to Font</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="adjustToGrid_0">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>60</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Adjust
+to &amp;Grid</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QDialogButtonBox" name="buttonBoxCancel">
    <property name="geometry">
@@ -856,6 +870,20 @@ Baseline</string>
 to Font</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="adjustToGrid_1">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>60</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Adjust
+to &amp;Grid</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_2">
    <property name="geometry">
@@ -1170,12 +1198,26 @@ Baseline</string>
 to Font</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="adjustToGrid_2">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>60</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Adjust
+to &amp;Grid</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_3">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>560</y>
+     <y>550</y>
      <width>501</width>
      <height>131</height>
     </rect>
@@ -1484,6 +1526,20 @@ Baseline</string>
 to Font</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="adjustToGrid_3">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>60</y>
+      <width>85</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Adjust
+to &amp;Grid</string>
+    </property>
+   </widget>
   </widget>
  </widget>
  <tabstops>
@@ -1498,6 +1554,7 @@ to Font</string>
   <tabstop>normalizeBBox_0</tabstop>
   <tabstop>applyDespeckle_0</tabstop>
   <tabstop>trimHeight_0</tabstop>
+  <tabstop>adjustToGrid_0</tabstop>
   <tabstop>applySubst_0</tabstop>
   <tabstop>openSubst_0</tabstop>
   <tabstop>applyFlatten_0</tabstop>
@@ -1517,6 +1574,7 @@ to Font</string>
   <tabstop>normalizeBBox_1</tabstop>
   <tabstop>applyDespeckle_1</tabstop>
   <tabstop>trimHeight_1</tabstop>
+  <tabstop>adjustToGrid_1</tabstop>
   <tabstop>applySubst_1</tabstop>
   <tabstop>openSubst_1</tabstop>
   <tabstop>applyFlatten_1</tabstop>
@@ -1536,6 +1594,7 @@ to Font</string>
   <tabstop>normalizeBBox_2</tabstop>
   <tabstop>applyDespeckle_2</tabstop>
   <tabstop>trimHeight_2</tabstop>
+  <tabstop>adjustToGrid_2</tabstop>
   <tabstop>applySubst_2</tabstop>
   <tabstop>openSubst_2</tabstop>
   <tabstop>applyFlatten_2</tabstop>
@@ -1555,6 +1614,7 @@ to Font</string>
   <tabstop>normalizeBBox_3</tabstop>
   <tabstop>applyDespeckle_3</tabstop>
   <tabstop>trimHeight_3</tabstop>
+  <tabstop>adjustToGrid_3</tabstop>
   <tabstop>applySubst_3</tabstop>
   <tabstop>openSubst_3</tabstop>
   <tabstop>applyFlatten_3</tabstop>

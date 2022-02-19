@@ -1131,10 +1131,14 @@ void HOCRDocument::recomputeBBoxes(HOCRItem* item) {
 		for(const HOCRItem* child : item->children()) {
 			bbox = bbox.united(child->bbox());
 		}
+		if (bbox == item->bbox()) {
+			return;
+		}
 		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
 		item->setAttribute("title:bbox", bboxstr);
 		item = item->parent();
 	}
+	emit pageBboxChanged();
 }
 
 Qt::ItemFlags HOCRDocument::flags(const QModelIndex& index) const {
@@ -1746,6 +1750,14 @@ HOCRPage::HOCRPage(const QDomElement& element, int pageId, const QString& defaul
 		m_mode = static_cast<tesseract::PageSegMode>(m_titleAttrs["x_tesspsm"].toInt());
 	} else {
 		m_mode = tesseract::PSM_COUNT;
+	}
+	m_grid = QRectF();
+	if(m_titleAttrs.find("x_grid") != m_titleAttrs.end()) {
+		QRegularExpressionMatch reMatch;
+		m_titleAttrs["x_grid"].contains(QRegularExpression("\\(([\\d.]+),([\\d.]+)\\s+([\\d.]+)x([\\d.]+)\\)"), &reMatch);
+		if(reMatch.hasMatch()) {
+			m_grid.setRect(reMatch.captured(1).toDouble(), reMatch.captured(2).toDouble(), reMatch.captured(3).toDouble(), reMatch.captured(4).toDouble());
+		}
 	}
 
 	QDomElement childElement = element.firstChildElement("div");

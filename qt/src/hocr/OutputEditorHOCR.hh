@@ -85,6 +85,7 @@ public:
 	void showPreview(showMode mode);
 	void setModified();
 	bool getModified();
+	void applyGrid(QList<HOCRItem*>items);
 
 public slots:
  	bool open(const QString& filename) { return open(InsertMode::Replace, {filename}); }
@@ -102,6 +103,7 @@ public slots:
 protected:
 	friend class HOCRProofReadWidget;
 	QGraphicsPixmapItem* m_preview = nullptr;
+	QGraphicsPixmapItem* m_grid = nullptr;
 
 private:
 	class HTMLHighlighter;
@@ -120,6 +122,7 @@ private:
 	HOCRProofReadWidget* m_proofReadWidget = nullptr;
 	int m_pageDpi;
 	QTimer m_previewTimer;
+	QTimer m_gridTimer;
 	UI_OutputEditorHOCR ui;
 	HTMLHighlighter* m_highlighter;
 	bool m_modified = false;
@@ -159,6 +162,7 @@ private:
 	void bulkOperation(QModelIndex& index, const std::function<void()>& op);
 	bool isFullyExpanded(const QModelIndex& index) const;
 	void doPreferences(FocusableMenu *keyParent);
+	QRectF defaultGrid(HOCRPage* page);
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);
@@ -195,6 +199,8 @@ private slots:
 	void sourceChanged();
 	void previewToggled();
 	void updatePreview();
+	void updateGrid();
+	void gridToggled();
 	void reFocusTree();
 };
 

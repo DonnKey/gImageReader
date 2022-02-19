@@ -113,6 +113,7 @@ public:
 
 signals:
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);
+	void pageBboxChanged();
 
 protected:
 	friend class HOCRNormalize;
@@ -318,6 +319,15 @@ public:
 	int pageId() const {
 		return m_pageId;
 	}
+	QRectF grid() const {
+		return m_grid;
+	}
+	void setGrid(QRectF grid) {
+		m_grid = grid;
+	}
+	void commitGrid() {
+		setAttribute("title:x_grid", QString("(%1,%2 %3x%4)").arg(m_grid.x()).arg(m_grid.y()).arg(m_grid.width()).arg(m_grid.height()));
+	}
 	tesseract::PageSegMode mode() const {
 		return m_mode;
 	}
@@ -334,6 +344,7 @@ private:
 	double m_angle;
 	int m_resolution;
 	tesseract::PageSegMode m_mode;
+	QRectF m_grid = QRectF();
 
 	void convertSourcePath(const QString& basepath, bool absolute);
 };

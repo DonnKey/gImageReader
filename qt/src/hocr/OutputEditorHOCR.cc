@@ -401,6 +401,12 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	MAIN->getDisplayer()->scene()->addItem(m_preview);
 	m_previewTimer.setSingleShot(true);
 
+	m_grid = new QGraphicsPixmapItem();
+	m_grid->setTransformationMode(Qt::SmoothTransformation);
+	m_grid->setZValue(4);
+	MAIN->getDisplayer()->scene()->addItem(m_grid);
+	m_gridTimer.setSingleShot(true);
+
 	m_selectedItems = new QGraphicsPixmapItem();
 	m_selectedItems->setTransformationMode(Qt::SmoothTransformation);
 	m_selectedItems->setZValue(2);
@@ -529,6 +535,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	connect(m_document, &HOCRDocument::itemAttributeChanged, this, &OutputEditorHOCR::setModified);
 	connect(m_document, &HOCRDocument::itemAttributeChanged, this, &OutputEditorHOCR::updateSourceText);
 	connect(m_document, &HOCRDocument::itemAttributeChanged, this, &OutputEditorHOCR::itemAttributeChanged);
+	connect(m_document, &HOCRDocument::pageBboxChanged, this, [this] { MAIN->getDisplayer()->queueZoom();} );
 	connect(ui.comboBoxNavigate, qOverload<int>(&QComboBox::currentIndexChanged), this, &OutputEditorHOCR::navigateTargetChanged);
 	connect(ui.actionNavigateNext, &QAction::triggered, this, &OutputEditorHOCR::navigateNext);
 	connect(ui.actionNavigatePrev, &QAction::triggered, this, &OutputEditorHOCR::navigatePrev);
@@ -540,14 +547,21 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	connect(ui.outputDialogUi.checkBox_NonAscii, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.outputDialogUi.checkBox_WConf, &QCheckBox::toggled, this, &OutputEditorHOCR::toggleWConfColumn);
 	connect(ui.outputDialogUi.doubleSpinBox_Stretch, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OutputEditorHOCR::previewToggled);
+	connect(ui.outputDialogUi.checkBox_Grid, &QCheckBox::toggled, this, &OutputEditorHOCR::gridToggled);
+	connect(ui.outputDialogUi.doubleSpinBox_Spacing, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OutputEditorHOCR::gridToggled);
+	connect(ui.outputDialogUi.doubleSpinBox_Pitch, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OutputEditorHOCR::gridToggled);
+	connect(&m_gridTimer, &QTimer::timeout, this, &OutputEditorHOCR::updateGrid);
 	connect(ui.menuOutputFind, &QAction::triggered, this, [this]  { doReplace(true); });
 
 	ADD_SETTING(SwitchSetting("replacescans", ui.outputDialogUi.checkBox_ReplaceScan, false));
 	ADD_SETTING(SwitchSetting("displayconfidence", ui.outputDialogUi.checkBox_WConf, false));
 	ADD_SETTING(SwitchSetting("displaypreview", ui.outputDialogUi.checkBox_Preview, false));
+	ADD_SETTING(SwitchSetting("displaygrid", ui.outputDialogUi.checkBox_Grid, false));
 	ADD_SETTING(SwitchSetting("displayoverheight", ui.outputDialogUi.checkBox_Overheight, true));
 	ADD_SETTING(SwitchSetting("displaynonascii", ui.outputDialogUi.checkBox_NonAscii, true));
 	ADD_SETTING(DoubleSpinSetting("previewfontstretch", ui.outputDialogUi.doubleSpinBox_Stretch, 100.0));
+	ADD_SETTING(DoubleSpinSetting("gridpitch", ui.outputDialogUi.doubleSpinBox_Pitch, 30.0));
+	ADD_SETTING(DoubleSpinSetting("gridspacing", ui.outputDialogUi.doubleSpinBox_Spacing, 50.0));
 	ADD_SETTING(SpinSetting("specklesize", ui.outputDialogUi.spinBox_speckleSize, 1));
 
 	setFont();
@@ -558,6 +572,8 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 
 OutputEditorHOCR::~OutputEditorHOCR() {
 	m_previewTimer.stop();
+	m_gridTimer.stop();
+	delete m_grid;
 	delete m_preview;
 	delete m_proofReadWidget;
 	delete m_widget;
@@ -590,6 +606,7 @@ void OutputEditorHOCR::setModified() {
 		m_previewTimer.start(100); // Use a timer because setModified is potentially called a large number of times when the HOCR tree changes
 		// but don't let auto-repeat keys block all updates.
 	}
+	m_gridTimer.start(100); // Use a timer because setModified is potentially called a large number of times when the HOCR tree changes
 	m_modified = true;
 }
 
@@ -1322,6 +1339,93 @@ void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
 	showTreeWidgetContextMenu_inner(m_contextMenuLocation);
 }
 
+void OutputEditorHOCR::applyGrid(QList<HOCRItem*>items) {
+	const double scale = 100.;
+	HOCRPage *page;
+	QRectF grid;
+
+	std::function<void (HOCRItem*)> sweep = [&] (HOCRItem* item) {
+		if (item->itemClass() == "ocrx_word") {
+			// Align center of word to center of closest (to that center) grid cell.
+			QFont font;
+			if(!item->fontFamily().isEmpty()) {
+				font.setFamily(item->fontFamily());
+			}
+			font.setBold(item->fontBold());
+			font.setItalic(item->fontItalic());
+			font.setPointSizeF(item->fontSize());
+			QFontMetricsF fm(font);
+
+			QRect bbox = item->bbox();
+			QPointF firstCharCenter(bbox.x() + (fm.horizontalAdvance(' ')*(page->resolution()/scale))/2., 
+				bbox.y() + (bbox.height()/2.));
+
+			int cellXPos = (firstCharCenter.x()-grid.x())/grid.width();
+			int cellYPos = (firstCharCenter.y()-grid.y())/grid.height();
+			QRectF cell(cellXPos*grid.width()+grid.x(), cellYPos*grid.height()+grid.y(), grid.width(), grid.height());
+
+			QPointF offset = cell.center() - firstCharCenter; 
+			bbox.translate(qRound(offset.x()), qRound(offset.y()));
+
+			QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+			m_document->editItemAttribute(m_document->indexAtItem(item), "title:bbox", bboxstr);
+		} else {
+			// iterate this way since there might be insertions (below i)
+            for(int i=0; i<item->children().size(); i++) {
+				HOCRItem* child = item->children().at(i);
+				sweep(child);
+			}
+		}
+
+		if (item->itemClass() == "ocr_line") {
+			int bl = item->baseLine().second;
+			for(HOCRItem* child : item->children()) {
+				QRect bbox = child->bbox();
+				QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+				bbox.translate(0, bl);
+				m_document->editItemAttribute(m_document->indexAtItem(child), "title:bbox", bboxstr);
+			}
+			QString baselineStr = QString("%1 %2").arg(0.0,0,'f',3).arg(0);
+			m_document->editItemAttribute(m_document->indexAtItem(item),"title:baseline", baselineStr);
+
+			// Split lines by grid cell row.
+			bool changed;
+			do {
+				changed = false;
+				HOCRItem* firstChild = item->children().first();
+				int homeGridRow = (firstChild->bbox().center().y()-grid.y())/grid.height();
+				QModelIndex newIndex = QModelIndex();
+
+				for(QVector<HOCRItem*>::const_reverse_iterator i = item->children().rbegin(); i != item->children().rend(); i++) {
+					HOCRItem* child = *(i);
+					int newGridRow = (child->bbox().center().y()-grid.y())/grid.height();
+					if (newGridRow != homeGridRow) {
+						QModelIndex childIdx = m_document->indexAtItem(child);
+						if (newIndex.isValid()) {
+							m_document->moveItem(childIdx, newIndex, 0);
+						} else {
+							newIndex = m_document->splitItem(childIdx.parent(), childIdx.row(), childIdx.row());
+						}
+					}
+				}
+			} while (changed);
+		} else if (item->itemClass() == "ocr_par") {
+			m_document->sortOnY(m_document->indexAtItem(item));
+		}
+	};
+
+	for (HOCRItem* item : items) {
+		page = item->page();
+		grid = page->grid();
+		if (!grid.isValid()) {
+			grid = defaultGrid(page);
+		}
+		page->setGrid(grid);
+		page->commitGrid();
+		sweep(item);
+	}
+}
+
 void OutputEditorHOCR::bulkOperation(/*inout*/ QModelIndex &index, const std::function <void ()>& op) {
 	const HOCRItem* oldItem = m_document->itemAtIndex(index);
 	const HOCRPage* pageItem = oldItem->page();
@@ -1377,6 +1481,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		QAction* actionSplit = nullptr;
 		QAction* actionSwap = nullptr;
 		QAction* actionNormalize = nullptr;
+		QAction* actionApplyGrid = nullptr;
 		QAction* actionRemove = nullptr;
 		if(sameClass) { // Removal allowed
 			actionRemove = menu.addAction(_("&Remove all selected"));
@@ -1393,6 +1498,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		}
 		if (!graphics) {
 			actionNormalize = menu.addAction(_("&Normalize all selected"));
+			actionApplyGrid = menu.addAction(_("Adjust all selected to &Grid"));
 		} 
 
 		QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
@@ -1417,6 +1523,15 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			bulkOperation(newIndex, [this, &items]() {
 				HOCRNormalize().normalizeTree(m_document, &items, m_keyParent);
 			});
+		} else if(clickedAction == actionApplyGrid) {
+			QList<HOCRItem*> items;
+			for (auto i:indices) {
+				items.append(m_document->mutableItemAtIndex(i));
+			}
+			newIndex = indices.last();
+			bulkOperation(newIndex, [this, &items]() {
+				applyGrid(items);
+			});
 		} else if(clickedAction == actionRemove) {
 			std::sort(indices.begin(), indices.end(), std::less<QModelIndex>());
 			for(QModelIndexList::const_reverse_iterator i = indices.rbegin(); i != indices.rend(); i++) {
@@ -1435,6 +1550,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		// Nothing else is allowed with multiple items selected
 		m_proofReadWidget->updateWidget(true);
 		showPreview(OutputEditorHOCR::showMode::resume);
+		updateGrid();
 		return;
 	}
 
@@ -1470,6 +1586,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QAction* actionFitGuideWord = nullptr;
 	QAction* actionLevelBaseline = nullptr;
 	QAction* actionClean = nullptr;
+	QAction* actionApplyGrid = nullptr;
 	QAction* nonActionMultiple = nullptr;
 
 	nonActionMultiple = menu.addAction(_("Multiple Selection Menu"));
@@ -1478,7 +1595,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 
 	QString itemClass = item->itemClass();
 	if(itemClass == "ocr_page") {
-		actionAddGraphic = menu.addAction(_("Add &graphic region"));
+		actionAddGraphic = menu.addAction(_("Add gr&aphic region"));
 		actionAddCArea = menu.addAction(_("Add &text block"));
 	} else if(itemClass == "ocr_carea") {
 		actionAddPar = menu.addAction(_("Add &paragraph"));
@@ -1492,6 +1609,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	}
 	if (itemClass != "ocr_graphic") {
 		actionNormalize = menu.addAction(_("&Normalize"));
+		actionApplyGrid = menu.addAction(_("Adjust to &Grid"));
 	}
 	if(itemClass == "ocrx_word" && item->isOverheight()) {
 		actionFitWord = menu.addAction(_("Trim word &height"));
@@ -1572,6 +1690,12 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			HOCRNormalize().normalizeTree(m_document, &items, m_keyParent);
 			});
 		showItemProperties(index);
+	} else if(clickedAction == actionApplyGrid) {
+		bulkOperation(index, [this, index]() {
+			QList<HOCRItem*>items = QList<HOCRItem*>({m_document->mutableItemAtIndex(index)});
+			applyGrid(items);
+			});
+		showItemProperties(index);
 	} else if(clickedAction == actionRemove) {
 		removeCurrentItem();
 	} else if(clickedAction == actionExpand) {
@@ -1622,6 +1746,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	}
 	m_proofReadWidget->updateWidget(true);
 	showPreview(OutputEditorHOCR::showMode::resume);
+	updateGrid();
 	menu.setAttribute(Qt::WA_DeleteOnClose, true);
 }
 
@@ -2146,6 +2271,8 @@ bool OutputEditorHOCR::exportToIndentedText() {
 
 bool OutputEditorHOCR::clear(bool hide) {
 	m_previewTimer.stop();
+	m_gridTimer.stop();
+	m_preview->setVisible(false);
 	if(!m_widget->isVisible()) {
 		return true;
 	}
@@ -2340,10 +2467,11 @@ void OutputEditorHOCR::sourceChanged() {
 		}
 	}
 	showPreview(OutputEditorHOCR::showMode::show);
+	updateGrid();
+	MAIN->getDisplayer()->queueZoom();
 	if (MAIN->getDisplayer()->underMouse()) {
 		m_proofReadWidget->showWidget(true);
 	}
-	MAIN->getDisplayer()->queueZoom();
 	m_sourceBeingChanged = false;
 }
 
@@ -2512,6 +2640,104 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 			drawPreview(painter, childItem);;
 		}
 	}
+}
+
+QRectF OutputEditorHOCR::defaultGrid(HOCRPage* page) {
+	const double scale = 100.;
+	double h = ui.outputDialogUi.doubleSpinBox_Pitch->value();
+	double v = ui.outputDialogUi.doubleSpinBox_Spacing->value();
+	QSizeF cellSize = QSizeF(h,v);
+	
+	QModelIndex w = m_document->prevOrNextIndex(true, m_document->indexAtItem(page), "ocrx_word");
+	const HOCRItem* firstWord = m_document->itemAtIndex(w);
+
+	QFont font;
+	if(!firstWord->fontFamily().isEmpty()) {
+		font.setFamily(firstWord->fontFamily());
+	}
+	font.setBold(firstWord->fontBold());
+	font.setItalic(firstWord->fontItalic());
+	font.setPointSizeF(firstWord->fontSize());
+	QFontMetricsF fm(font);
+
+	QRect bbox = firstWord->bbox();
+	QPointF firstCharCenter(bbox.x() + (fm.horizontalAdvance(' ')*(page->resolution()/scale))/2., 
+		bbox.y() + (bbox.height())/2.);
+
+	QRectF areaBbox = getVisibleText();
+	if (!areaBbox.isValid()) {
+		areaBbox = page->bbox();
+	}
+
+	int cellXPos = (firstCharCenter.x()-areaBbox.x())/cellSize.width();
+	int cellYPos = (firstCharCenter.y()-areaBbox.y())/cellSize.height();
+	QRectF firstCell(cellXPos*cellSize.width()+areaBbox.x(), cellYPos*cellSize.height()+areaBbox.y(), cellSize.width(), cellSize.height());
+
+	QPointF offset = -( firstCell.center() - firstCharCenter);
+	return QRectF(areaBbox.translated(offset.x(), offset.y()).topLeft(), cellSize);
+}
+
+void OutputEditorHOCR::updateGrid() {
+	if(!ui.outputDialogUi.checkBox_Grid->isChecked()) {
+		m_grid->setVisible(false);
+		return;
+	}
+	QRectF areaBbox;
+	QRectF pageBbox;
+	double h_step;
+	double v_step;
+	const HOCRItem* item = m_document->itemAtIndex(ui.treeViewHOCR->currentIndex());
+
+	if(!item) {
+		areaBbox = MAIN->getDisplayer()->getSceneBoundingRect();
+		if (!areaBbox.isValid()) {
+			return;
+		}
+		areaBbox = QRectF(QPoint(0,0), areaBbox.size());
+		pageBbox = areaBbox;
+		h_step = ui.outputDialogUi.doubleSpinBox_Pitch->value();
+		v_step = ui.outputDialogUi.doubleSpinBox_Spacing->value();
+	} else {
+		HOCRPage* page = item->page();
+		QRectF grid = page->grid();
+		if (!grid.isValid()) {
+			grid = defaultGrid(page);
+		}
+		h_step = grid.width();
+		v_step = grid.height();
+		areaBbox = getVisibleText();
+		areaBbox = QRectF(grid.topLeft(), areaBbox.size());
+		pageBbox = page->bbox();
+	}
+
+	QImage image(pageBbox.size().toSize(), QImage::Format_ARGB32);
+	image.fill(QColor(255, 255, 255, 0));
+	image.setDotsPerMeterX(m_pageDpi / 0.0254); // 1 in = 0.0254 m
+	image.setDotsPerMeterY(m_pageDpi / 0.0254);
+	QPainter painter(&image);
+	painter.setRenderHint(QPainter::Antialiasing);
+
+	painter.setPen(QPen(Qt::red,1));
+	double horiz = areaBbox.left();
+
+	painter.setPen(QPen(Qt::red,1));
+	for (int h = 0, cnt = 0; (h = horiz + cnt*h_step) <= areaBbox.right(); cnt++) {
+		painter.drawLine(h, areaBbox.top(), h, areaBbox.bottom());
+	} 
+
+	painter.setPen(QPen(Qt::blue,1));
+	double vert = areaBbox.top();
+	for (int v = 0, cnt = 0; (v = vert + cnt*v_step) <= areaBbox.bottom(); cnt++) {
+		painter.drawLine(areaBbox.left(), v, areaBbox.right(), v);
+	} 
+
+	m_grid->setPixmap(QPixmap::fromImage(image));
+	m_grid->setPos(-0.5 * pageBbox.width(), -0.5 * pageBbox.height());
+	m_grid->setVisible(true);
+}
+
+void OutputEditorHOCR::gridToggled() {
+	updateGrid();
 }
 
 void OutputEditorHOCR::showSelections(const QItemSelection& selected, const QItemSelection& deselected) {

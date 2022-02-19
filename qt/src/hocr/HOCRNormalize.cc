@@ -99,6 +99,10 @@ class PreferenceChoice {
 		QString name = "normalizeadjustToFont_" + m_instance;
 	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
 	}
+	bool getApplyGrid() {
+		QString name = "normalizeapplyGrid_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
 	bool getLevelBaseline() {
 		QString name = "normalizelevelBaseline_" + m_instance;
 	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
@@ -134,6 +138,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent
 	ADD_SETTING(SwitchSetting("normalizecleanTextlines_0", ui.cleanTextlines_0, false));
 	ADD_SETTING(SwitchSetting("normalizeadjustToFont_0", ui.adjustToFont_0, false));
 	ADD_SETTING(SwitchSetting("normalizelevelBaseline_0", ui.levelBaseline_0, false));
+	ADD_SETTING(SwitchSetting("normalizeapplyGrid_0", ui.adjustToGrid_0, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_0", ui.setBold_0, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_0", ui.setItalic_0, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_0", ui.title_0));
@@ -166,6 +171,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent
 	ADD_SETTING(SwitchSetting("normalizecleanTextlines_1", ui.cleanTextlines_1, false));
 	ADD_SETTING(SwitchSetting("normalizeadjustToFont_1", ui.adjustToFont_1, false));
 	ADD_SETTING(SwitchSetting("normalizelevelBaseline_1", ui.levelBaseline_1, false));
+	ADD_SETTING(SwitchSetting("normalizeapplyGrid_1", ui.adjustToGrid_1, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_1", ui.setBold_1, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_1", ui.setItalic_1, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_1", ui.title_1));
@@ -198,6 +204,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent
 	ADD_SETTING(SwitchSetting("normalizecleanTextlines_2", ui.cleanTextlines_2, false));
 	ADD_SETTING(SwitchSetting("normalizeadjustToFont_2", ui.adjustToFont_2, false));
 	ADD_SETTING(SwitchSetting("normalizelevelBaseline_2", ui.levelBaseline_2, false));
+	ADD_SETTING(SwitchSetting("normalizeapplyGrid_2", ui.adjustToGrid_2, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_2", ui.setBold_2, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_2", ui.setItalic_2, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_2", ui.title_2));
@@ -230,6 +237,7 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent
 	ADD_SETTING(SwitchSetting("normalizecleanTextlines_3", ui.cleanTextlines_3, false));
 	ADD_SETTING(SwitchSetting("normalizeadjustToFont_3", ui.adjustToFont_3, false));
 	ADD_SETTING(SwitchSetting("normalizelevelBaseline_3", ui.levelBaseline_3, false));
+	ADD_SETTING(SwitchSetting("normalizeapplyGrid_3", ui.adjustToGrid_3, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_3", ui.setBold_3, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_3", ui.setItalic_3, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_3", ui.title_3));
@@ -358,6 +366,10 @@ void HOCRNormalize::normalizeSelection(PreferenceChoice *pref, bool substituteOn
 					QModelIndex index = m_doc->indexAtItem(item);
 					m_doc->cleanEmptyItems(index);
 				}
+				if(pref->getApplyGrid()) {
+					QList<HOCRItem*>items = QList<HOCRItem*>({item});
+					static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->applyGrid(items);
+				} 
 			}
 		}
 		m_doc->blockSignals(false);

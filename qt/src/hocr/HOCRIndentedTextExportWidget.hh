@@ -41,6 +41,8 @@ public:
 	void setPreviewPage(const HOCRDocument* hocrdocument, const HOCRPage* hocrpage);
 	HOCRIndentedTextExporter::ExporterSettings& getSettings() const override;
 
+	friend class HOCRIndentedTextExportDialog;
+
 private:
 	bool findOrigin(const HOCRItem *item);
 	void findCells(const HOCRItem *item);

@@ -26,6 +26,8 @@
 #include <QFontDialog>
 #include <QMap>
 
+class FocusableMenu;
+
 class Config : public QDialog {
 	Q_OBJECT
 public:
@@ -33,7 +35,7 @@ public:
 		QString prefix, code, name;
 	};
 
-	Config(QWidget* parent = nullptr);
+	Config(FocusableMenu *keyParent, QWidget* parent = nullptr);
 
 	bool searchLangSpec(Lang& lang) const;
 	QStringList searchLangCultures(const QString& code) const;
@@ -60,10 +62,12 @@ private:
 	static const QMultiMap<QString, QString> LANGUAGE_CULTURES;
 
 	Ui::ConfigDialog ui;
-	QFontDialog m_fontDialog;
+	QFontDialog* m_fontDialog;
 
 	static QString spellingLocation(Location location);
 	static QString tessdataLocation(Location location);
+	FocusableMenu *m_configMenu;
+	FocusableMenu *m_fontMenu;
 
 private slots:
 	void addLanguage();

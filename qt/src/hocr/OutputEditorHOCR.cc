@@ -378,7 +378,8 @@ void OutputEditorHOCR::HOCRBatchProcessor::appendOutput(QIODevice* dev, tesserac
 
 Q_DECLARE_METATYPE(OutputEditorHOCR::HOCRReadSessionData)
 
-OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
+OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyParent) {
+	m_keyParent = keyParent;
 	static int reg = qRegisterMetaType<QList<QRect>>("QList<QRect>");
 	Q_UNUSED(reg);
 
@@ -387,7 +388,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 
 	m_tool = tool;
 	m_widget = new QWidget;
-	ui.setupUi(m_widget);
+	ui.setupUi(m_widget, keyParent);
 	m_highlighter = new HTMLHighlighter(ui.plainTextEditOutput->document());
 
 	m_preview = new QGraphicsPixmapItem();
@@ -422,9 +423,9 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 
 	MAIN->getDisplayer()->installEventFilter(this);
 
-	ui.comboBoxNavigate->addItem(_("Page"), "ocr_page");
+	ui.comboBoxNavigate->addItem(_("Page"), "ocr_page"); // Note: first chars must be unique... '&' doesn't work
 	ui.comboBoxNavigate->addItem(_("Block"), "ocr_carea");
-	ui.comboBoxNavigate->addItem(_("Paragraph"), "ocr_par");
+	ui.comboBoxNavigate->addItem(_("Section (Paragraph)"), "ocr_par");
 	ui.comboBoxNavigate->addItem(_("Line"), "ocr_line");
 	ui.comboBoxNavigate->addItem(_("Word"), "ocrx_word");
 	ui.comboBoxNavigate->addItem(_("Misspelled word"), "ocrx_word_bad");
@@ -436,22 +437,71 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	ui.actionInsertModeAppend->setData(static_cast<int>(InsertMode::Append));
 	ui.actionInsertModeBefore->setData(static_cast<int>(InsertMode::InsertBefore));
 
+	keyParent->clear();
+	keyParent->addAction(_("Select &insert mode  \t\u27a4"),
+		[this]() { ui.menuInsertMode->exec(ui.toolButtonInsertMode->mapToGlobal(ui.toolButtonInsertMode->geometry().bottomLeft())); });
+	keyParent->addFileDialog(_("&Open hOCR file (replace)"), [this] { return open(InsertMode::Replace); });
+	keyParent->addAction(_("   ... &append or insert  \t\u27a4"),
+		[this]() { ui.menuOpen->exec(ui.toolButtonOpen->mapToGlobal(ui.toolButtonOpen->geometry().bottomLeft())); });
+	ui.menuOutputSaveHOCR = 
+	keyParent->addFileDialog(_("&Save as hOCR text"),[this] {return save();});
+	ui.menuOutputSaveHOCR->setEnabled(false);
+
+	ui.exportMenu = new FocusableMenu(_("&Export"),keyParent);
+	ui.menuOutputExport = keyParent->addMenu(ui.exportMenu);
+		ui.menuOutputExport->setEnabled(false);
+		ui.exportMenu->addFileDialog(QIcon::fromTheme("text-plain"), _("Export to plain &text"), 
+			[this]()->bool {return exportToText();} );
+		ui.exportMenu->addFileDialog(QIcon::fromTheme("text-plain"), _("Export to plain text, preserve &whitespace"), 
+			[this]()->bool {return exportToIndentedText();} );
+		ui.exportMenu->addFileDialog(QIcon::fromTheme("application-pdf"), _("Export to &PDF"),
+			[this]()->bool {return exportToPDF();} );
+		ui.exportMenu->addFileDialog(QIcon::fromTheme("x-office-document"), _("Export to &ODT"),
+			[this]()->bool {return exportToODT();} );
+	ui.toolButtonOutputExport->setMenu(ui.exportMenu);
+
+	keyParent->addAction(_("&Clear"), this, &OutputEditorHOCR::clear);
+
+		FocusableMenu* menuFindReplace = new FocusableMenu(_("&Find and Replace"), keyParent);
+		ui.searchFrame->setKeyMenu(menuFindReplace);
+	ui.menuOutputFind = 
+	keyParent->addMenu(menuFindReplace);
+		ui.menuOutputFind->setEnabled(false);
+
+		FocusableMenu* menuNavigate = new FocusableMenu(_("&Navigate"), keyParent);
+		menuNavigate->addAction(_("Set &Target"), this, [this] { FocusableMenu::showFocusSet(ui.comboBoxNavigate); });
+		menuNavigate->addAction(_("&Next"), this, &OutputEditorHOCR::navigateNext);
+		menuNavigate->addAction(_("&Previous"), this, &OutputEditorHOCR::navigatePrev);
+		menuNavigate->addAction(_("&Expand All"), this, &OutputEditorHOCR::expandItemClass);
+		menuNavigate->addAction(_("&Collapse All"), this, &OutputEditorHOCR::collapseItemClass);
+		menuNavigate->addAction(_("P&roperties Tab"), this, [this] { FocusableMenu::showFocusSet(ui.tabWidgetProps, 0); });
+		menuNavigate->addAction(_("&Source Tab"), this, [this] { FocusableMenu::showFocusSet(ui.tabWidgetProps, 1); });
+		menuNavigate->addAction(_("&Current Page"), this, [this] { navigateNextPrev(false, "ocr_page", false); });
+	ui.menuOutputNavigate = 
+	keyParent->addMenu(menuNavigate);
+		ui.menuOutputNavigate->setEnabled(false);
+	keyParent->addDialog(_("&Preferences"), [this, keyParent] {doPreferences(keyParent);} );
+	keyParent->addAction(_("Sho&w HOCR Context menu"), [this] {
+		QRect pos = ui.treeViewHOCR->visualRect(ui.treeViewHOCR->currentIndex());
+		emit ui.treeViewHOCR->customContextMenuRequested(pos.center());
+	} );
+
 	connect(ui.menuInsertMode, &QMenu::triggered, this, &OutputEditorHOCR::setInsertMode);
-	connect(ui.toolButtonOpen, &QToolButton::clicked, this, [this] { open(InsertMode::Replace); });
-	connect(ui.actionOpenAppend, &QAction::triggered, this, [this] { open(InsertMode::Append); });
-	connect(ui.actionOpenInsertBefore, &QAction::triggered, this, [this] { open(InsertMode::InsertBefore); });
+	connect(ui.toolButtonOpen, &QToolButton::clicked, this, 
+		[this, keyParent] () { FocusableMenu::showFileDialogMenu(keyParent, [this]{return open(InsertMode::Replace);}); });
+	connect(ui.actionOpenAppend, &QAction::triggered, this,
+		[this, keyParent] () { FocusableMenu::showFileDialogMenu(keyParent, [this]{return open(InsertMode::Append);}); });
+	connect(ui.actionOpenInsertBefore, &QAction::triggered, this,
+		[this, keyParent] () { FocusableMenu::showFileDialogMenu(keyParent, [this]{return open(InsertMode::InsertBefore);}); });
 	connect(ui.actionOutputSaveHOCR, &QAction::triggered, this, [this] { save(); });
-	connect(ui.actionOutputExportODT, &QAction::triggered, this, &OutputEditorHOCR::exportToODT);
-	connect(ui.actionOutputExportPDF, &QAction::triggered, this, &OutputEditorHOCR::exportToPDF);
-	connect(ui.actionOutputExportText, &QAction::triggered, this, &OutputEditorHOCR::exportToText);
-	connect(ui.actionOutputExportIndentedText, &QAction::triggered, this, &OutputEditorHOCR::exportToIndentedText);
 	connect(ui.actionOutputClear, &QAction::triggered, this, &OutputEditorHOCR::clear);
 	connect(ui.actionOutputReplace, &QAction::triggered, this, [this] { doReplace(false); });
 	connect(ui.actionOutputReplaceKey, &QAction::triggered, this, [this] { doReplace(true); });
-	connect(ui.actionOutputSettings, &QAction::triggered, this, [this] { ui.outputDialog->exec(); });
+	connect(ui.actionOutputSettings, &QAction::triggered, this, [this, keyParent] { doPreferences(keyParent); });
 	connect(&m_previewTimer, &QTimer::timeout, this, [this] {showPreview(OutputEditorHOCR::showMode::show); }); 
 	connect(ui.searchFrame, &SearchReplaceFrame::findReplace, this, &OutputEditorHOCR::findReplace);
 	connect(ui.searchFrame, &SearchReplaceFrame::replaceAll, this, &OutputEditorHOCR::replaceAll);
+	connect(ui.searchFrame, &SearchReplaceFrame::reFocusTree, this, &OutputEditorHOCR::reFocusTree);
 	connect(ui.searchFrame, &SearchReplaceFrame::applySubstitutions, this, &OutputEditorHOCR::applySubstitutions);
 	connect(ConfigSettings::get<FontSetting>("customoutputfont"), &FontSetting::changed, this, &OutputEditorHOCR::setFont);
 	connect(ConfigSettings::get<SwitchSetting>("systemoutputfont"), &FontSetting::changed, this, &OutputEditorHOCR::setFont);
@@ -483,6 +533,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.outputDialogUi.checkBox_NonAscii, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.outputDialogUi.checkBox_WConf, &QCheckBox::toggled, this, &OutputEditorHOCR::toggleWConfColumn);
 	connect(ui.outputDialogUi.doubleSpinBox_Stretch, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OutputEditorHOCR::previewToggled);
+	connect(ui.menuOutputFind, &QAction::triggered, this, [this]  { doReplace(true); });
 
 	ADD_SETTING(SwitchSetting("replacescans", ui.outputDialogUi.checkBox_ReplaceScan, false));
 	ADD_SETTING(SwitchSetting("displayconfidence", ui.outputDialogUi.checkBox_WConf, false));
@@ -522,6 +573,10 @@ void OutputEditorHOCR::setModified() {
 	ui.actionOutputSaveHOCR->setEnabled(m_document->pageCount() > 0);
 	ui.toolButtonOutputExport->setEnabled(m_document->pageCount() > 0);
 	ui.toolBarNavigate->setEnabled(m_document->pageCount() > 0);
+	ui.menuOutputSaveHOCR->setEnabled(m_document->pageCount() > 0);
+	ui.menuOutputExport->setEnabled(m_document->pageCount() > 0);
+	ui.menuOutputNavigate->setEnabled(m_document->pageCount() > 0);
+	ui.menuOutputFind->setEnabled(m_document->pageCount() > 0);
     if(!m_previewTimer.isActive()) { 
 		m_previewTimer.start(100); // Use a timer because setModified is potentially called a large number of times when the HOCR tree changes
 		// but don't let auto-repeat keys block all updates.
@@ -892,19 +947,22 @@ public:
 		QGroupBox* policies = new QGroupBox(_("Place word..."), this);
 		QVBoxLayout* policyBoxLayout = new QVBoxLayout();
 		if(initialMode == NewWordMode::CurrentLine) {
-			QRadioButton* policy1 = new QRadioButton(_("...in selected Textline"),policies);
+			QRadioButton* policy1 = new QRadioButton(_("...in &selected Textline"),policies);
 			m_policyBoxGroup->addButton(policy1,static_cast<int>(NewWordMode::CurrentLine));
 			policy1->setToolTip(_("From the one selected in the HOCR tree"));
+			policy1->setFocusPolicy(Qt::NoFocus);
 			policy1->setChecked(true);
 			policyBoxLayout->addWidget(policy1);
 		}
-		QRadioButton* policy2 = new QRadioButton(_("...in nearest Textline"),policies);
+		QRadioButton* policy2 = new QRadioButton(_("...in nearest &Textline"),policies);
 		policy2->setToolTip(_("The nearest above the cursor"));
+		policy2->setFocusPolicy(Qt::NoFocus);
 		policy2->setChecked(initialMode == NewWordMode::NearestLine);
 		m_policyBoxGroup->addButton(policy2,static_cast<int>(NewWordMode::NearestLine));
 		policyBoxLayout->addWidget(policy2);
-		QRadioButton* policy3 = new QRadioButton(_("...in new Textline at cursor"),policies);
+		QRadioButton* policy3 = new QRadioButton(_("...in new Textline at &cursor"),policies);
 		policy3->setToolTip(_("A new textline just below the Textline nearest above cursor"));
+		policy3->setFocusPolicy(Qt::NoFocus);
 		policy3->setChecked(initialMode == NewWordMode::NewLine);
 		m_policyBoxGroup->addButton(policy3,static_cast<int>(NewWordMode::NewLine));
 		policyBoxLayout->addWidget(policy3);
@@ -918,13 +976,15 @@ public:
 		caption->setContentsMargins(0, 0, 0, 0);
 		caption->addWidget(new QLabel(_("Enter word:")));
 		caption->addStretch(1);
-		QCheckBox* fitCheckBox = new QCheckBox(_("Fit"));
+		QCheckBox* fitCheckBox = new QCheckBox(_("&Fit"));
 		fitCheckBox->setToolTip(_("Size new Bounding Box to fit text"));
+		fitCheckBox->setFocusPolicy(Qt::NoFocus);
 		QString currentTitle;
 		int currentIndex;
 		HOCRNormalize().currentDefault(currentTitle, currentIndex);
-		QCheckBox* nrmCheckBox = new QCheckBox(_("N%1 ").arg(currentIndex));
+		QCheckBox* nrmCheckBox = new QCheckBox(_("&N%1 ").arg(currentIndex));
 		nrmCheckBox->setToolTip(_("Apply most recent normalization (%1)").arg(currentTitle));
+		nrmCheckBox->setFocusPolicy(Qt::NoFocus);
 		caption->addWidget(nrmCheckBox);
 		caption->addWidget(fitCheckBox);
 		caption->setSpacing(0);
@@ -1253,6 +1313,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		}
 
 		QMenu menu;
+		menu.setFocus();
 		std::sort(rows.begin(), rows.end());
 		bool consecutive = (rows.last() - rows.first()) == nIndices - 1;
 		bool graphics = firstItem->itemClass() == "ocr_graphic";
@@ -1264,16 +1325,16 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		QAction* actionSwap = nullptr;
 		QAction* actionNormalize = nullptr;
 		if(consecutive && !graphics && !pages && sameClass) { // Merging allowed
-			actionMerge = menu.addAction(_("Merge"));
+			actionMerge = menu.addAction(_("&Merge"));
 			if(firstItem->itemClass() != "ocr_carea") {
-				actionSplit = menu.addAction(_("Split from parent"));
+				actionSplit = menu.addAction(_("&Split from parent"));
 			}
 		}
-		actionSwap = menu.addAction(_("Swap two"));
+		actionSwap = menu.addAction(_("S&wap two"));
 		if(nIndices != 2) { // Swapping allowed
 			actionSwap->setEnabled(false);
 		}
-		actionNormalize = menu.addAction(_("Normalize all selected"));
+		actionNormalize = menu.addAction(_("&Normalize all selected"));
 
 		QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
 		if(!clickedAction) {
@@ -1295,7 +1356,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 			}
 			newIndex = indices.last();
 			bulkOperation(newIndex, [this, &items]() {
-				HOCRNormalize().normalizeTree(m_document, &items);
+				HOCRNormalize().normalizeTree(m_document, &items, m_keyParent);
 			});
 		}
 		if(newIndex.isValid()) {
@@ -1317,6 +1378,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 
 	QMenu menu;
 	menu.setToolTipsVisible(true);
+	menu.setFocus();
 	m_contextMenu = &menu;
 	QAction* actionAddGraphic = nullptr;
 	QAction* actionAddCArea = nullptr;
@@ -1342,43 +1404,39 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 
 	QString itemClass = item->itemClass();
 	if(itemClass == "ocr_page") {
-		actionAddGraphic = menu.addAction(_("Add graphic region"));
-		actionAddCArea = menu.addAction(_("Add text block"));
+		actionAddGraphic = menu.addAction(_("Add &graphic region"));
+		actionAddCArea = menu.addAction(_("Add &text block"));
 	} else if(itemClass == "ocr_carea") {
-		actionAddPar = menu.addAction(_("Add paragraph"));
+		actionAddPar = menu.addAction(_("Add &paragraph"));
 	} else if(itemClass == "ocr_par") {
-		actionAddLine = menu.addAction(_("Add line"));
+		actionAddLine = menu.addAction(_("Add &line"));
 	} else if(itemClass == "ocr_line") {
-		actionAddWord = menu.addAction(_("Add word"));
+		actionAddWord = menu.addAction(_("Add &word"));
 	} else if(itemClass == "ocrx_word") {
 		m_document->addSpellingActions(&menu, index);
 	}
 	if(!menu.actions().isEmpty()) {
 		menu.addSeparator();
 	}
-	actionNormalize = menu.addAction(_("Normalize"));
+	actionNormalize = menu.addAction(_("&Normalize"));
 	if(itemClass == "ocrx_word" && item->isOverheight()) {
-		actionFit = menu.addAction(_("Trim height"));
+		actionFit = menu.addAction(_("Trim &height"));
 		actionFit->setToolTip(_("Heuristic trim overheight word to font size"));
 	}
 	if(itemClass == "ocr_par" || itemClass == "ocr_line" || itemClass == "ocrx_word") {
-		actionSplit = menu.addAction(_("Split from parent"));
+		actionSplit = menu.addAction(_("&Split from parent"));
 	}
-	actionRemove = menu.addAction(_("Remove"));
+	actionRemove = menu.addAction(_("&Remove"));
 	actionRemove->setShortcut(QKeySequence(Qt::Key_Delete));
 	if(m_document->rowCount(index) > 0) {
-		actionExpand = menu.addAction(_("Expand all"));
-		actionCollapse = menu.addAction(_("Collapse all"));
+		actionExpand = menu.addAction(_("&Expand item"));
+		actionCollapse = menu.addAction(_("&Collapse item"));
 	}
-	m_contextIndexUp = nullptr;
 	if(index.row() > 0) {
-		actionMoveUp = menu.addAction(_("Move Up (U)"));
-		m_contextIndexUp = &index;
+		actionMoveUp = menu.addAction(_("Move &Up"));
 	}
-	m_contextIndexDown = nullptr;
 	if(index.row() < index.model()->rowCount(index.parent()) - 1) {
-		actionMoveDown = menu.addAction(_("Move Down (D)"));
-		m_contextIndexDown = &index;
+		actionMoveDown = menu.addAction(_("Move &Down"));
 	}
 	if((itemClass == "ocr_page" || itemClass == "ocr_carea" || itemClass == "ocr_par")
 		&& item->children().size() > 1) {
@@ -1388,9 +1446,8 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		actionSortX = menu.addAction(_("Sort immediate children on &X position"));
 	}
 	if(itemClass == "ocr_page" || itemClass == "ocr_carea") {
-		actionFlatten = menu.addAction(_("Flatten"));
+		actionFlatten = menu.addAction(_("&Flatten"));
 	}
-	menu.installEventFilter(this);
 
 	QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
 	if(!clickedAction) {
@@ -1413,7 +1470,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	} else if(clickedAction == actionNormalize) {
 		bulkOperation(index, [this, index]() {
 			QList<HOCRItem*>items = QList<HOCRItem*>({m_document->mutableItemAtIndex(index)});
-			HOCRNormalize().normalizeTree(m_document, &items);
+			HOCRNormalize().normalizeTree(m_document, &items, m_keyParent);
 			});
 		showItemProperties(index);
 	} else if(clickedAction == actionRemove) {
@@ -1520,23 +1577,6 @@ bool OutputEditorHOCR::eventFilter(QObject* obj, QEvent* ev) {
 			}
 		}
 	}
-	// Self
-	// To be deleted in future version...
-	if(ev->type() == QEvent::KeyPress) {
-		QKeyEvent* kev = static_cast<QKeyEvent*>(ev);
-		if (kev->key() == Qt::Key_U) {
-			if (m_contextIndexUp != nullptr) {
-				moveUpDown(*m_contextIndexUp,-1);
-			}
-			return true;
-		}
-		if (kev->key() == Qt::Key_D) {
-			if (m_contextIndexDown != nullptr) {
-				moveUpDown(*m_contextIndexDown,+1);
-			}
-			return true;
-		}
-	}
 	return false;
 }
 
@@ -1609,6 +1649,10 @@ void OutputEditorHOCR::pickItem(const QPoint& point, QMouseEvent* event) {
 				ui.treeViewHOCR->setCurrentIndex(parentIndex);
 			} else {
 				ui.treeViewHOCR->setCurrentIndex(origIndex);
+				if (event->button() == Qt::RightButton) {
+					QRect pos = ui.treeViewHOCR->visualRect(origIndex);
+					emit ui.treeViewHOCR->customContextMenuRequested(pos.center());
+				}
 			}
 		}
 	}
@@ -1649,8 +1693,20 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 	if(mode == InsertMode::Replace && !clear(false)) {
 		return false;
 	}
+	QString modeName;
+	switch(mode) {
+	case InsertMode::Replace:
+		modeName = _("Replace");
+		break;
+	case InsertMode::Append:
+		modeName = _("Append");
+		break;
+	case InsertMode::InsertBefore:
+		modeName = _("Insert before");
+		break;
+	}
 	if(files.isEmpty()) {
-		files = FileDialogs::openDialog(_("Open hOCR File"), "", "outputdir", QString("%1 (*.html)").arg(_("hOCR HTML Files")), true);
+		files = FileDialogs::openDialog(_("Open hOCR File (%1)").arg(modeName), "", "outputdir", QString("%1 (*.html)").arg(_("hOCR HTML Files")), true, MAIN->getDialogHost());
 	}
 	if(files.isEmpty()) {
 		return false;
@@ -1726,7 +1782,8 @@ bool OutputEditorHOCR::save(const QString& filename) {
 				suggestion = _("output");
 			}
 		}
-		outname = FileDialogs::saveDialog(_("Save hOCR Output..."), suggestion + ".html", "outputdir", QString("%1 (*.html)").arg(_("hOCR HTML Files")));
+		outname = FileDialogs::saveDialog(_("Save hOCR Output..."), suggestion + ".html", "outputdir", QString("%1 (*.html)").arg(_("hOCR HTML Files")),
+			false, MAIN->getDialogHost());
 		if(outname.isEmpty()) {
 			return false;
 		}
@@ -1788,7 +1845,8 @@ bool OutputEditorHOCR::exportToODT() {
 		suggestion = !sources.isEmpty() ? QFileInfo(sources.first()->displayname).baseName() : _("output");
 	}
 
-	QString outname = FileDialogs::saveDialog(_("Save ODT Output..."), suggestion + ".odt", "outputdir", QString("%1 (*.odt)").arg(_("OpenDocument Text Documents")));
+	QString outname = FileDialogs::saveDialog(_("Save ODT Output..."), suggestion + ".odt", "outputdir", QString("%1 (*.odt)").arg(_("OpenDocument Text Documents")),
+			false, MAIN->getDialogHost());
 	if(outname.isEmpty()) {
 		return false;
 	}
@@ -1801,7 +1859,6 @@ bool OutputEditorHOCR::exportToODT() {
 }
 
 bool OutputEditorHOCR::exportToPDF() {
-	ui.treeViewHOCR->setFocus(); // Ensure any item editor loses focus and commits its changes
 	QModelIndex current = ui.treeViewHOCR->selectionModel()->currentIndex();
 	const HOCRItem* item = m_document->itemAtIndex(current);
 	const HOCRPage* page = item ? item->page() : m_document->page(0);
@@ -1812,7 +1869,10 @@ bool OutputEditorHOCR::exportToPDF() {
 
 	ui.treeViewHOCR->selectionModel()->clear();
 	HOCRPdfExportDialog dialog(m_tool, m_document, page, MAIN);
-	if(dialog.exec() != QDialog::Accepted) {
+	FocusableMenu menuPdfShortcuts(ui.exportMenu);
+	menuPdfShortcuts.useButtons();
+	menuPdfShortcuts.mapButtonBoxDefault();
+	if (menuPdfShortcuts.execWithMenu(&dialog) != QDialog::Accepted) {
 		ui.treeViewHOCR->setCurrentIndex(current);
 		return false;
 	}
@@ -1826,7 +1886,8 @@ bool OutputEditorHOCR::exportToPDF() {
 
 	QString outname;
 	while(true) {
-		outname = FileDialogs::saveDialog(_("Save PDF Output..."), suggestion + ".pdf", "outputdir", QString("%1 (*.pdf)").arg(_("PDF Files")));
+		outname = FileDialogs::saveDialog(_("Save PDF Output..."), suggestion + ".pdf", "outputdir", QString("%1 (*.pdf)").arg(_("PDF Files")),
+			false, MAIN->getDialogHost());
 		if(outname.isEmpty()) {
 			break;
 		}
@@ -1841,6 +1902,7 @@ bool OutputEditorHOCR::exportToPDF() {
 		return false;
 	}
 
+	ui.treeViewHOCR->setFocus(); // Ensure any item editor loses focus and commits its changes
 	MAIN->getDisplayer()->setBlockAutoscale(true);
 	success = HOCRPdfExporter().run(m_document, outname, &settings);
 	MAIN->getDisplayer()->setBlockAutoscale(false);
@@ -1856,7 +1918,8 @@ bool OutputEditorHOCR::exportToText() {
 		suggestion = !sources.isEmpty() ? QFileInfo(sources.first()->displayname).baseName() : _("output");
 	}
 
-	QString outname = FileDialogs::saveDialog(_("Save Text Output..."), suggestion + ".txt", "outputdir", QString("%1 (*.txt)").arg(_("Text Files")));
+	QString outname = FileDialogs::saveDialog(_("Save Text Output..."), suggestion + ".txt", "outputdir", QString("%1 (*.txt)").arg(_("Text Files")),
+			false, MAIN->getDialogHost());
 	if(outname.isEmpty()) {
 		return false;
 	}
@@ -1869,7 +1932,6 @@ bool OutputEditorHOCR::exportToText() {
 }
 
 bool OutputEditorHOCR::exportToIndentedText() {
-	ui.treeViewHOCR->setFocus(); // Ensure any item editor loses focus and commits its changes
 	QModelIndex current = ui.treeViewHOCR->selectionModel()->currentIndex();
 	const HOCRItem* item = m_document->itemAtIndex(current);
 	const HOCRPage* page = item ? item->page() : m_document->page(0);
@@ -1880,7 +1942,10 @@ bool OutputEditorHOCR::exportToIndentedText() {
 
 	ui.treeViewHOCR->selectionModel()->clear();
 	HOCRIndentedTextExportDialog dialog(m_tool, m_document, page, MAIN);
-	if(dialog.exec() != QDialog::Accepted) {
+	FocusableMenu menuIndentedShortcuts(ui.exportMenu);
+	menuIndentedShortcuts.useButtons();
+	menuIndentedShortcuts.mapButtonBoxDefault();
+	if (menuIndentedShortcuts.execWithMenu(&dialog) != QDialog::Accepted) {
 		ui.treeViewHOCR->setCurrentIndex(current);
 		return false;
 	}
@@ -1892,12 +1957,14 @@ bool OutputEditorHOCR::exportToIndentedText() {
 		suggestion = !sources.isEmpty() ? QFileInfo(sources.first()->displayname).baseName() : _("output");
 	}
 
-	QString outname = FileDialogs::saveDialog(_("Save Indented Text Output..."), suggestion + ".txt", "outputdir", QString("%1 (*.txt)").arg(_("Text Files")));
+	QString outname = FileDialogs::saveDialog(_("Save Indented Text Output..."), suggestion + ".txt", "outputdir", QString("%1 (*.txt)").arg(_("Text Files")),
+			false, MAIN->getDialogHost());
 	if(outname.isEmpty()) {
 		ui.treeViewHOCR->setCurrentIndex(current);
 		return false;
 	}
 
+	ui.treeViewHOCR->setFocus(); // Ensure any item editor loses focus and commits its changes
 	MAIN->getDisplayer()->setBlockAutoscale(true);
 	success = HOCRIndentedTextExporter().run(m_document, outname, &settings);
 	MAIN->getDisplayer()->setBlockAutoscale(false);
@@ -1911,12 +1978,12 @@ bool OutputEditorHOCR::clear(bool hide) {
 		return true;
 	}
 	if(m_modified) {
-		int response = QMessageBox::question(MAIN, _("Output not saved"), _("Save output before proceeding?"), QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
-		if(response == QMessageBox::Save) {
+		int response = KeyMessageBox::question(MAIN, _("Output not saved"), _("Save output before proceeding?"), KeyMessageBox::Save | KeyMessageBox::Discard | KeyMessageBox::Cancel);
+		if(response == KeyMessageBox::Save) {
 			if(!save()) {
 				return false;
 			}
-		} else if(response != QMessageBox::Discard) {
+		} else if(response != KeyMessageBox::Discard) {
 			return false;
 		}
 	}
@@ -2004,6 +2071,11 @@ void OutputEditorHOCR::findReplace(const QString& searchstr, const QString& repl
 			return;
 		}
 	}
+}
+
+void OutputEditorHOCR::reFocusTree() {
+	HOCRTextDelegate* delegate = static_cast<HOCRTextDelegate*>(ui.treeViewHOCR->itemDelegateForColumn(0));
+	delegate->reSetSelection();
 }
 
 void OutputEditorHOCR::replaceAll(const QString& searchstr, const QString& replacestr, bool matchCase) {
@@ -2275,6 +2347,13 @@ void OutputEditorHOCR::showSelections(const QItemSelection& selected, const QIte
 		m_selectedItems->setPos(-0.5 * bbox.width(), -0.5 * bbox.height());
 		m_selectedItems->setVisible(true);
 	}
+}
+
+void OutputEditorHOCR::doPreferences(FocusableMenu *keyParent) {
+	FocusableMenu menu(keyParent);
+	menu.useButtons();
+	menu.mapButtonBoxDefault();
+	menu.execWithMenu(ui.outputDialog);
 }
 
 void OutputEditorHOCR::doReplace(bool force) {

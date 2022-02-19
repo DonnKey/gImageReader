@@ -20,8 +20,6 @@
 #ifndef COMMON_HH
 #define COMMON_HH
 
-#include <QtGlobal>
-
 #include <libintl.h>
 #define _(x) QString(gettext(x))
 

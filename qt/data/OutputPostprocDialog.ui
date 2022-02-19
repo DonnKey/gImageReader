@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>OutputSettingsDialog</class>
- <widget class="QDialog" name="OutputSettingsDialog">
+ <class>OutputPostprocDialog</class>
+ <widget class="QDialog" name="OutputPostprocDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Output Settings</string>
+   <string>Output Postprocessing</string>
   </property>
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
@@ -32,37 +32,37 @@
     <set>QDialogButtonBox::Ok</set>
    </property>
   </widget>
-  <widget class="QCheckBox" name="checkBox_WConf">
+  <widget class="QCheckBox" name="checkBox_KeepQuote">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>40</y>
+     <x>30</x>
+     <y>50</y>
      <width>301</width>
      <height>21</height>
     </rect>
    </property>
    <property name="text">
-    <string>Show Word &amp;Confidence in Item Editor</string>
+    <string>Preceded or succeeded by &amp;quote</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="checkBox_Preview">
+  <widget class="QCheckBox" name="checkBox_KeepEndMark">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>181</width>
+     <x>30</x>
+     <y>30</y>
+     <width>201</width>
      <height>21</height>
     </rect>
    </property>
    <property name="text">
-    <string>Show &amp;Preview</string>
+    <string>Preceded by &amp;end mark (.?!)</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="checkBox_NonAscii">
+  <widget class="QCheckBox" name="checkBox_JoinHyphen">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>70</y>
+     <x>30</x>
+     <y>100</y>
      <width>271</width>
      <height>21</height>
     </rect>
@@ -71,14 +71,14 @@
     <string>Highlight characters that are not Latin-1.&lt;br&gt;For computer text.</string>
    </property>
    <property name="text">
-    <string>Highlight Non-&amp;Latin1 characters</string>
+    <string>Join &amp;hyphenated words</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="checkBox_Overheight">
+  <widget class="QCheckBox" name="checkBox_CollapseSpaces">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>100</y>
+     <x>30</x>
+     <y>120</y>
      <width>261</width>
      <height>21</height>
     </rect>
@@ -87,74 +87,83 @@
     <string>Highlight words that are inconsistent with the font size.&lt;br&gt;Right click Output tree item and select &quot;Trim&quot; to fix. See also Normalize. (Ctrl-T)</string>
    </property>
    <property name="text">
-    <string>Highlight oversi&amp;ze boxes</string>
+    <string>&amp;Collapse whitespace</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="doubleSpinBox_Stretch">
+  <widget class="QCheckBox" name="checkBox_KeepParagraphs">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>160</y>
-     <width>71</width>
-     <height>24</height>
-    </rect>
-   </property>
-   <property name="toolTip">
-    <string>Strech font to align better with original image.</string>
-   </property>
-   <property name="suffix">
-    <string>%</string>
-   </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="maximum">
-    <double>200.000000000000000</double>
-   </property>
-   <property name="value">
-    <double>100.000000000000000</double>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>90</x>
-     <y>160</y>
-     <width>201</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="toolTip">
-    <string>Fine-tune preview font width to match original scan.</string>
-   </property>
-   <property name="text">
-    <string>&amp;Stretch preview font</string>
-   </property>
-   <property name="buddy">
-    <cstring>doubleSpinBox_Stretch</cstring>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="checkBox_ReplaceScan">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>130</y>
+     <x>30</x>
+     <y>140</y>
      <width>241</width>
      <height>21</height>
     </rect>
    </property>
    <property name="text">
-    <string>On rescan, &amp;replace existing scan</string>
+    <string>Preserve &amp;paragraphs</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="checkBox_DrawWhitespace">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>190</y>
+     <width>191</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>&amp;Draw whitespace</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>131</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Keep line break if...</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>80</y>
+     <width>101</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Other options</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>170</y>
+     <width>101</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Visual aids</string>
    </property>
   </widget>
  </widget>
  <tabstops>
-  <tabstop>checkBox_Preview</tabstop>
-  <tabstop>checkBox_WConf</tabstop>
-  <tabstop>checkBox_NonAscii</tabstop>
-  <tabstop>checkBox_Overheight</tabstop>
-  <tabstop>checkBox_ReplaceScan</tabstop>
-  <tabstop>doubleSpinBox_Stretch</tabstop>
+  <tabstop>checkBox_KeepEndMark</tabstop>
+  <tabstop>checkBox_KeepQuote</tabstop>
+  <tabstop>checkBox_JoinHyphen</tabstop>
+  <tabstop>checkBox_CollapseSpaces</tabstop>
+  <tabstop>checkBox_KeepParagraphs</tabstop>
+  <tabstop>checkBox_DrawWhitespace</tabstop>
+  <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources>
   <include location="gimagereader.qrc"/>
@@ -163,7 +172,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>OutputSettingsDialog</receiver>
+   <receiver>OutputPostprocDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -179,7 +188,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>OutputSettingsDialog</receiver>
+   <receiver>OutputPostprocDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

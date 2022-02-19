@@ -33,6 +33,7 @@ class HOCRPage;
 class HOCRProofReadWidget;
 class QGraphicsPixmapItem;
 class TreeViewHOCR;
+class FocusableMenu;
 
 enum class NewWordMode { CurrentLine, NearestLine, NewLine };
 
@@ -49,7 +50,7 @@ public:
 
 	enum class InsertMode { Replace, Append, InsertBefore };
 
-	OutputEditorHOCR(DisplayerToolHOCR* tool);
+	OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyParent);
 	~OutputEditorHOCR();
 
 	QWidget* getUI() override {
@@ -122,10 +123,9 @@ private:
 	InsertMode m_insertMode = InsertMode::Append;
 	QPoint m_contextMenuLocation;
 	QMenu *m_contextMenu;
-	QModelIndex* m_contextIndexUp;
-	QModelIndex* m_contextIndexDown;
 
 	HOCRDocument* m_document;
+	FocusableMenu* m_keyParent;
 
 	QWidget* createAttrWidget(const QModelIndex& itemIndex, const QString& attrName, const QString& attrValue, const QString& attrItemClass = QString(), bool multiple = false);
 	void expandCollapseChildren(const QModelIndex& index, bool expand) const;
@@ -144,6 +144,7 @@ private:
 	QRectF getWidgetGeometry() override;
 	void bulkOperation(QModelIndex& index, const std::function<void()>& op);
 	bool isFullyExpanded(const QModelIndex& index) const;
+	void doPreferences(FocusableMenu *keyParent);
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);
@@ -181,6 +182,7 @@ private slots:
 	void sourceChanged();
 	void previewToggled();
 	void updatePreview();
+	void reFocusTree();
 };
 
 class HOCRAttributeEditor : public QLineEdit {

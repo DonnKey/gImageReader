@@ -33,6 +33,7 @@
 #include "OutputEditorText.hh"
 #include "Recognizer.hh"
 #include "SourceManager.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
 
@@ -47,11 +48,12 @@ void OutputEditorText::TextBatchProcessor::appendOutput(QIODevice* dev, tesserac
 }
 
 
-OutputEditorText::OutputEditorText() {
+OutputEditorText::OutputEditorText(FocusableMenu* keyParent) {
+	m_keyParent = keyParent;
 	m_insertMode = InsertMode::Append;
 
 	m_widget = new QWidget;
-	ui.setupUi(m_widget);
+	ui.setupUi(m_widget, keyParent);
 
 	m_recentMenu = new QMenu();
 	ui.toolButtonOpen->setMenu(m_recentMenu);
@@ -69,6 +71,46 @@ OutputEditorText::OutputEditorText() {
 
 	connect(ui.toolButtonOpen, &QToolButton::clicked, [this] { open(); });
 	connect(m_recentMenu, &QMenu::aboutToShow, this, &OutputEditorText::prepareRecentMenu);
+
+	keyParent->clear();
+	keyParent->addFileDialog(_("&Open"), [this] { return open(); });
+	keyParent->addAction(_("Rece&nt Files \t\u27a4"),
+		[this]() { m_recentMenu->exec(ui.toolButtonOpen->mapToGlobal(ui.toolButtonOpen->geometry().bottomLeft())); });
+
+	keyParent->addAction(_("Select &insert mode  \t\u27a4"),
+		[this]() { ui.menuOutputMode->exec(ui.toolButtonOutputMode->mapToGlobal(ui.toolButtonOutputMode->geometry().bottomLeft())); });
+
+	ui.menuOutputPostproc = new FocusableMenu(keyParent);
+	ui.menuOutputPostproc->useButtons();
+	ui.menuOutputPostproc->mapButtonBoxDefault();
+	keyParent->addDialog(_("Strip line &breaks"), ui.menuOutputPostproc, ui.postprocDialog);
+
+	// Magic to allow dialog to be used instead of menu on QToolButton
+	QMenu* stubMenu = new QMenu(ui.toolButtonOutputPostproc);
+	ui.toolButtonOutputPostproc->setMenu(stubMenu);
+	connect(stubMenu, &QMenu::aboutToShow, this, [this] { 
+		ui.menuOutputPostproc->execWithMenu(ui.postprocDialog);
+	});
+	connect(ui.postprocDialog, &QDialog::finished, this, [this, stubMenu] { 
+		// No amount of close(), hide(), class override will get rid of the
+		// invisible (and empty!) QMenu cleanly.  This works.
+		QKeyEvent * ev1 = new QKeyEvent(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier, "");
+		qApp->postEvent(stubMenu,(QEvent *)ev1);
+	});
+
+		FocusableMenu* menuFindReplace = new FocusableMenu(_("&Find and Replace"), keyParent);
+		ui.searchFrame->setKeyMenu(menuFindReplace);
+	ui.menuOutputFind = 
+	keyParent->addMenu(menuFindReplace);
+
+	ui.menuOutputUndo =
+	keyParent->addAction(_("&Undo"), &m_spell, &QtSpell::TextEditChecker::undo);
+	ui.menuOutputRedo =
+	keyParent->addAction(_("&Redo"), &m_spell, &QtSpell::TextEditChecker::redo);
+	keyParent->addAction(_("&Save"), this, [this] { save(); });
+	keyParent->addAction(_("&Clear output"), this, &OutputEditorText::clear);
+	keyParent->addAction(_("&Add &tab"), this, [this] { addTab(); });
+
 	connect(ui.menuOutputMode, &QMenu::triggered, this, &OutputEditorText::setInsertMode);
 	connect(ui.toolButtonOutputPostproc, &QToolButton::clicked, this, &OutputEditorText::filterBuffer);
 	connect(ui.actionOutputReplace, &QAction::toggled, ui.searchFrame, &SearchReplaceFrame::setVisible);
@@ -84,19 +126,23 @@ OutputEditorText::OutputEditorText() {
 	connect(&m_spell, &QtSpell::TextEditChecker::redoAvailable, ui.actionOutputRedo, &QAction::setEnabled);
 	connect(ConfigSettings::get<FontSetting>("customoutputfont"), &FontSetting::changed, this, &OutputEditorText::setFont);
 	connect(ConfigSettings::get<SwitchSetting>("systemoutputfont"), &SwitchSetting::changed, this, &OutputEditorText::setFont);
-	connect(ui.actionOutputPostprocDrawWhitespace, &QAction::toggled, [this] (bool active) { textEdit()->setDrawWhitespace(active); });
+	connect(ui.postprocDialogUi.checkBox_DrawWhitespace, &QCheckBox::toggled, [this] (bool active) { textEdit()->setDrawWhitespace(active); });
 	connect(ui.tabWidget, &QTabWidget::currentChanged, this, &OutputEditorText::tabChanged);
 	connect(ui.tabWidget, &QTabWidget::tabCloseRequested, this, &OutputEditorText::closeTab);
 	connect(ui.toolButtonAddTab, &QToolButton::clicked, this, [this] { addTab(); });
 
+	connect(ui.menuOutputFind, &QAction::triggered, this, [this] {ui.searchFrame->setVisible(true);} );
+	connect(&m_spell, &QtSpell::TextEditChecker::undoAvailable, ui.menuOutputUndo, &QAction::setEnabled);
+	connect(&m_spell, &QtSpell::TextEditChecker::redoAvailable, ui.menuOutputRedo, &QAction::setEnabled);
+
 	addTab();
 
-	ADD_SETTING(ActionSetting("keepdot", ui.actionOutputPostprocKeepEndMark, true));
-	ADD_SETTING(ActionSetting("keepquote", ui.actionOutputPostprocKeepQuote));
-	ADD_SETTING(ActionSetting("joinhyphen", ui.actionOutputPostprocJoinHyphen, true));
-	ADD_SETTING(ActionSetting("joinspace", ui.actionOutputPostprocCollapseSpaces, true));
-	ADD_SETTING(ActionSetting("keepparagraphs", ui.actionOutputPostprocKeepParagraphs, true));
-	ADD_SETTING(ActionSetting("drawwhitespace", ui.actionOutputPostprocDrawWhitespace));
+	ADD_SETTING(SwitchSetting("keepdot", ui.postprocDialogUi.checkBox_KeepEndMark, true));
+	ADD_SETTING(SwitchSetting("keepquote", ui.postprocDialogUi.checkBox_KeepQuote));
+	ADD_SETTING(SwitchSetting("joinhyphen", ui.postprocDialogUi.checkBox_JoinHyphen, true));
+	ADD_SETTING(SwitchSetting("joinspace", ui.postprocDialogUi.checkBox_CollapseSpaces, true));
+	ADD_SETTING(SwitchSetting("keepparagraphs", ui.postprocDialogUi.checkBox_KeepParagraphs, true));
+	ADD_SETTING(SwitchSetting("drawwhitespace", ui.postprocDialogUi.checkBox_DrawWhitespace));
 	ADD_SETTING(VarSetting<QStringList>("recenttxtitems"));
 
 	setFont();
@@ -146,7 +192,7 @@ void OutputEditorText::tabChanged(int) {
 		} else if (!isModified && text.endsWith("*")) {
 			ui.tabWidget->setTabText(ui.tabWidget->currentIndex(), text.left(text.length() - 1));
 		}
-		edit->setDrawWhitespace(ui.actionOutputPostprocDrawWhitespace->isChecked());
+		edit->setDrawWhitespace(ui.postprocDialogUi.checkBox_DrawWhitespace->isChecked());
 		edit->setFocus();
 	}
 }
@@ -205,21 +251,21 @@ void OutputEditorText::filterBuffer() {
 		// Always remove trailing whitespace
 		txt.replace(QRegularExpression("\\s+$"), "");
 
-		if(ui.actionOutputPostprocJoinHyphen->isChecked()) {
+		if(ui.postprocDialogUi.checkBox_JoinHyphen->isChecked()) {
 			txt.replace(QRegularExpression("[-\u2014]\\s*\u2029\\s*"), "");
 		}
 		QString preChars, sucChars;
-		if(ui.actionOutputPostprocKeepParagraphs->isChecked()) {
+		if(ui.postprocDialogUi.checkBox_KeepParagraphs->isChecked()) {
 			preChars += "\u2029"; // Keep if preceded by line break
 		}
-		if(ui.actionOutputPostprocKeepEndMark->isChecked()) {
+		if(ui.postprocDialogUi.checkBox_KeepEndMark->isChecked()) {
 			preChars += "\\.\\?!"; // Keep if preceded by end mark (.?!)
 		}
-		if(ui.actionOutputPostprocKeepQuote->isChecked()) {
+		if(ui.postprocDialogUi.checkBox_KeepQuote->isChecked()) {
 			preChars += "'\"\u00BB\u00AB"; // Keep if preceded by quote
 			sucChars += "'\"\u00AB\u00BB"; // Keep if succeeded by quote
 		}
-		if(ui.actionOutputPostprocKeepParagraphs->isChecked()) {
+		if(ui.postprocDialogUi.checkBox_KeepParagraphs->isChecked()) {
 			sucChars += "\u2029"; // Keep if succeeded by line break
 		}
 		if(!preChars.isEmpty()) {
@@ -231,7 +277,7 @@ void OutputEditorText::filterBuffer() {
 		QString expr = preChars + "\u2029" + sucChars;
 		txt.replace(QRegularExpression(expr), preChars.isEmpty() ? " " : "\\1 ");
 
-		if(ui.actionOutputPostprocCollapseSpaces->isChecked()) {
+		if(ui.postprocDialogUi.checkBox_CollapseSpaces->isChecked()) {
 			txt.replace(QRegularExpression("[ \t]+"), " ");
 		}
 		return true;
@@ -448,7 +494,7 @@ bool OutputEditorText::clear(bool hide) {
 	}
 
 	if(!changed.isEmpty()) {
-		QListWidget* list = new QListWidget();;
+		QListWidget* list = new QListWidget();
 		for(auto it = changed.begin(), itEnd = changed.end(); it != itEnd; ++it) {
 			QListWidgetItem* item = new QListWidgetItem(tabName(it.key()));
 			item->setCheckState(Qt::Checked);
@@ -456,11 +502,19 @@ bool OutputEditorText::clear(bool hide) {
 			list->addItem(item);
 		}
 		QDialogButtonBox* bbox = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Discard | QDialogButtonBox::Cancel);
-		QDialog dialog;
+		QDialog dialog(MAIN);
 		dialog.setLayout(new QVBoxLayout);
+		dialog.setModal(true);
 		dialog.layout()->addWidget(new QLabel(_("The following documents have unsaved changes. Which documents do you want to save before proceeding?")));
 		dialog.layout()->addWidget(list);
 		dialog.layout()->addWidget(bbox);
+
+		FocusableMenu::sequenceFocus(&dialog,list);
+		FocusableMenu *menu = new FocusableMenu(m_keyParent);
+		menu->useButtons();
+		menu->mapButtonBoxDefault();
+		menu->mapMenuName(_("Save"), _("&Save"));
+		menu->mapMenuName(_("Discard"), _("&Discard"));
 
 		connect(list, &QListWidget::itemChanged, [&](QListWidgetItem * item) { changed[item->data(Qt::UserRole).toInt()] = item->checkState() == Qt::Checked; });
 		connect(bbox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
@@ -469,7 +523,7 @@ bool OutputEditorText::clear(bool hide) {
 		int response = QDialogButtonBox::Cancel;
 		connect(bbox, &QDialogButtonBox::clicked, [&](QAbstractButton * button) { response = bbox->standardButton(button); dialog.accept(); });
 
-		dialog.exec();
+		menu->execWithMenu(&dialog);
 		if (response == QDialogButtonBox::Cancel) {
 			return false;
 		}
@@ -506,7 +560,11 @@ void OutputEditorText::prepareRecentMenu() {
 	int count = 0;
 	for(const QString& filename : ConfigSettings::get<VarSetting<QStringList>>("recenttxtitems")->getValue()) {
 		if(QFile(filename).exists()) {
-			QAction* action = new QAction(QFileInfo(filename).fileName(), m_recentMenu);
+			QAction* action = new QAction(
+				count >= 9 
+					? QString("     %1").arg(QFileInfo(filename).fileName())
+					: QString("[&%1] %2").arg(count+1).arg(QFileInfo(filename).fileName()), 
+					m_recentMenu);
 			action->setToolTip(filename);
 			connect(action, &QAction::triggered, this, [this, action] { open(action->toolTip()); });
 			m_recentMenu->addAction(action);

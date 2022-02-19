@@ -22,6 +22,7 @@
 #include "HOCRIndentedTextExporter.hh"
 #include "HOCRIndentedTextExportWidget.hh"
 #include "MainWindow.hh"
+#include "UiUtils.hh"
 #include "Displayer.hh"
 
 #include <QDesktopServices>
@@ -63,8 +64,10 @@ bool HOCRIndentedTextExporter::run(const HOCRDocument* hocrdocument, const QStri
 HOCRIndentedTextExportDialog::HOCRIndentedTextExportDialog(DisplayerToolHOCR* displayerTool, 
 	const HOCRDocument* hocrdocument, const HOCRPage* hocrpage, QWidget* parent)
 	: QDialog(parent) {
+	setModal(true);
 	setLayout(new QVBoxLayout);
 	m_widget = new HOCRIndentedTextExportWidget(displayerTool, hocrdocument, hocrpage);
+	FocusableMenu::sequenceFocus(this, m_widget->ui.checkBoxPreview);
 	layout()->addWidget(m_widget);
 
 	QDialogButtonBox* bbox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);

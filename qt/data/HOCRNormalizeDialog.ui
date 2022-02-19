@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>525</width>
-    <height>805</height>
+    <height>720</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,10 +20,10 @@
   <widget class="QGroupBox" name="normalize_0">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>-10</y>
+     <x>10</x>
+     <y>40</y>
      <width>501</width>
-     <height>191</height>
+     <height>131</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -42,7 +42,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>60</y>
+      <y>10</y>
       <width>121</width>
       <height>21</height>
      </rect>
@@ -50,38 +50,47 @@
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Font and font size for all children&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
+    <property name="accessibleName">
+     <string>Apply &amp;Font</string>
+    </property>
     <property name="text">
-     <string>Font</string>
+     <string>&amp;Font</string>
     </property>
    </widget>
    <widget class="QFontComboBox" name="preferredFont_0">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>60</y>
+      <y>10</y>
       <width>301</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="accessibleName">
+     <string>Font &amp;Name</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="normalizeFontSize_0">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>90</y>
+      <y>40</y>
       <width>121</width>
       <height>21</height>
      </rect>
     </property>
+    <property name="accessibleName">
+     <string>Apply &amp;Size</string>
+    </property>
     <property name="text">
-     <string>Font Size</string>
+     <string>Font &amp;Size</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="normalizeBBox_0">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>120</y>
+      <y>70</y>
       <width>111</width>
       <height>21</height>
      </rect>
@@ -90,7 +99,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale bounding box to exactly fit new font size. Center of left margin does not move.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Bounding Box</string>
+     <string>&amp;Bounding Box</string>
     </property>
    </widget>
    <widget class="QDialogButtonBox" name="buttonBoxApply_0">
@@ -109,40 +118,11 @@
      <set>QDialogButtonBox::Apply</set>
     </property>
    </widget>
-   <widget class="QLineEdit" name="title_0">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>20</y>
-      <width>411</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_0">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>20</y>
-      <width>59</width>
-      <height>15</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="text">
-     <string>#1: Title</string>
-    </property>
-   </widget>
    <widget class="QCheckBox" name="setBold_0">
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>90</y>
+      <y>40</y>
       <width>85</width>
       <height>21</height>
      </rect>
@@ -151,7 +131,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tri-state: set, clear, no change&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Bold</string>
+     <string>&amp;Bold</string>
     </property>
     <property name="tristate">
      <bool>true</bool>
@@ -161,7 +141,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>90</y>
+      <y>40</y>
       <width>85</width>
       <height>21</height>
      </rect>
@@ -170,30 +150,17 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tri-state: set, clear, no-change&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Italic</string>
+     <string>&amp;Italic</string>
     </property>
     <property name="tristate">
      <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QSpinBox" name="preferredSize_0">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>90</y>
-      <width>47</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>1</number>
     </property>
    </widget>
    <widget class="QCheckBox" name="trimHeight_0">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>120</y>
+      <y>70</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -202,14 +169,14 @@
      <string>Trim overheight words to font (heuristic)</string>
     </property>
     <property name="text">
-     <string>Trim Height</string>
+     <string>Trim &amp;Height</string>
     </property>
    </widget>
    <widget class="QPushButton" name="openSubst_0">
     <property name="geometry">
      <rect>
       <x>280</x>
-      <y>120</y>
+      <y>70</y>
       <width>111</width>
       <height>23</height>
      </rect>
@@ -218,20 +185,23 @@
      <string>Substitute Strings: opens string editor</string>
     </property>
     <property name="text">
-     <string>Substitute</string>
+     <string>Subs&amp;titutions</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applySubst_0">
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>120</y>
+      <y>70</y>
       <width>16</width>
       <height>21</height>
      </rect>
     </property>
     <property name="toolTip">
      <string>Automatically substitute strings</string>
+    </property>
+    <property name="accessibleName">
+     <string>Apply S&amp;ubstitutions</string>
     </property>
     <property name="text">
      <string/>
@@ -241,26 +211,55 @@
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>150</y>
+      <y>100</y>
       <width>121</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Sort by Position</string>
+     <string>Sort by &amp;Position</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applyFlatten_0">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>150</y>
+      <y>100</y>
       <width>85</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Flatten</string>
+     <string>&amp;Flatten</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="buttonApply_0">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>100</y>
+      <width>80</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>&amp;Apply 1</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="preferredSize_0">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>40</y>
+      <width>47</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="accessibleName">
+     <string>Font Si&amp;ze</string>
+    </property>
+    <property name="minimum">
+     <number>1</number>
     </property>
    </widget>
   </widget>
@@ -268,7 +267,7 @@
    <property name="geometry">
     <rect>
      <x>340</x>
-     <y>770</y>
+     <y>690</y>
      <width>166</width>
      <height>24</height>
     </rect>
@@ -286,6 +285,9 @@
      <height>21</height>
     </rect>
    </property>
+   <property name="focusPolicy">
+    <enum>Qt::NoFocus</enum>
+   </property>
    <property name="toolTip">
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Normalize all children to a single font and size and clean up other selected irregularities. The values are retained. There are 4 groups to use in different contexts.&lt;/p&gt;&lt;p&gt;Useful to align preview to image.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
@@ -293,13 +295,193 @@
     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;img src=&quot;:/extra-theme-icons/help-hint.png&quot;/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
   </widget>
+  <widget class="QLabel" name="labelTitle_0">
+   <property name="geometry">
+    <rect>
+     <x>50</x>
+     <y>10</y>
+     <width>31</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>Tit&amp;le</string>
+   </property>
+   <property name="buddy">
+    <cstring>title_0</cstring>
+   </property>
+  </widget>
+  <widget class="QLabel" name="labelTitle_1">
+   <property name="geometry">
+    <rect>
+     <x>50</x>
+     <y>180</y>
+     <width>31</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>Tit&amp;le</string>
+   </property>
+   <property name="buddy">
+    <cstring>title_1</cstring>
+   </property>
+  </widget>
+  <widget class="QLabel" name="labelTitle_2">
+   <property name="geometry">
+    <rect>
+     <x>50</x>
+     <y>350</y>
+     <width>31</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>Tit&amp;le</string>
+   </property>
+   <property name="buddy">
+    <cstring>title_2</cstring>
+   </property>
+  </widget>
+  <widget class="QLabel" name="labelTitle_3">
+   <property name="geometry">
+    <rect>
+     <x>50</x>
+     <y>520</y>
+     <width>31</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+   <property name="text">
+    <string>Tit&amp;le</string>
+   </property>
+   <property name="buddy">
+    <cstring>title_3</cstring>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_0">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>31</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>#&amp;1</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_1">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>180</y>
+     <width>31</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>#&amp;2</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_2">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>350</y>
+     <width>31</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>#&amp;3</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>520</y>
+     <width>31</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>#&amp;4</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="title_0">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>10</y>
+     <width>411</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="title_1">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>180</y>
+     <width>411</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="title_2">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>350</y>
+     <width>411</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="title_3">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>520</y>
+     <width>411</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   </property>
+  </widget>
   <widget class="QGroupBox" name="normalize_1">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>180</y>
+     <x>10</x>
+     <y>210</y>
      <width>501</width>
-     <height>191</height>
+     <height>131</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -318,7 +500,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>60</y>
+      <y>10</y>
       <width>121</width>
       <height>21</height>
      </rect>
@@ -326,38 +508,47 @@
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Font and font size for all children&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
+    <property name="accessibleName">
+     <string>Apply &amp;Font</string>
+    </property>
     <property name="text">
-     <string>Font</string>
+     <string>&amp;Font</string>
     </property>
    </widget>
    <widget class="QFontComboBox" name="preferredFont_1">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>60</y>
+      <y>10</y>
       <width>301</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="accessibleName">
+     <string>Font &amp;Name</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="normalizeFontSize_1">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>90</y>
+      <y>40</y>
       <width>121</width>
       <height>21</height>
      </rect>
     </property>
+    <property name="accessibleName">
+     <string>Apply &amp;Size</string>
+    </property>
     <property name="text">
-     <string>Font Size</string>
+     <string>Font &amp;Size</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="normalizeBBox_1">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>120</y>
+      <y>70</y>
       <width>111</width>
       <height>21</height>
      </rect>
@@ -366,7 +557,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale bounding box to exactly fit new font size. Center of left margin does not move.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Bounding Box</string>
+     <string>&amp;Bounding Box</string>
     </property>
    </widget>
    <widget class="QDialogButtonBox" name="buttonBoxApply_1">
@@ -385,40 +576,11 @@
      <set>QDialogButtonBox::Apply</set>
     </property>
    </widget>
-   <widget class="QLineEdit" name="title_1">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>20</y>
-      <width>411</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_1">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>20</y>
-      <width>59</width>
-      <height>15</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="text">
-     <string>#2: Title</string>
-    </property>
-   </widget>
    <widget class="QCheckBox" name="setBold_1">
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>90</y>
+      <y>40</y>
       <width>85</width>
       <height>21</height>
      </rect>
@@ -427,7 +589,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tri-state: set, clear, no change&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Bold</string>
+     <string>&amp;Bold</string>
     </property>
     <property name="tristate">
      <bool>true</bool>
@@ -437,7 +599,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>90</y>
+      <y>40</y>
       <width>85</width>
       <height>21</height>
      </rect>
@@ -446,30 +608,17 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tri-state: set, clear, no-change&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Italic</string>
+     <string>&amp;Italic</string>
     </property>
     <property name="tristate">
      <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QSpinBox" name="preferredSize_1">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>90</y>
-      <width>47</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>1</number>
     </property>
    </widget>
    <widget class="QCheckBox" name="trimHeight_1">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>120</y>
+      <y>70</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -478,30 +627,14 @@
      <string>Trim overheight words to font (heuristic)</string>
     </property>
     <property name="text">
-     <string>Trim Height</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="applySubst_1">
-    <property name="geometry">
-     <rect>
-      <x>260</x>
-      <y>120</y>
-      <width>16</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Automatically substitute strings</string>
-    </property>
-    <property name="text">
-     <string/>
+     <string>Trim &amp;Height</string>
     </property>
    </widget>
    <widget class="QPushButton" name="openSubst_1">
     <property name="geometry">
      <rect>
       <x>280</x>
-      <y>120</y>
+      <y>70</y>
       <width>111</width>
       <height>23</height>
      </rect>
@@ -510,43 +643,91 @@
      <string>Substitute Strings: opens string editor</string>
     </property>
     <property name="text">
-     <string>Substitute</string>
+     <string>Subs&amp;titutions</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applySubst_1">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>70</y>
+      <width>16</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Automatically substitute strings</string>
+    </property>
+    <property name="accessibleName">
+     <string>Apply S&amp;ubstitutions</string>
+    </property>
+    <property name="text">
+     <string/>
     </property>
    </widget>
    <widget class="QCheckBox" name="applySort_1">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>150</y>
+      <y>100</y>
       <width>121</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Sort by Position</string>
+     <string>Sort by &amp;Position</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applyFlatten_1">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>150</y>
+      <y>100</y>
       <width>85</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Flatten</string>
+     <string>&amp;Flatten</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="buttonApply_1">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>100</y>
+      <width>80</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>&amp;Apply 2</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="preferredSize_1">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>40</y>
+      <width>47</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="accessibleName">
+     <string>Font Si&amp;ze</string>
+    </property>
+    <property name="minimum">
+     <number>1</number>
     </property>
    </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_2">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>370</y>
+     <x>10</x>
+     <y>380</y>
      <width>501</width>
-     <height>191</height>
+     <height>131</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -565,7 +746,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>60</y>
+      <y>10</y>
       <width>121</width>
       <height>21</height>
      </rect>
@@ -573,38 +754,47 @@
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Font and font size for all children&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
+    <property name="accessibleName">
+     <string>Apply &amp;Font</string>
+    </property>
     <property name="text">
-     <string>Font</string>
+     <string>&amp;Font</string>
     </property>
    </widget>
    <widget class="QFontComboBox" name="preferredFont_2">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>60</y>
+      <y>10</y>
       <width>301</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="accessibleName">
+     <string>Font &amp;Name</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="normalizeFontSize_2">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>90</y>
+      <y>40</y>
       <width>121</width>
       <height>21</height>
      </rect>
     </property>
+    <property name="accessibleName">
+     <string>Apply &amp;Size</string>
+    </property>
     <property name="text">
-     <string>Font Size</string>
+     <string>Font &amp;Size</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="normalizeBBox_2">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>120</y>
+      <y>70</y>
       <width>111</width>
       <height>21</height>
      </rect>
@@ -613,7 +803,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale bounding box to exactly fit new font size. Center of left margin does not move.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Bounding Box</string>
+     <string>&amp;Bounding Box</string>
     </property>
    </widget>
    <widget class="QDialogButtonBox" name="buttonBoxApply_2">
@@ -632,40 +822,11 @@
      <set>QDialogButtonBox::Apply</set>
     </property>
    </widget>
-   <widget class="QLineEdit" name="title_2">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>20</y>
-      <width>411</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>20</y>
-      <width>59</width>
-      <height>15</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="text">
-     <string>#3: Title</string>
-    </property>
-   </widget>
    <widget class="QCheckBox" name="setBold_2">
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>90</y>
+      <y>40</y>
       <width>85</width>
       <height>21</height>
      </rect>
@@ -674,7 +835,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tri-state: set, clear, no change&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Bold</string>
+     <string>&amp;Bold</string>
     </property>
     <property name="tristate">
      <bool>true</bool>
@@ -684,7 +845,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>90</y>
+      <y>40</y>
       <width>85</width>
       <height>21</height>
      </rect>
@@ -693,30 +854,17 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tri-state: set, clear, no-change&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Italic</string>
+     <string>&amp;Italic</string>
     </property>
     <property name="tristate">
      <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QSpinBox" name="preferredSize_2">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>90</y>
-      <width>47</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>1</number>
     </property>
    </widget>
    <widget class="QCheckBox" name="trimHeight_2">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>120</y>
+      <y>70</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -725,30 +873,14 @@
      <string>Trim overheight words to font (heuristic)</string>
     </property>
     <property name="text">
-     <string>Trim Height</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="applySubst_2">
-    <property name="geometry">
-     <rect>
-      <x>260</x>
-      <y>120</y>
-      <width>16</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Automatically substitute strings</string>
-    </property>
-    <property name="text">
-     <string/>
+     <string>Trim &amp;Height</string>
     </property>
    </widget>
    <widget class="QPushButton" name="openSubst_2">
     <property name="geometry">
      <rect>
       <x>280</x>
-      <y>120</y>
+      <y>70</y>
       <width>111</width>
       <height>23</height>
      </rect>
@@ -757,43 +889,91 @@
      <string>Substitute Strings: opens string editor</string>
     </property>
     <property name="text">
-     <string>Substitute</string>
+     <string>Subs&amp;titutions</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applySubst_2">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>70</y>
+      <width>16</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Automatically substitute strings</string>
+    </property>
+    <property name="accessibleName">
+     <string>Apply S&amp;ubstitutions</string>
+    </property>
+    <property name="text">
+     <string/>
     </property>
    </widget>
    <widget class="QCheckBox" name="applySort_2">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>150</y>
+      <y>100</y>
       <width>121</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Sort by Position</string>
+     <string>Sort by &amp;Position</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applyFlatten_2">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>150</y>
+      <y>100</y>
       <width>85</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Flatten</string>
+     <string>&amp;Flatten</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="buttonApply_2">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>100</y>
+      <width>80</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>&amp;Apply 3</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="preferredSize_2">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>40</y>
+      <width>47</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="accessibleName">
+     <string>Font Si&amp;ze</string>
+    </property>
+    <property name="minimum">
+     <number>1</number>
     </property>
    </widget>
   </widget>
   <widget class="QGroupBox" name="normalize_3">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>560</y>
+     <x>10</x>
+     <y>550</y>
      <width>501</width>
-     <height>191</height>
+     <height>131</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -812,7 +992,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>60</y>
+      <y>10</y>
       <width>121</width>
       <height>21</height>
      </rect>
@@ -820,38 +1000,47 @@
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Font and font size for all children&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
+    <property name="accessibleName">
+     <string>Apply &amp;Font</string>
+    </property>
     <property name="text">
-     <string>Font</string>
+     <string>&amp;Font</string>
     </property>
    </widget>
    <widget class="QFontComboBox" name="preferredFont_3">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>60</y>
+      <y>10</y>
       <width>301</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="accessibleName">
+     <string>Font &amp;Name</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="normalizeFontSize_3">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>90</y>
+      <y>40</y>
       <width>121</width>
       <height>21</height>
      </rect>
     </property>
+    <property name="accessibleName">
+     <string>Apply &amp;Size</string>
+    </property>
     <property name="text">
-     <string>Font Size</string>
+     <string>Font &amp;Size</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="normalizeBBox_3">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>120</y>
+      <y>70</y>
       <width>111</width>
       <height>21</height>
      </rect>
@@ -860,7 +1049,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale bounding box to exactly fit new font size. Center of left margin does not move.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Bounding Box</string>
+     <string>&amp;Bounding Box</string>
     </property>
    </widget>
    <widget class="QDialogButtonBox" name="buttonBoxApply_3">
@@ -879,40 +1068,11 @@
      <set>QDialogButtonBox::Apply</set>
     </property>
    </widget>
-   <widget class="QLineEdit" name="title_3">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>20</y>
-      <width>411</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_3">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>20</y>
-      <width>59</width>
-      <height>15</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Your name for this preference&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="text">
-     <string>#4: Title</string>
-    </property>
-   </widget>
    <widget class="QCheckBox" name="setBold_3">
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>90</y>
+      <y>40</y>
       <width>85</width>
       <height>21</height>
      </rect>
@@ -921,7 +1081,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tri-state: set, clear, no change&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Bold</string>
+     <string>&amp;Bold</string>
     </property>
     <property name="tristate">
      <bool>true</bool>
@@ -931,7 +1091,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>90</y>
+      <y>40</y>
       <width>85</width>
       <height>21</height>
      </rect>
@@ -940,30 +1100,17 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tri-state: set, clear, no-change&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Italic</string>
+     <string>&amp;Italic</string>
     </property>
     <property name="tristate">
      <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QSpinBox" name="preferredSize_3">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>90</y>
-      <width>47</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>1</number>
     </property>
    </widget>
    <widget class="QCheckBox" name="trimHeight_3">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>120</y>
+      <y>70</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -972,30 +1119,14 @@
      <string>Trim overheight words to font (heuristic)</string>
     </property>
     <property name="text">
-     <string>Trim Height</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="applySubst_3">
-    <property name="geometry">
-     <rect>
-      <x>260</x>
-      <y>120</y>
-      <width>16</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>Automatically substitute strings</string>
-    </property>
-    <property name="text">
-     <string/>
+     <string>Trim &amp;Height</string>
     </property>
    </widget>
    <widget class="QPushButton" name="openSubst_3">
     <property name="geometry">
      <rect>
       <x>280</x>
-      <y>120</y>
+      <y>70</y>
       <width>111</width>
       <height>23</height>
      </rect>
@@ -1004,72 +1135,149 @@
      <string>Substitute Strings: opens string editor</string>
     </property>
     <property name="text">
-     <string>Substitute</string>
+     <string>Subs&amp;titutions</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="applySubst_3">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>70</y>
+      <width>16</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Automatically substitute strings</string>
+    </property>
+    <property name="accessibleName">
+     <string>Apply S&amp;ubstitutions</string>
+    </property>
+    <property name="text">
+     <string/>
     </property>
    </widget>
    <widget class="QCheckBox" name="applySort_3">
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>150</y>
+      <y>100</y>
       <width>121</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Sort by Position</string>
+     <string>Sort by &amp;Position</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="applyFlatten_3">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>150</y>
+      <y>100</y>
       <width>85</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Flatten</string>
+     <string>&amp;Flatten</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="buttonApply_3">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>100</y>
+      <width>80</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>&amp;Apply 4</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="preferredSize_3">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>40</y>
+      <width>47</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="accessibleName">
+     <string>Font Si&amp;ze</string>
+    </property>
+    <property name="minimum">
+     <number>1</number>
     </property>
    </widget>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>pushButton_0</tabstop>
+  <tabstop>title_0</tabstop>
+  <tabstop>normalizeFont_0</tabstop>
+  <tabstop>preferredFont_0</tabstop>
+  <tabstop>normalizeFontSize_0</tabstop>
+  <tabstop>preferredSize_0</tabstop>
+  <tabstop>setBold_0</tabstop>
+  <tabstop>setItalic_0</tabstop>
+  <tabstop>normalizeBBox_0</tabstop>
+  <tabstop>trimHeight_0</tabstop>
+  <tabstop>applySubst_0</tabstop>
+  <tabstop>openSubst_0</tabstop>
+  <tabstop>applyFlatten_0</tabstop>
+  <tabstop>applySort_0</tabstop>
+  <tabstop>buttonApply_0</tabstop>
+  <tabstop>pushButton_1</tabstop>
+  <tabstop>title_1</tabstop>
+  <tabstop>normalizeFont_1</tabstop>
+  <tabstop>preferredFont_1</tabstop>
+  <tabstop>normalizeFontSize_1</tabstop>
+  <tabstop>preferredSize_1</tabstop>
+  <tabstop>setBold_1</tabstop>
+  <tabstop>setItalic_1</tabstop>
+  <tabstop>normalizeBBox_1</tabstop>
+  <tabstop>trimHeight_1</tabstop>
+  <tabstop>applySubst_1</tabstop>
+  <tabstop>openSubst_1</tabstop>
+  <tabstop>applyFlatten_1</tabstop>
+  <tabstop>applySort_1</tabstop>
+  <tabstop>buttonApply_1</tabstop>
+  <tabstop>pushButton_2</tabstop>
+  <tabstop>title_2</tabstop>
+  <tabstop>normalizeFont_2</tabstop>
+  <tabstop>preferredFont_2</tabstop>
+  <tabstop>normalizeFontSize_2</tabstop>
+  <tabstop>preferredSize_2</tabstop>
+  <tabstop>setBold_2</tabstop>
+  <tabstop>setItalic_2</tabstop>
+  <tabstop>normalizeBBox_2</tabstop>
+  <tabstop>trimHeight_2</tabstop>
+  <tabstop>applySubst_2</tabstop>
+  <tabstop>openSubst_2</tabstop>
+  <tabstop>applyFlatten_2</tabstop>
+  <tabstop>applySort_2</tabstop>
+  <tabstop>buttonApply_2</tabstop>
+  <tabstop>pushButton_3</tabstop>
+  <tabstop>title_3</tabstop>
+  <tabstop>normalizeFont_3</tabstop>
+  <tabstop>preferredFont_3</tabstop>
+  <tabstop>normalizeFontSize_3</tabstop>
+  <tabstop>preferredSize_3</tabstop>
+  <tabstop>setBold_3</tabstop>
+  <tabstop>setItalic_3</tabstop>
+  <tabstop>normalizeBBox_3</tabstop>
+  <tabstop>trimHeight_3</tabstop>
+  <tabstop>applySubst_3</tabstop>
+  <tabstop>openSubst_3</tabstop>
+  <tabstop>applyFlatten_3</tabstop>
+  <tabstop>applySort_3</tabstop>
+  <tabstop>buttonApply_3</tabstop>
+ </tabstops>
  <resources>
   <include location="gimagereader.qrc"/>
  </resources>
- <connections>
-  <connection>
-   <sender>buttonBoxApply_0</sender>
-   <signal>accepted()</signal>
-   <receiver>HOCRNormalizeDialog</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>157</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>buttonBoxApply_0</sender>
-   <signal>rejected()</signal>
-   <receiver>HOCRNormalizeDialog</receiver>
-   <slot>reject()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>286</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

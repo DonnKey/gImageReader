@@ -29,32 +29,34 @@
 #include "MainWindow.hh"
 #include "OutputTextEdit.hh"
 #include "SubstitutionsManager.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
-SubstitutionsManager::SubstitutionsManager(QString key, QWidget* parent)
+SubstitutionsManager::SubstitutionsManager(QString key, FocusableMenu* keyParent, QWidget* parent)
 	: QDialog(parent) {
+	setModal(true);
 	setWindowTitle(_("Substitutions"));
 
-	QAction* openAction = new QAction(QIcon::fromTheme("document-open"), _("Open"), this);
+	QAction* openAction = new QAction(QIcon::fromTheme("document-open"), _("&Open"), this);
 	openAction->setToolTip(_("Open"));
 
-	QAction* openAppendAction = new QAction(QIcon(":/icons/open-append"), _("Open Append"), this);
+	QAction* openAppendAction = new QAction(QIcon(":/icons/open-append"), _("Open A&ppend"), this);
 	openAppendAction->setToolTip(_("Open (append)"));
 
-	QAction* saveAction = new QAction(QIcon::fromTheme("document-save"), _("Save"), this);
+	QAction* saveAction = new QAction(QIcon::fromTheme("document-save"), _("&Save"), this);
 	saveAction->setToolTip(_("Save"));
 
-	QAction* clearAction = new QAction(QIcon::fromTheme("edit-clear"), _("Clear"), this);
+	QAction* clearAction = new QAction(QIcon::fromTheme("edit-clear"), _("&Clear"), this);
 	clearAction->setToolTip(_("Clear"));
 
-	QAction* addAction = new QAction(QIcon::fromTheme("list-add"), _("Add"), this);
+	QAction* addAction = new QAction(QIcon::fromTheme("list-add"), _("&Add"), this);
 	addAction->setToolTip(_("Add"));
 
-	m_removeAction = new QAction(QIcon::fromTheme("list-remove"), _("Remove"), this);
+	m_removeAction = new QAction(QIcon::fromTheme("list-remove"), _("&Remove"), this);
 	m_removeAction->setToolTip(_("Remove"));
 	m_removeAction->setEnabled(false);
 
-	QAction* sortAction = new QAction(QIcon::fromTheme("view-sort-ascending"), _("Sort"), this);
+	QAction* sortAction = new QAction(QIcon::fromTheme("view-sort-ascending"), _("So&rt"), this);
 	sortAction->setToolTip(_("Sort"));
 
 	QToolBar* toolbar = new QToolBar(this);
@@ -86,6 +88,11 @@ SubstitutionsManager::SubstitutionsManager(QString key, QWidget* parent)
 
 	setLayout(layout);
 
+	FocusableMenu::sequenceFocus(this,toolbar->widgetForAction(openAction));
+	m_menu = new FocusableMenu(keyParent);
+	m_menu->useButtons();
+	m_menu->mapButtonBoxDefault();
+
 	connect(openAction, &QAction::triggered, this, [this] () {openList(false);});
 	connect(openAppendAction, &QAction::triggered, this, [this] () {openList(true);});
 	connect(saveAction, &QAction::triggered, this, &SubstitutionsManager::saveList);
@@ -102,6 +109,10 @@ SubstitutionsManager::SubstitutionsManager(QString key, QWidget* parent)
 
 SubstitutionsManager::~SubstitutionsManager() {
 	ConfigSettings::get<TableSetting>("substitutionslist")->serialize();
+}
+
+void SubstitutionsManager::doShow() {
+	m_menu->execWithMenu(this);
 }
 
 void SubstitutionsManager::openList(bool append) {

@@ -29,19 +29,28 @@ class OutputTextEdit;
 class QTableWidget;
 class QKeyEvent;
 class QDialogButtonBox;
+class FocusableMenu;
 
 typedef QVector<Qt::Key> KeyString;
 
 class KeyEvent : public QKeyEvent {
 	// To identify our synthetic key events reliably (recursion breaker)
-	public:
-	KeyEvent(QEvent::Type ev, Qt::Key key, Qt::KeyboardModifiers modifiers, const QString& text) : QKeyEvent(ev, key, modifiers, text) {}
+public:
+	KeyEvent(QEvent::Type ev, Qt::Key key, Qt::KeyboardModifiers modifiers, const QString& text) : QKeyEvent(ev, key, modifiers, text) {
+		m_sequence = s_sequence++;
+	}
+	ulong sequence() {return m_sequence;}
+private:
+	// sequence serves instead of timestamp() because for this timestamp() always == 0
+	ulong m_sequence;
+	static ulong s_sequence;
 };
 
 class KeyMapManager : public QDialog {
 	Q_OBJECT
 public:
-	KeyMapManager(QWidget* parent = nullptr);
+	KeyMapManager(FocusableMenu *keyParent, QWidget* parent = nullptr);
+	void doShow();
 	void showCloseButton(bool show);
 	static void waitableStarted();
 	static void waitableDone();
@@ -61,6 +70,7 @@ private:
 	void awaitOneRelease();
 	void awaitMouseUp();
 	void awaitWaitable();
+	void reset();
 
 private:
 	QAction* m_removeAction;
@@ -68,9 +78,10 @@ private:
 	QTableWidget* m_tableWidget;
 	QDialogButtonBox* m_buttonBox;
 	ulong m_lastTimestamp;
+	FocusableMenu* m_menu;
 
 	int m_currentPosition;
-	KeyString *m_currentKeys;
+	KeyString *m_currentKeys = nullptr;
 	class KeyStackEntry {
 	public:
 		KeyStackEntry() : m_string(), m_pos() {}

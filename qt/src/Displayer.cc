@@ -23,6 +23,7 @@
 #include "DisplayRenderer.hh"
 #include "SourceManager.hh"
 #include "Utils.hh"
+#include "UiUtils.hh"
 #include "MainWindow.hh"
 #include "RecognitionMenu.hh"
 #include "OutputEditor.hh"
@@ -103,6 +104,7 @@ Displayer::Displayer(const UI_MainWindow& _ui, QWidget* parent)
 			ui.spinBoxPage->setValue(idx + 1);
 		}
 	});
+	connect(ui.listWidgetThumbnails, &QListWidget::clicked, [this]() { FocusableMenu::showFocusSet(ui.spinBoxPage); });
 	connect(ui.checkBoxThumbnails, &QCheckBox::toggled, this, &Displayer::thumbnailsToggled);
 	connect(ui.spinBoxPage, qOverload<int>(&QSpinBox::valueChanged), this, [this](int page) {
 		QSignalBlocker blocker(ui.listWidgetThumbnails);
@@ -147,6 +149,7 @@ bool Displayer::setSources(QList<Source*> sources) {
 	m_imageItem = nullptr;
 	ui.actionBestFit->setChecked(true);
 	ui.actionPage->setVisible(false);
+	ui.pageMenuAction->setVisible(false);
 	ui.spinBoxPage->blockSignals(true);
 	ui.spinBoxPage->setRange(1, 1);
 	ui.spinBoxPage->blockSignals(false);
@@ -202,6 +205,7 @@ bool Displayer::setSources(QList<Source*> sources) {
 	ui.spinBoxPage->setMaximum(page);
 	ui.spinBoxPage->blockSignals(false);
 	ui.actionPage->setVisible(page > 1);
+	ui.pageMenuAction->setVisible(page > 1);
 	m_imageItem = new QGraphicsPixmapItem();
 	m_imageItem->setTransformationMode(Qt::SmoothTransformation);
 	m_scene->addItem(m_imageItem);

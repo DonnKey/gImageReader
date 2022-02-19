@@ -41,6 +41,8 @@ public:
 	void setPreviewPage(const HOCRDocument* hocrdocument, const HOCRPage* hocrpage);
 	HOCRExporter::ExporterSettings& getSettings() const override;
 
+	friend class HOCRPdfExportDialog;
+
 signals:
 	void validChanged(bool valid);
 

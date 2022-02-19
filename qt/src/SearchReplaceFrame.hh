@@ -26,12 +26,14 @@
 #include <QFrame>
 
 class SubstitutionsManager;
+class FocusableMenu;
 
 class SearchReplaceFrame : public QFrame {
 	Q_OBJECT
 public:
-	explicit SearchReplaceFrame(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+	explicit SearchReplaceFrame(FocusableMenu* keyParent, QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
 	QToolButton* buttonReplaceAll() const { return ui.toolButtonReplaceAll; }
+	void setKeyMenu(FocusableMenu *menu);
 
 public slots:
 	void clear();
@@ -44,6 +46,7 @@ signals:
 	void findReplace(const QString& searchstr, const QString& replacestr, bool matchCase, bool backwards, bool replace);
 	void replaceAll(const QString& searchstr, const QString& replacestr, bool matchCase);
 	void applySubstitutions(const QMap<QString, QString>& substitutions, bool matchCase);
+	void reFocusTree();
 
 private:
 	Ui::SearchReplaceFrame ui;

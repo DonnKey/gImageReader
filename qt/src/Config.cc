@@ -21,6 +21,7 @@
 #include "ConfigSettings.hh"
 #include "LangTables.hh"
 #include "MainWindow.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
 #include <QDesktopServices>
@@ -48,8 +49,9 @@ const QMap<QString, QString> Config::LANG_LOOKUP = [] {
 const QMultiMap<QString, QString> Config::LANGUAGE_CULTURES = LangTables::languageCultures<QMultiMap<QString, QString>>();
 
 
-Config::Config(QWidget* parent)
+Config::Config(FocusableMenu* keyParent, QWidget* parent)
 	: QDialog(parent) {
+	setModal(true);
 	ui.setupUi(this);
 
 	ui.tableWidgetPredefLang->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -68,12 +70,27 @@ Config::Config(QWidget* parent)
 		ui.tableWidgetPredefLang->setItem(row, 2, new QTableWidgetItem(lang.name));
 	}
 
+	FocusableMenu::sequenceFocus(this, ui.pushButtonOutputFont);
+	keyParent->useButtons();
+	keyParent->mapButtonBoxDefault();
+
+	m_configMenu = new FocusableMenu(keyParent);
+	m_configMenu->useButtons();
+	m_configMenu->mapButtonBoxDefault();
+
+	m_fontDialog = new QFontDialog(parent); // For correct parent
+	m_fontDialog->setModal(true);
+	m_fontMenu = new FocusableMenu(keyParent);
+	m_fontMenu->useButtons();
+	m_fontMenu->mapButtonBoxDefault();
+	FocusableMenu::sequenceFocus(m_fontDialog, static_cast<QWidget*>(m_fontDialog->children().at(0)));
+
 	connect(ui.checkBoxDefaultOutputFont, &QCheckBox::toggled, ui.pushButtonOutputFont, &QPushButton::setDisabled);
-	connect(ui.pushButtonOutputFont, &QPushButton::clicked, &m_fontDialog, &QFontDialog::exec);
-	connect(&m_fontDialog, &QFontDialog::fontSelected, this, &Config::updateFontButton);
+	connect(ui.pushButtonOutputFont, &QPushButton::clicked, this, [this] { m_fontMenu->execWithMenu(m_fontDialog); });
+	connect(m_fontDialog, &QFontDialog::fontSelected, this, &Config::updateFontButton);
 	connect(ui.pushButtonAddLang, &QPushButton::clicked, this, &Config::toggleAddLanguage);
 	connect(ui.pushButtonRemoveLang, &QPushButton::clicked, this, &Config::removeLanguage);
-	connect(ui.pushButtonAddLangOk, &QPushButton::clicked, this, &Config::addLanguage);
+	connect(ui.pushButtonAddLangApply, &QPushButton::clicked, this, &Config::addLanguage);
 	connect(ui.pushButtonAddLangCancel, &QPushButton::clicked, this, &Config::toggleAddLanguage);
 	connect(ui.tableWidgetAdditionalLang->selectionModel(), &QItemSelectionModel::selectionChanged, this, &Config::langTableSelectionChanged);
 	connect(ui.buttonBox->button(QDialogButtonBox::Help), &QPushButton::clicked, MAIN, [] { MAIN->showHelp(); });
@@ -87,14 +104,14 @@ Config::Config(QWidget* parent)
 	ADD_SETTING(SwitchSetting("openafterexport", ui.checkBoxOpenAfterExport, false));
 	ADD_SETTING(TableSetting("customlangs", ui.tableWidgetAdditionalLang));
 	ADD_SETTING(SwitchSetting("systemoutputfont", ui.checkBoxDefaultOutputFont, true));
-	ADD_SETTING(FontSetting("customoutputfont", &m_fontDialog, QFont().toString()));
+	ADD_SETTING(FontSetting("customoutputfont", m_fontDialog, QFont().toString()));
 	ADD_SETTING(ComboSetting("textencoding", ui.comboBoxEncoding, 0));
 	ADD_SETTING(ComboSetting("datadirs", ui.comboBoxDataLocation, 0));
 	ADD_SETTING(VarSetting<QString>("sourcedir", Utils::documentsFolder()));
 	ADD_SETTING(VarSetting<QString>("outputdir", Utils::documentsFolder()));
 	ADD_SETTING(VarSetting<QString>("auxdir", Utils::documentsFolder()));
 
-	updateFontButton(m_fontDialog.currentFont());
+	updateFontButton(m_fontDialog->currentFont());
 }
 
 bool Config::searchLangSpec(Lang& lang) const {
@@ -121,7 +138,7 @@ QStringList Config::searchLangCultures(const QString& code) const {
 
 void Config::showDialog() {
 	toggleAddLanguage(true);
-	exec();
+	m_configMenu->execWithMenu(this);
 	ConfigSettings::get<TableSetting>("customlangs")->serialize();
 }
 
@@ -250,7 +267,7 @@ void Config::toggleAddLanguage(bool forceHide) {
 	if(addVisible) {
 		ui.pushButtonAddLang->setFocus();
 	} else {
-		ui.pushButtonAddLangOk->setFocus();
+		ui.pushButtonAddLangApply->setFocus();
 	}
 	ui.lineEditLangPrefix->setText("");
 	ui.lineEditLangPrefix->setStyleSheet("");

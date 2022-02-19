@@ -21,6 +21,9 @@
 #include "OutputTextEdit.hh"
 #include "SearchReplaceFrame.hh"
 #include "Ui_OutputEditorText.hh"
+#include "ui_OutputPostprocDialog.h"
+#include "MainWindow.hh"
+#include "UiUtils.hh"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -33,7 +36,7 @@
 #include <QVBoxLayout>
 #include <QWidgetAction>
 
-void UI_OutputEditorText::setupUi(QWidget* widget) {
+void UI_OutputEditorText::setupUi(QWidget* widget, FocusableMenu* keyParent) {
 	widget->setLayout(new QVBoxLayout());
 	widget->layout()->setContentsMargins(0, 0, 0, 0);
 	widget->layout()->setSpacing(0);
@@ -54,36 +57,10 @@ void UI_OutputEditorText::setupUi(QWidget* widget) {
 	menuOutputMode->addAction(actionOutputModeCursor);
 	menuOutputMode->addAction(actionOutputModeReplace);
 
-	// Output postprocessing
-	actionOutputPostprocTitle1 = new QAction(gettext("Keep line break if..."), widget);
-	actionOutputPostprocTitle1->setEnabled(false);
-	actionOutputPostprocKeepEndMark = new QAction(gettext("Preceded by end mark (.?!)"), widget);
-	actionOutputPostprocKeepEndMark->setCheckable(true);
-	actionOutputPostprocKeepQuote = new QAction(gettext("Preceded or succeeded by quote"), widget);
-	actionOutputPostprocKeepQuote->setCheckable(true);
-	actionOutputPostprocTitle2 = new QAction(gettext("Other options"), widget);
-	actionOutputPostprocTitle2->setEnabled(false);
-	actionOutputPostprocJoinHyphen = new QAction(gettext("Join hyphenated words"), widget);
-	actionOutputPostprocJoinHyphen->setCheckable(true);
-	actionOutputPostprocCollapseSpaces = new QAction(gettext("Collapse whitespace"), widget);
-	actionOutputPostprocCollapseSpaces->setCheckable(true);
-	actionOutputPostprocKeepParagraphs = new QAction(gettext("Preserve paragraphs"), widget);
-	actionOutputPostprocKeepParagraphs->setCheckable(true);
-	actionOutputPostprocTitle3 = new QAction(gettext("Visual aids"), widget);
-	actionOutputPostprocTitle3->setEnabled(false);
-	actionOutputPostprocDrawWhitespace = new QAction(gettext("Draw whitespace"), widget);
-	actionOutputPostprocDrawWhitespace->setCheckable(true);
-
-	menuOutputPostproc = new QMenu(widget);
-	menuOutputPostproc->addAction(actionOutputPostprocTitle1);
-	menuOutputPostproc->addAction(actionOutputPostprocKeepEndMark);
-	menuOutputPostproc->addAction(actionOutputPostprocKeepQuote);
-	menuOutputPostproc->addAction(actionOutputPostprocTitle2);
-	menuOutputPostproc->addAction(actionOutputPostprocJoinHyphen);
-	menuOutputPostproc->addAction(actionOutputPostprocCollapseSpaces);
-	menuOutputPostproc->addAction(actionOutputPostprocKeepParagraphs);
-	menuOutputPostproc->addAction(actionOutputPostprocTitle3);
-	menuOutputPostproc->addAction(actionOutputPostprocDrawWhitespace);
+	postprocDialog = new QDialog(MAIN);
+	postprocDialog->setModal(true);
+	postprocDialogUi.setupUi(postprocDialog);
+	FocusableMenu::sequenceFocus(postprocDialog, postprocDialogUi.checkBox_KeepEndMark);
 
 	// Output toolbar
 	toolButtonOutputMode = new QToolButton(widget);
@@ -97,7 +74,6 @@ void UI_OutputEditorText::setupUi(QWidget* widget) {
 	toolButtonOutputPostproc->setText(gettext("Strip Line Breaks"));
 	toolButtonOutputPostproc->setToolTip(gettext("Strip line breaks on selected text"));
 	toolButtonOutputPostproc->setPopupMode(QToolButton::MenuButtonPopup);
-	toolButtonOutputPostproc->setMenu(menuOutputPostproc);
 
 	actionOutputReplace = new QAction(QIcon::fromTheme("edit-find-replace"), gettext("Find and Replace"), widget);
 	actionOutputReplace->setToolTip(gettext("Find and replace"));
@@ -127,7 +103,7 @@ void UI_OutputEditorText::setupUi(QWidget* widget) {
 
 	widget->layout()->addWidget(toolBarOutput);
 
-	searchFrame = new SearchReplaceFrame(widget);
+	searchFrame = new SearchReplaceFrame(keyParent, widget);
 	searchFrame->setVisible(false);
 	widget->layout()->addWidget(searchFrame);
 

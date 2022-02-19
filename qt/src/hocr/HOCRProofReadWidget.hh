@@ -58,6 +58,7 @@ private:
 	QSpinBox* m_spinLinesBefore = nullptr;
 	QSpinBox* m_spinLinesAfter = nullptr;
 	QSpinBox* m_gapWidth = nullptr;
+	QToolButton* m_settingsButton = nullptr;
 	int m_fontSizeDiff = 0;
 	bool m_enabled = false;
 	LineEdit *m_stub = nullptr;

@@ -23,6 +23,8 @@
 #include "common.hh"
 #include "OutputTextEdit.hh"
 #include "SearchReplaceFrame.hh"
+#include "ui_OutputPostprocDialog.h"
+
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -35,6 +37,8 @@
 #include <QVBoxLayout>
 #include <QWidgetAction>
 
+class FocusableMenu;
+
 class UI_OutputEditorText {
 public:
 	QAction* actionOutputModeAppend;
@@ -44,28 +48,25 @@ public:
 	QAction* actionOutputRedo;
 	QAction* actionOutputReplace;
 	QAction* actionOutputSave;
-	QAction* actionOutputPostprocTitle1;
-	QAction* actionOutputPostprocKeepEndMark;
-	QAction* actionOutputPostprocKeepQuote;
-	QAction* actionOutputPostprocTitle2;
-	QAction* actionOutputPostprocJoinHyphen;
-	QAction* actionOutputPostprocCollapseSpaces;
-	QAction* actionOutputPostprocKeepParagraphs;
-	QAction* actionOutputPostprocTitle3;
-	QAction* actionOutputPostprocDrawWhitespace;
 	QAction* actionOutputUndo;
 	QMenu* menuOutputMode;
-	QMenu* menuOutputPostproc;
+	FocusableMenu* menuOutputPostproc;
 	QTabWidget* tabWidget;
 	QToolBar* toolBarOutput;
 	QToolButton* toolButtonOpen;
 	QToolButton* toolButtonOutputMode;
 	QToolButton* toolButtonOutputPostproc;
 	QToolButton* toolButtonAddTab;
+	QAction* menuOutputFind;
+	QAction* menuOutputUndo;
+	QAction* menuOutputRedo;
 
 	SearchReplaceFrame* searchFrame;
 
-	void setupUi(QWidget* widget);
+	void setupUi(QWidget* widget, FocusableMenu* keyParent);
+
+	QDialog* postprocDialog;
+	Ui::OutputPostprocDialog postprocDialogUi;
 };
 
 #endif // UI_OUTPUTEDITORTEXT_HH

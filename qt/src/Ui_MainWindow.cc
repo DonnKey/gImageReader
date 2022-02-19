@@ -18,9 +18,12 @@
  */
 
 #include "common.hh"
+#include "HOCRBatchExportDialog.hh"
+#include "MainWindow.hh"
 #include "ui_MainWindow.h"
 #include "Ui_MainWindow.hh"
-#include "MainWindow.hh"
+
+#include <QDebug>
 #include <QDoubleSpinBox>
 #include <QMenu>
 #include <QWidgetAction>
@@ -49,9 +52,9 @@ void UI_MainWindow::setupUi(QMainWindow* mainWindow) {
 	layoutRotation->setContentsMargins(1, 1, 1, 1);
 	layoutRotation->setSpacing(0);
 
-	actionRotateCurrentPage = new QAction(QIcon(":/icons/rotate_page"), gettext("Rotate current page"), mainWindow);
-	actionRotateAllPages = new QAction(QIcon(":/icons/rotate_pages"), gettext("Rotate all pages"), mainWindow);
-	actionRotateAuto = new QAction(QIcon(":/icons/rotate_auto"), gettext("Auto rotate when recognizing"), mainWindow);
+	actionRotateCurrentPage = new QAction(QIcon(":/icons/rotate_page"), gettext("Rotate &current page"), mainWindow);
+	actionRotateAllPages = new QAction(QIcon(":/icons/rotate_pages"), gettext("Rotate &all pages"), mainWindow);
+	actionRotateAuto = new QAction(QIcon(":/icons/rotate_auto"), gettext("Auto rotate when &recognizing"), mainWindow);
 
 	menuRotation = new QMenu(mainWindow);
 	menuRotation->addAction(actionRotateCurrentPage);
@@ -151,32 +154,46 @@ void UI_MainWindow::setupUi(QMainWindow* mainWindow) {
 	toolBarMainSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 	toolBarMain->addWidget(toolBarMainSpacer);
 
+	toolButtonShortcutMenu = new QToolButton(mainWindow);
+	toolButtonShortcutMenu->setObjectName("Keys ToolButton");
+	toolButtonShortcutMenu->setText(_("&Key Access"));
+	toolButtonShortcutMenu->setPopupMode(QToolButton::InstantPopup);
+	toolButtonShortcutMenu->setAutoRaise(true);
+	toolButtonShortcutMenu->setToolTip(_("Keyboard shortcut access"));
+
+	menuTopLevelShortcut = new FocusableMenu("", toolButtonShortcutMenu);
+	menuTopLevelShortcut->setObjectName("Key Access");
+	toolButtonShortcutMenu->setMenu(menuTopLevelShortcut);
+	FocusableMenu* keyParent = menuTopLevelShortcut;
+
+	toolBarMain->addWidget(toolButtonShortcutMenu);
+
 	// KeyMap window
 	toolButtonEditKeyMap = new QToolButton(mainWindow);
 	toolButtonEditKeyMap->setAutoRaise(true);
 	toolButtonEditKeyMap->setIcon(QIcon::fromTheme("preferences-desktop-keyboard-symbolic.symbolic"));
 	toolButtonEditKeyMap->setPopupMode(QToolButton::InstantPopup);
-	toolButtonEditKeyMap->setToolTip("Map keys to actions");
+	toolButtonEditKeyMap->setToolTip(_("Map keys to actions"));
 	toolBarMain->addWidget(toolButtonEditKeyMap);
 
 	// App menu
-	menuAppMenu = new QMenu(mainWindow);
+	menuAppMenu = new FocusableMenu(keyParent);
 
-	actionRedetectLanguages = new QAction(QIcon::fromTheme("view-refresh"), gettext("Redetect Languages"), mainWindow);
+	actionRedetectLanguages = new QAction(QIcon::fromTheme("view-refresh"), gettext("&Redetect Languages"), mainWindow);
 	menuAppMenu->addAction(actionRedetectLanguages);
 
-	actionManageLanguages = new QAction(QIcon::fromTheme("applications-education-language"), gettext("Manage Languages"), mainWindow);
+	actionManageLanguages = new QAction(QIcon::fromTheme("applications-education-language"), gettext("&Manage Languages"), mainWindow);
 	menuAppMenu->addAction(actionManageLanguages);
 
-	actionPreferences = new QAction(QIcon::fromTheme("preferences-system"), gettext("Preferences"), mainWindow);
-	menuAppMenu->addAction(actionPreferences);
+	menuAppMenu->addDialog(QIcon::fromTheme("preferences-system"), gettext("&Preferences"),
+		[this, mainWindow] {static_cast<MainWindow*>(mainWindow)->showConfig();});
 
 	menuAppMenu->addSeparator();
 
-	actionHelp = new QAction(QIcon::fromTheme("help-contents"), gettext("Help"), mainWindow);
+	actionHelp = new QAction(QIcon::fromTheme("help-contents"), gettext("&Help"), mainWindow);
 	menuAppMenu->addAction(actionHelp);
 
-	actionAbout = new QAction(QIcon::fromTheme("help-about"), gettext("About"), mainWindow);
+	actionAbout = new QAction(QIcon::fromTheme("help-about"), gettext("&About"), mainWindow);
 	menuAppMenu->addAction(actionAbout);
 
 	// App menu button
@@ -184,6 +201,7 @@ void UI_MainWindow::setupUi(QMainWindow* mainWindow) {
 	toolButtonAppMenu->setIcon(QIcon::fromTheme("preferences-system"));
 	toolButtonAppMenu->setPopupMode(QToolButton::InstantPopup);
 	toolButtonAppMenu->setMenu(menuAppMenu);
+	toolButtonAppMenu->setToolTip(_("Application Preferences"));
 	toolBarMain->addWidget(toolButtonAppMenu);
 
 	// Sources toolbar
@@ -219,4 +237,46 @@ void UI_MainWindow::setupUi(QMainWindow* mainWindow) {
 	toolBarSources->addAction(actionSourceDelete);
 	toolBarSources->addAction(actionSourceClear);
 	static_cast<QVBoxLayout*>(tabSources->layout())->insertWidget(0, toolBarSources);
+
+	keyParent->addAction(_("Zoom &In"), [this] {actionZoomIn->trigger();});
+	keyParent->addAction(_("Zoom Ou&t"), [this] {actionZoomOut->trigger();});
+	keyParent->addAction(_("Original Si&ze"), [this] {actionOriginalSize->trigger();});
+	keyParent->addAction(_("&Best Fit"), [this] {actionBestFit->trigger();});
+	keyParent->addSeparator();
+	keyParent->addAction(_("Rotate &Left"), [this] {actionRotateLeft->trigger();});
+	keyParent->addAction(_("Rotate Rig&ht"), [this] {actionRotateRight->trigger();});
+	keyParent->addAction(_("Set Page rotation &mode"), [this] {
+		menuRotation->exec(toolButtonRotation->mapToGlobal(toolButtonRotation->geometry().bottomLeft()));});
+	keyParent->addAction(_("Set Page rotation &angle"), [this] {FocusableMenu::showFocusSet(spinBoxRotation);});
+	pageMenuAction = 
+	keyParent->addAction(_("&Page number"), [this] {FocusableMenu::showFocusSet(spinBoxPage);});
+		pageMenuAction->setVisible(false);
+	FocusableMenu* menuImageControls = new FocusableMenu(_("Image &Controls"), keyParent);
+		menuImageControls->addAction(_("&Brightness"), [this] {FocusableMenu::showFocusSet(spinBoxBrightness);});
+		menuImageControls->addAction(_("&Contrast"), [this] {FocusableMenu::showFocusSet(spinBoxContrast);});
+		menuImageControls->addAction(_("&Resolution"), [this] {FocusableMenu::showFocusSet(spinBoxResolution);});
+		menuImageControls->addCheckable(_("&Invert colors"), checkBoxInvertColors);
+		menuImageControls->addAction(_("C&lose"), [this] { widgetImageControls->setVisible(false); });
+	controlsMenuAction = 
+	keyParent->addMenu(menuImageControls);
+	autodetectMenuAction = 
+	keyParent->addAction(_("Auto-&Detect Layout"), [this] {actionAutodetectLayout->trigger();} );
+		autodetectMenuAction->setVisible(false);
+	keyParent->addAction(_("&Recognize"), [this] {toolButtonRecognize->click();});
+	keyParent->addAction(_("Lan&guages"), [this] {toolButtonLanguages->click();});
+	keyParent->addCheckable(_("Show O&utput Pane"), actionToggleOutputPane);
+
+	keyParent->addDialog(_("Batch &Export"), [this, keyParent] { MAIN->batchExport(keyParent); });
+
+	keyParent->addSeparator();
+	keyParent->addAction(_("Key Access"))->setEnabled(false);
+	keyParent->addDialog(_("Map &Keys"), [this, keyParent] { toolButtonEditKeyMap->click();});
+	keyParent->addDialog(_("Pre&ferences"), [this, keyParent] { toolButtonAppMenu->click();});
+
+	keyParent->addSeparator();
+	keyParent->addCheckable(_("Thumb&nails"), checkBoxThumbnails); 
+	menuSourcesShortcut = new FocusableMenu(_("&Sources"), keyParent);
+	menuOutputShortcut = new FocusableMenu(_("&Output"), keyParent);
+	keyParent->addMenu(menuSourcesShortcut);
+	keyParent->addMenu(menuOutputShortcut);
 }

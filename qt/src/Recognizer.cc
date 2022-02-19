@@ -40,6 +40,7 @@
 #include "OutputEditor.hh"
 #include "RecognitionMenu.hh"
 #include "Recognizer.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
 class Recognizer::ProgressMonitor : public MainWindow::ProgressMonitor {
@@ -67,27 +68,35 @@ public:
 };
 
 
-Recognizer::Recognizer(const UI_MainWindow& _ui) :
+Recognizer::Recognizer(const UI_MainWindow& _ui, FocusableMenu* keyParent) :
 	ui(_ui) {
-	QAction* currentPageAction = new QAction(_("Current Page"), this);
+	QAction* currentPageAction = new QAction(_("&Current Page"), this);
 	currentPageAction->setData(static_cast<int>(PageSelection::Current));
 
-	QAction* multiplePagesAction = new QAction(_("Multiple Pages..."), this);
-	multiplePagesAction->setData(static_cast<int>(PageSelection::Multiple));
+	m_menuPages = new FocusableMenu(ui.toolButtonRecognize);
+		m_menuPages->addAction(currentPageAction);
 
-	m_actionBatchMode = new QAction(_("Batch mode..."), this);
-	m_actionBatchMode->setData(static_cast<int>(PageSelection::Batch));
+		m_menuDialogPages = new FocusableMenu(keyParent);
+		m_menuDialogPages->useButtons();
+		m_menuDialogPages->mapButtonBoxDefault();
+		QAction* multiplePagesAction = 
+		m_menuPages->addDialog(_("&Multiple Pages..."), [this] {recognizeMultiplePages();} );
 
-	m_menuPages = new QMenu(ui.toolButtonRecognize);
-	m_menuPages->addAction(currentPageAction);
-	m_menuPages->addAction(multiplePagesAction);
-	m_menuPages->addAction(m_actionBatchMode);
+		m_menuDialogBatch = new FocusableMenu(keyParent);
+		m_menuDialogBatch->useButtons();
+		m_menuDialogBatch->mapButtonBoxDefault();
+		m_actionBatchMode = 
+		m_menuPages->addDialog(_("&Batch mode..."), [this] {recognizeBatch();} );
 
 	m_pagesDialog = new QDialog(MAIN);
 	m_pagesDialogUi.setupUi(m_pagesDialog);
+	m_pagesDialog->setModal(true);
+	FocusableMenu::sequenceFocus(m_pagesDialog, m_pagesDialogUi.lineEditPageRange);
 
 	m_batchDialog = new QDialog(MAIN);
 	m_batchDialogUi.setupUi(m_batchDialog);
+	m_batchDialog->setModal(true);
+	FocusableMenu::sequenceFocus(m_batchDialog, m_batchDialogUi.comboBoxExisting);
 	m_batchDialogUi.comboBoxExisting->addItem(_("Overwrite existing output"), BatchOverwriteOutput);
 	m_batchDialogUi.comboBoxExisting->addItem(_("Skip processing source"), BatchSkipSource);
 
@@ -95,8 +104,6 @@ Recognizer::Recognizer(const UI_MainWindow& _ui) :
 
 	connect(ui.toolButtonRecognize, &QToolButton::clicked, this, &Recognizer::recognizeButtonClicked);
 	connect(currentPageAction, &QAction::triggered, this, &Recognizer::recognizeCurrentPage);
-	connect(multiplePagesAction, &QAction::triggered, this, &Recognizer::recognizeMultiplePages);
-	connect(m_actionBatchMode, &QAction::triggered, this, &Recognizer::recognizeBatch);
 	connect(m_pagesDialogUi.lineEditPageRange, &QLineEdit::textChanged, this, &Recognizer::clearLineEditPageRangeStyle);
 	connect(MAIN->getRecognitionMenu(), &RecognitionMenu::languageChanged, this, &Recognizer::recognitionLanguageChanged);
 
@@ -140,7 +147,7 @@ QList<int> Recognizer::selectPages(bool& autodetectLayout) {
 	QRegularExpression validateRegEx("^[\\d,\\-\\s]+$");
 	QRegularExpressionMatch match;
 	QList<int> pages;
-	while(m_pagesDialog->exec() == QDialog::Accepted) {
+	while(m_menuDialogPages->execWithMenu(m_pagesDialog) == QDialog::Accepted) {
 		pages.clear();
 		QString text = m_pagesDialogUi.lineEditPageRange->text();
 		if((match = validateRegEx.match(text)).hasMatch()) {
@@ -184,6 +191,7 @@ void Recognizer::recognizeButtonClicked() {
 		ui.toolButtonRecognize->setCheckable(true);
 		ui.toolButtonRecognize->setChecked(true);
 		m_menuPages->popup(ui.toolButtonRecognize->mapToGlobal(QPoint(0, ui.toolButtonRecognize->height())));
+		m_menuPages->setFocus();
 		ui.toolButtonRecognize->setChecked(false);
 		ui.toolButtonRecognize->setCheckable(false);
 	}
@@ -344,7 +352,7 @@ void Recognizer::recognizeImage(const QImage& image, OutputDestination dest) {
 void Recognizer::recognizeBatch() {
 	m_batchDialogUi.checkBoxPrependPage->setVisible(MAIN->getDisplayer()->allowAutodetectOCRAreas());
 	m_batchDialogUi.checkBoxAutolayout->setVisible(MAIN->getDisplayer()->allowAutodetectOCRAreas());
-	if(m_batchDialog->exec() != QDialog::Accepted) {
+	if(m_menuDialogBatch->execWithMenu(m_batchDialog) != QDialog::Accepted) {
 		return;
 	}
 	BatchExistingBehaviour existingBehaviour = static_cast<BatchExistingBehaviour>(m_batchDialogUi.comboBoxExisting->currentData().toInt());

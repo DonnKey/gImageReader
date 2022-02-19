@@ -49,6 +49,9 @@
      <property name="text">
       <string>Existing output:</string>
      </property>
+     <property name="buddy">
+      <cstring>comboBoxExisting</cstring>
+     </property>
     </widget>
    </item>
    <item row="1" column="1">
@@ -91,6 +94,11 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>comboBoxExisting</tabstop>
+  <tabstop>checkBoxPrependPage</tabstop>
+  <tabstop>checkBoxAutolayout</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

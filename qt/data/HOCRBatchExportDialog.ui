@@ -22,7 +22,7 @@
     </widget>
    </item>
    <item row="3" column="1">
-    <widget class="QDialogButtonBox" name="buttonBox">
+    <widget class="KeyDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -31,8 +31,8 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="0" colspan="2">
-    <widget class="QTabWidget" name="tabWidget">
+   <item row="1" column="1">
+    <widget class="QTabWidget" name="batchTabWidget">
      <property name="currentIndex">
       <number>0</number>
      </property>
@@ -86,17 +86,29 @@
          <property name="text">
           <string>Group outputs of N lowest levels:</string>
          </property>
+         <property name="buddy">
+          <cstring>spinBoxExportLevel</cstring>
+         </property>
         </widget>
        </item>
        <item row="0" column="0">
         <widget class="QLabel" name="labelSourceFolder">
          <property name="text">
-          <string>Select source folder:</string>
+          <string>Select &amp;source folder:</string>
+         </property>
+         <property name="buddy">
+          <cstring>toolButtonSourceFolder</cstring>
          </property>
         </widget>
        </item>
        <item row="0" column="1">
         <widget class="QLineEdit" name="lineEditSourceFolder">
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
+         <property name="accessibleName">
+          <string> !Skip</string>
+         </property>
          <property name="readOnly">
           <bool>true</bool>
          </property>
@@ -104,16 +116,22 @@
        </item>
        <item row="0" column="2">
         <widget class="QToolButton" name="toolButtonSourceFolder">
+         <property name="toolTip">
+          <string>Search for source folder</string>
+         </property>
          <property name="icon">
           <iconset theme="folder-open">
-           <normaloff>.</normaloff>.</iconset>
+           <normaloff>../../../.designer/backup</normaloff>../../../.designer/backup</iconset>
          </property>
         </widget>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="labelFormat">
          <property name="text">
-          <string>Format:</string>
+          <string>&amp;Format:</string>
+         </property>
+         <property name="buddy">
+          <cstring>comboBoxFormat</cstring>
          </property>
         </widget>
        </item>
@@ -135,6 +153,22 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>KeyDialogButtonBox</class>
+   <extends>QDialogButtonBox</extends>
+   <header>UiUtils.hh</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>batchTabWidget</tabstop>
+  <tabstop>lineEditSourceFolder</tabstop>
+  <tabstop>toolButtonSourceFolder</tabstop>
+  <tabstop>comboBoxFormat</tabstop>
+  <tabstop>spinBoxExportLevel</tabstop>
+  <tabstop>treeViewInput</tabstop>
+  <tabstop>treeViewOutput</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

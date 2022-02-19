@@ -22,6 +22,7 @@
 #include "MainWindow.hh"
 #include "Displayer.hh"
 #include "OutputEditorHOCR.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 #include "SubstitutionsManager.hh"
 
@@ -96,9 +97,12 @@ class PreferenceChoice {
 	}
 };
 
-HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) : QDialog(MAIN->getDisplayer()) {
+HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(FocusableMenu* keyParent, HOCRNormalize* parent) : QDialog(MAIN->getDisplayer()) {
 	m_parent = parent;
 	ui.setupUi(this);
+	setModal(true);
+	FocusableMenu::sequenceFocus(this, ui.labelTitle_1);
+	m_menu = new FocusableMenu(keyParent);
 
 	// Group 0
 	PreferenceChoice *pref = m_parent->m_preferences[0] = new PreferenceChoice("0");
@@ -121,11 +125,12 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	connect(ui.preferredSize_0, qOverload<int>(&QSpinBox::valueChanged), this, [this] (int size) {fontSize(0, size, ui.preferredSize_0);} );
 	ADD_SETTING(SpinSetting("normalizePreferredSize_0", ui.preferredSize_0,8));
 
-	pref->m_subManager = new SubstitutionsManager("normalizesubst_0", this);
+	pref->m_subManager = new SubstitutionsManager("normalizesubst_0", keyParent, this);
 	connect(ui.openSubst_0, &QPushButton::clicked, this, [this] (bool) {openSubst(0);} );
 	connect(pref->m_subManager, &SubstitutionsManager::applySubstitutions, this, [this] (const QMap<QString, QString>& p) { applySubstitutionsToSelected(0, p);} );
+	connect(ui.pushButton_0, &QPushButton::clicked, this, [this] (bool) {setGroupActive(0);} );
 
-	connect(ui.buttonBoxApply_0->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this] {apply(0);} );
+	connect(ui.buttonApply_0, &QPushButton::clicked, this, [this] {apply(0);} );
 
 	// Group 1
 	pref = m_parent->m_preferences[1] = new PreferenceChoice("1");
@@ -148,11 +153,12 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	connect(ui.preferredSize_1, qOverload<int>(&QSpinBox::valueChanged), this, [this] (int size) {fontSize(1, size, ui.preferredSize_1);} );
 	ADD_SETTING(SpinSetting("normalizePreferredSize_1", ui.preferredSize_1,8));
 
-	pref->m_subManager = new SubstitutionsManager("normalizesubst_1", this);
+	pref->m_subManager = new SubstitutionsManager("normalizesubst_1", keyParent, this);
 	connect(ui.openSubst_1, &QPushButton::clicked, this, [this] (bool) {openSubst(1);} );
 	connect(pref->m_subManager, &SubstitutionsManager::applySubstitutions, this, [this] (const QMap<QString, QString>& p) { applySubstitutionsToSelected(1, p);} );
+	connect(ui.pushButton_1, &QPushButton::clicked, this, [this] (bool) {setGroupActive(1);} );
 
-	connect(ui.buttonBoxApply_1->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this] {apply(1);} );
+	connect(ui.buttonApply_1, &QPushButton::clicked, this, [this] {apply(1);} );
 
 	// Group 2
 	pref = m_parent->m_preferences[2] = new PreferenceChoice("2");
@@ -175,11 +181,12 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	connect(ui.preferredSize_2, qOverload<int>(&QSpinBox::valueChanged), this, [this] (int size) {fontSize(2, size, ui.preferredSize_2);} );
 	ADD_SETTING(SpinSetting("normalizePreferredSize_2", ui.preferredSize_2,8));
 
-	pref->m_subManager = new SubstitutionsManager("normalizesubst_2", this);
+	pref->m_subManager = new SubstitutionsManager("normalizesubst_2", keyParent, this);
 	connect(ui.openSubst_2, &QPushButton::clicked, this, [this] (bool) {openSubst(2);} );
 	connect(pref->m_subManager, &SubstitutionsManager::applySubstitutions, this, [this] (const QMap<QString, QString>& p) { applySubstitutionsToSelected(2, p);} );
+	connect(ui.pushButton_2, &QPushButton::clicked, this, [this] (bool) {setGroupActive(2);} );
 
-	connect(ui.buttonBoxApply_2->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this] {apply(2);} );
+	connect(ui.buttonApply_2, &QPushButton::clicked, this, [this] {apply(2);} );
 
 	// Group 3
 	pref = m_parent->m_preferences[3] = new PreferenceChoice("3");
@@ -202,19 +209,42 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	connect(ui.preferredSize_3, qOverload<int>(&QSpinBox::valueChanged), this, [this] (int size) {fontSize(3, size, ui.preferredSize_3);} );
 	ADD_SETTING(SpinSetting("normalizePreferredSize_3", ui.preferredSize_3,8));
 
-	pref->m_subManager = new SubstitutionsManager("normalizesubst_3", this);
+	pref->m_subManager = new SubstitutionsManager("normalizesubst_3", keyParent, this);
 	connect(ui.openSubst_3, &QPushButton::clicked, this, [this] (bool) {openSubst(3);} );
 	connect(pref->m_subManager, &SubstitutionsManager::applySubstitutions, this, [this] (const QMap<QString, QString>& p) { applySubstitutionsToSelected(3, p);} );
+	connect(ui.pushButton_3, &QPushButton::clicked, this, [this] (bool) {setGroupActive(3);} );
 
-	connect(ui.buttonBoxApply_3->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, [this] {apply(3);} );
+	connect(ui.buttonApply_3, &QPushButton::clicked, this, [this] {apply(3);} );
 
     // common
 	connect(ui.buttonBoxCancel, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	ADD_SETTING(VarSetting<int>("normalizePreference", 0));
+
+	int currentChoice = ConfigSettings::get<VarSetting<int>>("normalizePreference")->getValue();
+	setGroupActive(currentChoice);
 }
 
 void HOCRNormalize::HOCRNormalizeDialog::fontName(int index, const QFont& font, QFontComboBox *fontBox ) {
 	m_parent->m_preferences[index]->m_preferredFont = new QFont(font);
+}
+
+void HOCRNormalize::HOCRNormalizeDialog::setGroupActive(int index) {
+	m_menu->clear();
+	m_menu->showInMenu(ui.normalize_0, index == 0);
+	m_menu->showInMenu(ui.normalize_1, index == 1);
+	m_menu->showInMenu(ui.normalize_2, index == 2);
+	m_menu->showInMenu(ui.normalize_3, index == 3);
+	m_menu->showInMenu(ui.labelTitle_0, index == 0);
+	m_menu->showInMenu(ui.labelTitle_1, index == 1);
+	m_menu->showInMenu(ui.labelTitle_2, index == 2);
+	m_menu->showInMenu(ui.labelTitle_3, index == 3);
+	m_menu->showInMenu(ui.title_0, index == 0);
+	m_menu->showInMenu(ui.title_1, index == 1);
+	m_menu->showInMenu(ui.title_2, index == 2);
+	m_menu->showInMenu(ui.title_3, index == 3);
+
+	m_menu->useButtons();
+	m_menu->mapButtonBoxDefault();
 }
 
 void HOCRNormalize::HOCRNormalizeDialog::fontSize(int index, int size, QSpinBox *editBox) {
@@ -225,7 +255,7 @@ void HOCRNormalize::HOCRNormalizeDialog::openSubst(const int index) {
 	for (int i=0; i<4; i++) {
 		m_parent->m_preferences[i]->m_subManager->hide();
 	}
-	m_parent->m_preferences[index]->m_subManager->show();
+	m_parent->m_preferences[index]->m_subManager->doShow();
 	m_parent->m_preferences[index]->m_subManager->raise();
 }
 
@@ -242,17 +272,17 @@ void HOCRNormalize::HOCRNormalizeDialog::apply(const int index) {
 	close();
 }
 
-void HOCRNormalize::normalizeTree(HOCRDocument* hocrdocument, QList<HOCRItem*>* items) {
+void HOCRNormalize::normalizeTree(HOCRDocument* hocrdocument, QList<HOCRItem*>* items, FocusableMenu* keyParent) {
 	m_doc = hocrdocument;
 	m_items = items;
-	m_dialog = new HOCRNormalizeDialog(this);
+	m_dialog = new HOCRNormalizeDialog(keyParent,this);
 
-	m_dialog->exec();
+	m_dialog->m_menu->execWithMenu(m_dialog);
 }
 
 void HOCRNormalize::normalizeSingle(HOCRDocument* hocrdocument, const HOCRItem* item) {
 	m_doc = hocrdocument;
-	m_dialog = new HOCRNormalizeDialog(this);
+	m_dialog = new HOCRNormalizeDialog(nullptr,this);
 	int currentChoice = ConfigSettings::get<VarSetting<int>>("normalizePreference")->getValue();
 	// Don't substitute here... this is for add-word.
 	m_preferences[currentChoice]->m_substitutions = nullptr; 
@@ -260,7 +290,7 @@ void HOCRNormalize::normalizeSingle(HOCRDocument* hocrdocument, const HOCRItem* 
 }
 
 void HOCRNormalize::currentDefault(QString& title, int& number) {
-	m_dialog = new HOCRNormalizeDialog(this);
+	m_dialog = new HOCRNormalizeDialog(nullptr, this);
 	number = ConfigSettings::get<VarSetting<int>>("normalizePreference")->getValue();
 	title = m_preferences[number]->getTitle();
 	number++; // one-based to user

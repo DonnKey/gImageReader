@@ -42,6 +42,7 @@
 
 TessdataManager::TessdataManager(QWidget* parent)
 	: QDialog(parent) {
+	setModal(true);
 	setWindowTitle(_("Tessdata Manager"));
 	setLayout(new QVBoxLayout());
 	layout()->addWidget(new QLabel(_("Manage installed languages:")));

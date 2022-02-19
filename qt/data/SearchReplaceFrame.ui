@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string></string>
+   <string/>
   </property>
   <property name="frameShape">
    <enum>QFrame::StyledPanel</enum>
@@ -104,7 +104,7 @@
    <item row="2" column="0" colspan="4">
     <widget class="QCheckBox" name="checkBoxMatchCase">
      <property name="text">
-      <string>Match case</string>
+      <string>&amp;Match case</string>
      </property>
     </widget>
    </item>
@@ -112,9 +112,9 @@
  </widget>
  <tabstops>
   <tabstop>lineEditSearch</tabstop>
+  <tabstop>lineEditReplace</tabstop>
   <tabstop>toolButtonFindNext</tabstop>
   <tabstop>toolButtonFindPrev</tabstop>
-  <tabstop>lineEditReplace</tabstop>
   <tabstop>toolButtonReplace</tabstop>
   <tabstop>toolButtonReplaceAll</tabstop>
   <tabstop>checkBoxMatchCase</tabstop>

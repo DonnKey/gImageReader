@@ -47,6 +47,7 @@
 #include "ConfigSettings.hh"
 #include "FileDialogs.hh"
 #include "FileTreeModel.hh"
+#include "UiUtils.hh"
 #include "MainWindow.hh"
 #include "SourceManager.hh"
 #include "Utils.hh"
@@ -57,7 +58,7 @@ Source::~Source() {
 	}
 }
 
-SourceManager::SourceManager(const UI_MainWindow& _ui)
+SourceManager::SourceManager(const UI_MainWindow& _ui, FocusableMenu *keyParent)
 	: ui(_ui) {
 	m_recentMenu = new QMenu(MAIN);
 	ui.toolButtonSourceAdd->setMenu(m_recentMenu);
@@ -73,10 +74,27 @@ SourceManager::SourceManager(const UI_MainWindow& _ui)
 
 	ui.actionSourcePaste->setEnabled(!QApplication::clipboard()->pixmap().isNull());
 
+	FocusableMenu *menuFilesShortcut = new FocusableMenu(_("&Files"), keyParent);
+	keyParent->addMenu(menuFilesShortcut, [this] { FocusableMenu::showFocusSet(ui.tabWidget, 0);} );
+	menuFilesShortcut->addFileDialog(_("Add &Images"), [this] {openSources(); return true;} );
+	menuFilesShortcut->addAction(_("Open &Recent"),
+		[this]() {
+		m_recentMenu->setFocus(); // this must come first!
+		m_recentMenu->exec(ui.toolButtonSourceAdd->mapToGlobal(ui.toolButtonSourceAdd->geometry().bottomLeft()));
+		});
+	menuFilesShortcut->addFileDialog(_("&Open Folder"), [this] () { addFolder(); return true;});
+	menuFilesShortcut->addAction(_("&Paste"), this, &SourceManager::pasteClipboard);
+	menuFilesShortcut->addAction(_("Take &Snapshot"), this, &SourceManager::takeScreenshot);
+	menuFilesShortcut->addAction(_("Re&move from list"), this, &SourceManager::removeSource);
+	menuFilesShortcut->addAction(_("&Delete Image"), this, &SourceManager::deleteSource);
+	menuFilesShortcut->addAction(_("&Clear"), this, &SourceManager::clearSources);
+
 	connect(ui.actionSources, &QAction::toggled, ui.dockWidgetSources, &QDockWidget::setVisible);
-	connect(ui.toolButtonSourceAdd, &QToolButton::clicked, this, &SourceManager::openSources);
+	connect(ui.toolButtonSourceAdd, &QToolButton::clicked, this, 
+		[this, keyParent]() { FocusableMenu::showFileDialogMenu(keyParent, [this]{SourceManager::openSources(); return true;}); });
 	connect(m_recentMenu, &QMenu::aboutToShow, this, &SourceManager::prepareRecentMenu);
-	connect(ui.actionSourceFolder, &QAction::triggered, this, &SourceManager::addFolder);
+	connect(ui.actionSourceFolder, &QAction::triggered, this, 
+		[this, keyParent]() { FocusableMenu::showFileDialogMenu(keyParent, [this]{SourceManager::addFolder(); return true;}); });
 	connect(ui.actionSourcePaste, &QAction::triggered, this, &SourceManager::pasteClipboard);
 	connect(ui.actionSourceScreenshot, &QAction::triggered, this, &SourceManager::takeScreenshot);
 	connect(ui.actionSourceRemove, &QAction::triggered, this, &SourceManager::removeSource);
@@ -265,10 +283,11 @@ void SourceManager::prepareRecentMenu() {
 	int count = 0;
 	for(const QString& filename : ConfigSettings::get<VarSetting<QStringList>>("recentitems")->getValue()) {
 		if(QFile(filename).exists()) {
-			QAction* action = new QAction(QFileInfo(filename).fileName(), m_recentMenu);
-			action->setToolTip(filename);
-			connect(action, &QAction::triggered, this, &SourceManager::openRecentItem);
-			m_recentMenu->addAction(action);
+			QAction* action = m_recentMenu->addAction(
+				count >= 9 
+					? QString("     %1").arg(QFileInfo(filename).fileName())
+					: QString("[&%1] %2").arg(count+1).arg(QFileInfo(filename).fileName()), 
+				[this, filename]() {openRecentItem(filename);});
 			if(++count >= sMaxNumRecent) {
 				break;
 			}
@@ -292,7 +311,7 @@ void SourceManager::openSources() {
 	formats.insert("*.pdf");
 	formats.insert("*.djvu");
 	QString filter = QString("%1 (%2)").arg(_("Images and PDFs")).arg(QStringList(formats.values()).join(" "));
-	addSources(FileDialogs::openDialog(_("Select Files"), initialFolder, "sourcedir", filter, true));
+	addSources(FileDialogs::openDialog(_("Select Files"), initialFolder, "sourcedir", filter, true, MAIN->getDialogHost()));
 }
 
 void SourceManager::addFolder() {
@@ -302,7 +321,7 @@ void SourceManager::addFolder() {
 		initialFolder = QFileInfo(current.front()->path).absolutePath();
 	}
 
-	QString dir = QFileDialog::getExistingDirectory(MAIN, _("Select folder..."), initialFolder);
+	QString dir = QFileDialog::getExistingDirectory(MAIN->getDialogHost(), _("Select folder..."), initialFolder);
 	if(dir.isEmpty()) {
 		return;
 	}
@@ -326,8 +345,7 @@ void SourceManager::addFolder() {
 	}
 }
 
-void SourceManager::openRecentItem() {
-	const QString& filename = qobject_cast<QAction*>(QObject::sender())->toolTip();
+void SourceManager::openRecentItem(QString filename) {
 	addSources(QStringList() << filename);
 }
 

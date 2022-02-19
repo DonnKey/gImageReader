@@ -31,7 +31,7 @@
 RecognitionMenu::RecognitionMenu(QWidget* parent)
 	: QMenu(parent) {
 
-	m_charListDialog = new QDialog(this);
+	m_charListDialog = new QDialog(parent);
 	m_charListDialogUi.setupUi(m_charListDialog);
 
 	connect(m_charListDialogUi.radioButtonBlacklist, &QRadioButton::toggled, m_charListDialogUi.lineEditBlacklist, &QLineEdit::setEnabled);
@@ -153,7 +153,7 @@ void RecognitionMenu::rebuild() {
 	bool isMultilingual = false;
 	if(!availLanguages.isEmpty()) {
 		addSeparator();
-		m_multilingualAction = new QAction(_("Multilingual"), m_langMenuRadioGroup);
+		m_multilingualAction = new QAction(_("&Multilingual"), m_langMenuRadioGroup);
 		m_multilingualAction->setCheckable(true);
 		m_menuMultilanguage = new QMenu();
 		isMultilingual = curlang.prefix.contains('+');
@@ -204,15 +204,15 @@ void RecognitionMenu::rebuild() {
 		m_psmCheckGroup->addAction(item);
 	}
 
-	QAction* psmAction = new QAction(_("Page segmentation mode"), this);
+	QAction* psmAction = new QAction(_("Page &segmentation mode"), this);
 	psmAction->setMenu(psmMenu);
 	addAction(psmAction);
-	addAction(_("Character whitelist / blacklist..."), m_charListDialog, &QDialog::exec);
+	addAction(_("Character whitelist / &blacklist..."), m_charListDialog, &QDialog::exec);
 
 
 	// Add installer item
 	addSeparator();
-	addAction(_("Manage languages..."), MAIN, &MainWindow::manageLanguages);
+	addAction(_("Manage &languages..."), MAIN, &MainWindow::manageLanguages);
 }
 
 tesseract::PageSegMode RecognitionMenu::getPageSegmentationMode() const {

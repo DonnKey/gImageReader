@@ -31,13 +31,14 @@
 class QActionGroup;
 class UI_MainWindow;
 namespace Utils { class TesseractHandle; }
+class FocusableMenu;
 
 class Recognizer : public QObject {
 	Q_OBJECT
 public:
 	enum class OutputDestination { Buffer, Clipboard };
 
-	Recognizer(const UI_MainWindow& _ui);
+	Recognizer(const UI_MainWindow& _ui, FocusableMenu* keyParent);
 
 public slots:
 	void recognizeImage(const QImage& image, OutputDestination dest);
@@ -55,11 +56,13 @@ private:
 	enum BatchExistingBehaviour { BatchOverwriteOutput, BatchSkipSource };
 
 	const UI_MainWindow& ui;
-	QMenu* m_menuPages = nullptr;
+	FocusableMenu* m_menuPages = nullptr;
 	QAction* m_actionBatchMode = nullptr;
 	QDialog* m_pagesDialog;
+	FocusableMenu* m_menuDialogPages;
 	Ui::PageRangeDialog m_pagesDialogUi;
 	QDialog* m_batchDialog;
+	FocusableMenu* m_menuDialogBatch;
 	Ui::BatchModeDialog m_batchDialogUi;
 	QString m_modeLabel;
 	QString m_langLabel;

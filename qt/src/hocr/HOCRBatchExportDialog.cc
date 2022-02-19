@@ -36,14 +36,16 @@
 #include <QFileDialog>
 
 
-HOCRBatchExportDialog::HOCRBatchExportDialog(QWidget* parent)
+HOCRBatchExportDialog::HOCRBatchExportDialog(FocusableMenu* keyParent, QWidget* parent)
 	: QDialog(parent) {
 	ui.setupUi(this);
+	setModal(true);
+	FocusableMenu::sequenceFocus(this, ui.batchTabWidget);
 
 	ui.comboBoxFormat->addItem(_("PDF"), ExportPdf);
 	ui.comboBoxFormat->addItem(_("ODT"), ExportOdt);
 	ui.comboBoxFormat->addItem(_("Plain text"), ExportTxt);
-	ui.comboBoxFormat->addItem(_("Plain text (whitespace preserved)"), ExportIndentedTxt);
+	ui.comboBoxFormat->addItem(_("Text - whitespace preserved"), ExportIndentedTxt);
 	ui.comboBoxFormat->setCurrentIndex(-1);
 
 	m_sourceTreeModel = new FileTreeModel(this);
@@ -56,11 +58,12 @@ HOCRBatchExportDialog::HOCRBatchExportDialog(QWidget* parent)
 	ui.treeViewOutput->header()->hideSection(1);
 
 	ui.progressBar->hide();
-	ui.tabWidget->setTabEnabled(1, false);
+	ui.batchTabWidget->setTabEnabled(1,false);
 
 	m_previewTimer.setSingleShot(true);
 
-	connect(ui.toolButtonSourceFolder, &QToolButton::clicked, this, &HOCRBatchExportDialog::setSourceFolder);
+	connect(ui.toolButtonSourceFolder, &QToolButton::clicked, this,
+		[this, keyParent]() { FocusableMenu::showFileDialogMenu(keyParent, [this]{setSourceFolder(); return true;}); });
 	connect(ui.comboBoxFormat, qOverload<int>(&QComboBox::currentIndexChanged), this, &HOCRBatchExportDialog::setExportFormat);
 	connect(ui.spinBoxExportLevel, qOverload<int>(&QSpinBox::valueChanged), this, &HOCRBatchExportDialog::updateOutputTree);
 	connect(ui.buttonBox->button(QDialogButtonBox::Apply), &QAbstractButton::clicked, this, &HOCRBatchExportDialog::apply);
@@ -78,7 +81,7 @@ void HOCRBatchExportDialog::setSourceFolder() {
 	if (initialFolder.isEmpty()) {
 		initialFolder = Utils::documentsFolder();
 	}
-	QString dir = QFileDialog::getExistingDirectory(MAIN, _("Select folder..."), initialFolder);
+	QString dir = QFileDialog::getExistingDirectory(MAIN->getDialogHost(), _("Select folder..."), initialFolder);
 	if(dir.isEmpty()) {
 		return;
 	}
@@ -111,13 +114,13 @@ void HOCRBatchExportDialog::setExportFormat() {
 	if(mode == ExportPdf) {
 		m_exporterWidget = new HOCRPdfExportWidget(editor->getTool());
 		ui.tabOptions->layout()->addWidget(m_exporterWidget);
-		ui.tabWidget->setTabEnabled(1,true);
+		ui.batchTabWidget->setTabEnabled(1,true);
 	} else if(mode == ExportIndentedTxt) {
 		m_exporterWidget = new HOCRIndentedTextExportWidget(editor->getTool());
 		ui.tabOptions->layout()->addWidget(m_exporterWidget);
-		ui.tabWidget->setTabEnabled(1,true);
+		ui.batchTabWidget->setTabEnabled(1,true);
 	} else {
-		ui.tabWidget->setTabEnabled(1,false);
+		ui.batchTabWidget->setTabEnabled(1,false);
 	}
 	updateOutputTree();
 }

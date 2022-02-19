@@ -25,6 +25,7 @@
 #include "ConfigSettings.hh"
 #include "FileDialogs.hh"
 #include "MainWindow.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
 #ifdef Q_OS_WIN32
@@ -33,7 +34,7 @@
 #include "scanner/ScannerSane.hh"
 #endif
 
-Acquirer::Acquirer(const UI_MainWindow& _ui)
+Acquirer::Acquirer(UI_MainWindow& _ui, FocusableMenu* keyParent)
 	: ui(_ui) {
 	ui.pushButtonScanCancel->setVisible(false);
 	ui.toolButtonScanDevicesRefresh->setEnabled(false);
@@ -46,10 +47,24 @@ Acquirer::Acquirer(const UI_MainWindow& _ui)
 	qRegisterMetaType<QList<Scanner::Device>>();
 	qRegisterMetaType<Scanner::State>();
 
+	FocusableMenu *menuAcquireShortcut = new FocusableMenu(_("&Acquire"), keyParent);
+	keyParent->addMenu(menuAcquireShortcut, [this] {FocusableMenu::showFocusSet(ui.tabWidget, 1);} );
+
+	menuAcquireShortcut->addAction(_("&Device"), [this]() { FocusableMenu::showFocusSet(ui.comboBoxScanDevice); });
+	menuAcquireShortcut->addAction(_("Refres&h"), this, &Acquirer::startDetectDevices);
+	menuAcquireShortcut->addAction(_("Output &File"), [this]() { FocusableMenu::showFocusSet(ui.lineEditScanOutput); });
+	menuAcquireShortcut->addFileDialog(_("Open &Output"), [this] () { selectOutputPath(); return true; });
+	menuAcquireShortcut->addAction(_("&Mode"), [this]() { FocusableMenu::showFocusSet(ui.comboBoxScanMode); });
+	menuAcquireShortcut->addAction(_("&Resolution"), [this]() { FocusableMenu::showFocusSet(ui.comboBoxScanResolution); });
+	menuAcquireShortcut->addAction(_("So&urce"), [this]() { FocusableMenu::showFocusSet(ui.comboBoxScanSource); });
+	ui.startScanAction = menuAcquireShortcut->addAction(_("&Scan"), this, &Acquirer::startScan);
+	ui.startScanAction->setEnabled(false);
+
 	connect(ui.toolButtonScanDevicesRefresh, &QToolButton::clicked, this, &Acquirer::startDetectDevices);
 	connect(ui.pushButtonScan, &QPushButton::clicked, this, &Acquirer::startScan);
 	connect(ui.pushButtonScanCancel, &QPushButton::clicked, this, &Acquirer::cancelScan);
-	connect(ui.toolButtonScanOutput, &QToolButton::clicked, this, &Acquirer::selectOutputPath);
+	connect(ui.toolButtonScanOutput, &QToolButton::clicked, this, 
+		[this, keyParent]() { FocusableMenu::showFileDialogMenu(keyParent, [this]{Acquirer::selectOutputPath(); return true;}); });
 	connect(ui.comboBoxScanDevice, qOverload<int>(&QComboBox::currentIndexChanged), this, &Acquirer::setDeviceComboTooltip);
 	connect(m_scanner, &Scanner::initFailed, this, &Acquirer::scanInitFailed);
 	connect(m_scanner, &Scanner::devicesDetected, this, &Acquirer::doneDetectDevices);
@@ -83,7 +98,7 @@ void Acquirer::selectOutputPath() {
 		formats.insert(QString("*.%1").arg(QString(format).toLower()));
 	}
 	QString filter = QString("%1 (%2)").arg(_("Images")).arg(QStringList(formats.values()).join(" "));
-	QString filename = FileDialogs::saveDialog(_("Choose Output Filename..."), m_outputPath, "sourcedir", filter);
+	QString filename = FileDialogs::saveDialog(_("Choose Output Filename..."), m_outputPath, "sourcedir", filter, false, MAIN->getDialogHost());
 	if(!filename.isEmpty()) {
 		m_outputPath = filename;
 		genOutputPath();
@@ -99,6 +114,7 @@ void Acquirer::genOutputPath() {
 void Acquirer::scanInitFailed() {
 	ui.labelScanMessage->setText(QString("<span style=\"color:#FF0000;\">%1</span>").arg(_("Failed to initialize the scanning backend.")));
 	ui.pushButtonScan->setEnabled(false);
+	ui.startScanAction->setEnabled(false);
 	ui.toolButtonScanDevicesRefresh->setEnabled(false);
 }
 
@@ -109,6 +125,7 @@ void Acquirer::scanFailed(const QString& msg) {
 void Acquirer::startDetectDevices() {
 	ui.toolButtonScanDevicesRefresh->setEnabled(false);
 	ui.pushButtonScan->setEnabled(false);
+	ui.startScanAction->setEnabled(false);
 	ui.labelScanMessage->setText("");
 	ui.comboBoxScanDevice->clear();
 	ui.comboBoxScanDevice->setCursor(Qt::WaitCursor);
@@ -126,11 +143,13 @@ void Acquirer::doneDetectDevices(QList<Scanner::Device> devices) {
 		}
 		ui.comboBoxScanDevice->setCurrentIndex(0);
 		ui.pushButtonScan->setEnabled(true);
+		ui.startScanAction->setEnabled(true);
 	}
 }
 
 void Acquirer::startScan() {
 	ui.pushButtonScan->setVisible(false);
+	ui.startScanAction->setEnabled(false);
 	ui.pushButtonScanCancel->setEnabled(true);
 	ui.pushButtonScanCancel->setVisible(true);
 	ui.labelScanMessage->setText(_("Starting scan..."));
@@ -169,6 +188,7 @@ void Acquirer::cancelScan() {
 void Acquirer::doneScan() {
 	ui.pushButtonScanCancel->setVisible(false);
 	ui.pushButtonScan->setVisible(true);
+	ui.startScanAction->setEnabled(true);
 	ui.labelScanMessage->setText("");
 	genOutputPath();
 }

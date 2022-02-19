@@ -87,11 +87,11 @@ void HOCRDocument::addSpellingActions(QMenu* menu, const QModelIndex& index) {
 		}
 		if(!valid) {
 			menu->addSeparator();
-			menu->addAction(_("Add to dictionary"), menu, [this, trimmedWord, index] {
+			menu->addAction(_("&Add to dictionary"), menu, [this, trimmedWord, index] {
 				m_spell->addWordToDictionary(trimmedWord);
 				dictionaryChanged();
 			});
-			menu->addAction(_("Ignore spelling"), menu, [this, trimmedWord, index] {
+			menu->addAction(_("&Ignore spelling"), menu, [this, trimmedWord, index] {
 				m_spell->ignoreWord(trimmedWord);
 				dictionaryChanged();
 			});

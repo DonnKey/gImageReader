@@ -23,18 +23,19 @@
 #include "Scanner.hh"
 
 class UI_MainWindow;
+class FocusableMenu;
 
 class Acquirer : public QObject {
 	Q_OBJECT
 public:
-	Acquirer(const UI_MainWindow& _ui);
+	Acquirer(UI_MainWindow& _ui, FocusableMenu* keyParent);
 	~Acquirer();
 
 signals:
 	void scanPageAvailable(QString);
 
 private:
-	const UI_MainWindow& ui;
+	UI_MainWindow& ui;
 	QString m_outputPath;
 
 	Scanner* m_scanner;

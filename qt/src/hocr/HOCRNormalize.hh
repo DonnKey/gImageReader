@@ -30,11 +30,12 @@
 
 class PreferenceChoice;
 class SubstitutionsManager;
+class FocusableMenu;
 
 class HOCRNormalize : public QObject {
 	Q_OBJECT
 public:
-	void normalizeTree(HOCRDocument* hocrdocument, QList<HOCRItem*>* items);
+	void normalizeTree(HOCRDocument* hocrdocument, QList<HOCRItem*>* items, FocusableMenu* keyParent);
 	void normalizeSingle(HOCRDocument* hocrdocument, const HOCRItem* item);
 	void currentDefault(QString &title, int& number);
 
@@ -44,7 +45,8 @@ private:
 
 	class HOCRNormalizeDialog : public QDialog {
 	public:
-		HOCRNormalizeDialog(HOCRNormalize* parent);
+		HOCRNormalizeDialog(FocusableMenu* keyParent, HOCRNormalize* parent);
+		FocusableMenu* m_menu;
 
 	private:
 		HOCRNormalize* m_parent;
@@ -54,6 +56,7 @@ private:
 		void fontSize(int index, int size, QSpinBox *editBox);
 		void apply(int index);
 		void openSubst(int index);
+		void setGroupActive(int index);
 		void applySubstitutionsToSelected(const int index, const QMap<QString, QString>& substitutions);
 	};
 

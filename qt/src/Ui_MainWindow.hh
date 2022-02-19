@@ -26,11 +26,12 @@
 #include <QMenu>
 #include <QWidgetAction>
 
+class FocusableMenu;
+
 class UI_MainWindow : public Ui_MainWindow {
 public:
 	QAction* actionAbout;
 	QAction* actionHelp;
-	QAction* actionPreferences;
 	QAction* actionRedetectLanguages;
 	QAction* actionManageLanguages;
 	QAction* actionRotateCurrentPage;
@@ -47,7 +48,7 @@ public:
 	QSpinBox* spinBoxPage;
 	QFrame* frameRotation;
 	QFrame* framePage;
-	QMenu* menuAppMenu;
+	FocusableMenu* menuAppMenu;
 	QMenu* menuRotation;
 	QToolBar* toolBarSources;
 	QToolButton* toolButtonRotation;
@@ -58,8 +59,19 @@ public:
 	QToolButton* toolButtonEditKeyMap;
 	QWidgetAction* actionRotate;
 	QWidgetAction* actionPage;
+	FocusableMenu* menuSourcesShortcut;
+	FocusableMenu* menuOutputShortcut;
+	FocusableMenu* menuTopLevelShortcut;
+	FocusableMenu* menuBatchExportShortcut;
+	FocusableMenu* menuPreferences;
+	QToolButton* toolButtonShortcutMenu;
+	QAction* controlsMenuAction;
+	QAction* autodetectMenuAction;
+	QAction* pageMenuAction;
+	QAction* startScanAction;
+	QDialog* batchExportDialog;
 
-	void setupUi(QMainWindow* MainWindow);
+	void setupUi(QMainWindow* mainWindow);
 };
 
 #endif // UI_MAINWINDOW_HH

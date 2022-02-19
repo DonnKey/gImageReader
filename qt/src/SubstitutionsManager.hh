@@ -26,14 +26,16 @@ class QCheckBox;
 class QItemSelection;
 class OutputTextEdit;
 class QTableWidget;
+class FocusableMenu;
 
 class SubstitutionsManager : public QDialog {
 	Q_OBJECT
 public:
-	SubstitutionsManager(QString key, QWidget* parent = nullptr);
+	SubstitutionsManager(QString key, FocusableMenu* keyParent, QWidget* parent = nullptr);
 	~SubstitutionsManager();
 	QMap<QString, QString>* getSubstitutions();
 	void showEvent(QShowEvent *event) override;
+	void doShow();
 
 signals:
 	void applySubstitutions(const QMap<QString, QString>& substitutions);
@@ -42,6 +44,7 @@ private:
 	QAction* m_removeAction;
 	QString m_currentFile;
 	QTableWidget* m_tableWidget;
+	FocusableMenu* m_menu;
 
 private slots:
 	void addRow();

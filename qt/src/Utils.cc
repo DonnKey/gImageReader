@@ -43,6 +43,7 @@
 
 #include "Utils.hh"
 #include "Config.hh"
+#include "KeyMapManager.hh"
 #include "MainWindow.hh"
 #include "SourceManager.hh"
 
@@ -95,6 +96,9 @@ public:
 			QPoint evp = MAIN->m_progressCancelButton->mapFromGlobal(mev->globalPos());
 #endif
 			return !QRect(QPoint(0, 0), MAIN->m_progressCancelButton->size()).contains(evp);
+		}
+		if(dynamic_cast<KeyEvent*>(ev)) {
+			return false;
 		}
 		return dynamic_cast<QInputEvent*>(ev);
 	}

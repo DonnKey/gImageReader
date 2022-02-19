@@ -118,6 +118,9 @@ public:
 	RecognitionMenu* getRecognitionMenu() const {
 		return m_recognitionMenu;
 	}
+	QWidget* getDialogHost() const {
+		return m_dialogHostParent;
+	}
 
 	void addNotification(const QString& title, const QString& message, const QList<NotificationAction>& actions, Notification* handle = nullptr);
 	void openFiles(const QStringList& files);
@@ -125,6 +128,9 @@ public:
 	void setOutputPaneVisible(bool visible);
 	void showProgress(ProgressMonitor* monitor, int updateInterval = 500);
 	void hideProgress();
+
+protected:
+	UI_MainWindow ui;
 
 public slots:
 	bool setOutputMode(OutputMode mode);
@@ -137,11 +143,11 @@ public slots:
 private:
 	static void signalHandlerExec(int signal, bool tesseractCrash);
 	friend class BusyEventFilter;
+	friend class UI_MainWindow;
+	friend class KeyMapManager;
 	friend class OutputEditorText;
 
 	static MainWindow* s_instance;
-
-	UI_MainWindow ui;
 
 	Config* m_config = nullptr;
 	Acquirer* m_acquirer = nullptr;
@@ -152,6 +158,7 @@ private:
 	Recognizer* m_recognizer = nullptr;
 	SourceManager* m_sourceManager = nullptr;
 	KeyMapManager* m_keyMapManager = nullptr;
+	QWidget *m_dialogHostParent = nullptr;
 
 	QActionGroup m_idleActions;
 	QList<QWidget*> m_idleWidgets;
@@ -184,7 +191,7 @@ private slots:
 	void progressUpdate();
 	void languageChanged(const Config::Lang& lang);
 	void dictionaryAutoinstall();
-	void batchExport();
+	void batchExport(FocusableMenu *keyParent);
 	void psmChanged(){};
 #if FOCUSDEBUG
 	void focusChanged(QWidget *old, QWidget*now);

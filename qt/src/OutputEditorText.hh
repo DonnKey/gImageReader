@@ -27,6 +27,8 @@
 #include "OutputEditor.hh"
 #include "Ui_OutputEditorText.hh"
 
+class FocusableMenu;
+
 class OutputEditorText : public OutputEditor {
 	Q_OBJECT
 public:
@@ -39,7 +41,7 @@ public:
 		bool m_prependPage = false;
 	};
 
-	OutputEditorText();
+	OutputEditorText(FocusableMenu* keyParent);
 	~OutputEditorText();
 
 	QWidget* getUI() override {
@@ -77,6 +79,7 @@ private:
 	InsertMode m_insertMode;
 	QtSpell::TextEditChecker m_spell;
 	int m_tabCounter = 0;
+	FocusableMenu* m_keyParent;
 
 	int addTab(const QString& title = QString());
 	QString tabName(int page) const;

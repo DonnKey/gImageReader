@@ -20,6 +20,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPointer>
+#include <QShortcut>
 #include <QVBoxLayout>
 
 #include "Displayer.hh"
@@ -30,6 +31,7 @@
 #include "MainWindow.hh"
 #include "SourceManager.hh"
 #include "OutputEditorHOCR.hh"
+#include "UiUtils.hh"
 
 
 static const QString classNames[] {"", "ocr_page", "ocr_carea", "ocr_par", "ocr_line", "ocrx_word"};
@@ -207,6 +209,12 @@ private:
 			// Italic
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
 			m_document->editItemAttribute(index, "italic", m_wordItem->fontItalic() ? "0" : "1");
+		} else if(ev->key() == Qt::Key_K && ev->modifiers() == Qt::ControlModifier) {
+			// show shortcuts menu
+			m_proofReadWidget->showShortcutsDialog();
+		} else if(ev->key() == Qt::Key_P && ev->modifiers() == Qt::ControlModifier) {
+			// show widget settings
+			emit m_proofReadWidget->m_settingsButton->click();
 		} else if(ev->key() == Qt::Key_T && ev->modifiers() == Qt::ControlModifier) {
 			// Trim
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
@@ -447,6 +455,20 @@ const int editBoxPadding = 2*cursorPadding;
 const int editLineSpacing = 10;
 const int clipMargin = 20;
 
+class Menu : public QMenu {
+	void keyPressEvent(QKeyEvent *ev) {
+		if (ev->key() == Qt::Key_Escape || ev->key() == Qt::Key_Return || ev->key() == Qt::Key_Enter) {
+			close();
+			return;
+		}
+		if (ev->key() == Qt::Key_Alt) {
+			// Keep Alt alone from closing the menu
+			return;
+		}
+		QMenu::keyPressEvent(ev);
+	}
+};
+
 HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent)
 	: QFrame(parent), m_treeView(treeView) {
 	QVBoxLayout* layout = new QVBoxLayout;
@@ -484,57 +506,69 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 	m_controlsWidget->layout()->addWidget(helpButton);
 
 
-	QMenu* settingsMenu = new QMenu();
+	Menu* settingsMenu = new Menu();
 
 	QWidget* numBeforeWidget = new QWidget();
 	numBeforeWidget->setLayout(new QHBoxLayout());
 	numBeforeWidget->layout()->setContentsMargins(spinnerPadding, spinnerPadding, spinnerPadding, spinnerPadding);
 	numBeforeWidget->layout()->setSpacing(2);
-	numBeforeWidget->layout()->addWidget(new QLabel(_("Lines before:")));
+	QLabel* numBeforeLabel = new QLabel(_("Lines &before:"));
+	numBeforeWidget->layout()->addWidget(numBeforeLabel);
 
 	m_spinLinesBefore = new QSpinBox();
 	m_spinLinesBefore->setRange(0, 10);
+	numBeforeLabel->setBuddy(m_spinLinesBefore);
 	numBeforeWidget->layout()->addWidget(m_spinLinesBefore);
 
 	QWidgetAction* numBeforeAction = new QWidgetAction(settingsMenu);
 	numBeforeAction->setDefaultWidget(numBeforeWidget);
 	settingsMenu->addAction(numBeforeAction);
+	numBeforeAction->setShortcut(QKeySequence(static_cast<QString>(FocusableMenu::shortcutKeyOf(numBeforeLabel->text()))));
+	connect(numBeforeAction, &QAction::triggered, this, [this] { m_spinLinesBefore->setFocus();} );
 
 	QWidget* numAfterWidget = new QWidget();
 	numAfterWidget->setLayout(new QHBoxLayout());
 	numAfterWidget->layout()->setContentsMargins(spinnerPadding, spinnerPadding, spinnerPadding, spinnerPadding);
 	numAfterWidget->layout()->setSpacing(2);
-	numAfterWidget->layout()->addWidget(new QLabel(_("Lines after:")));
+	QLabel* numAfterLabel = new QLabel(_("Lines &after:"));
+	numAfterWidget->layout()->addWidget(numAfterLabel);
 
 	m_spinLinesAfter = new QSpinBox();
 	m_spinLinesAfter->setRange(0, 10);
+	numAfterLabel->setBuddy(m_spinLinesAfter);
 	numAfterWidget->layout()->addWidget(m_spinLinesAfter);
 
 	QWidgetAction* numAfterAction = new QWidgetAction(settingsMenu);
 	numAfterAction->setDefaultWidget(numAfterWidget);
 	settingsMenu->addAction(numAfterAction);
+	numAfterAction->setShortcut(QKeySequence(static_cast<QString>(FocusableMenu::shortcutKeyOf(numAfterLabel->text()))));
+	connect(numAfterAction, &QAction::triggered, this, [this] { m_spinLinesAfter->setFocus();} );
 
 	QWidget* gapWidget = new QWidget();
 	gapWidget->setLayout(new QHBoxLayout());
 	gapWidget->layout()->setContentsMargins(spinnerPadding, spinnerPadding, spinnerPadding, spinnerPadding);
 	gapWidget->layout()->setSpacing(2);
-	gapWidget->layout()->addWidget(new QLabel(_("Separation:")));
+	QLabel* gapLabel = new QLabel(_("&Separation"));
+	gapWidget->layout()->addWidget(gapLabel);
 
 	m_gapWidth = new QSpinBox();
 	m_gapWidth->setRange(0, 200);
 	m_gapWidth->setSingleStep(10);
+	gapLabel->setBuddy(m_gapWidth);
 	gapWidget->layout()->addWidget(m_gapWidth);
 
 	QWidgetAction* gapAction = new QWidgetAction(settingsMenu);
 	gapAction->setDefaultWidget(gapWidget);
 	settingsMenu->addAction(gapAction);
+	gapAction->setShortcut(QKeySequence(static_cast<QString>(FocusableMenu::shortcutKeyOf(gapLabel->text()))));
+	connect(gapAction, &QAction::triggered, this, [this] { m_gapWidth->setFocus();} );
 
-	QToolButton* settingsButton = new QToolButton();
-	settingsButton->setAutoRaise(true);
-	settingsButton->setIcon(QIcon::fromTheme("preferences-system"));
-	settingsButton->setPopupMode(QToolButton::InstantPopup);
-	settingsButton->setMenu(settingsMenu);
-	m_controlsWidget->layout()->addWidget(settingsButton);
+	m_settingsButton = new QToolButton();
+	m_settingsButton->setAutoRaise(true);
+	m_settingsButton->setIcon(QIcon::fromTheme("preferences-system"));
+	m_settingsButton->setPopupMode(QToolButton::InstantPopup);
+	m_settingsButton->setMenu(settingsMenu);
+	m_controlsWidget->layout()->addWidget(m_settingsButton);
 
 	m_pointer = new PointerWidget(parent);
 	m_lineMap = new LineMap;
@@ -992,6 +1026,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+_</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Merge with next word insert _</td></tr>"
 	                           "<tr><td>Ctrl+W</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Insert new word/line at cursor</td></tr>"
 	                           "<tr><td>Ctrl+T</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Trim word height (heuristic)</td></tr>"
+	                           "<tr><td>Ctrl+K</td>"                  "<td>D</td> <td> </td> <td> </td> <td>Show this help</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Delete current character</td></tr>"
 	                           "<tr><td>Delete</td>"                  "<td> </td> <td>T</td> <td> </td> <td>(Hard) delete current item</td></tr>"
 	                           "<tr><td>Ctrl+Delete</td>"             "<td>D</td> <td>T</td> <td>E</td> <td>Toggle Disable current item</td></tr>"
@@ -1002,6 +1037,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+Shift+{Up,Down}</td>"    "<td> </td> <td> </td> <td>E</td> <td>Adjust bottom bounding box edge</td></tr>"
 	                           "<tr><td>Ctrl++</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Increase <em>tool</em> font size</td></tr>"
 	                           "<tr><td>Ctrl+-</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Decrease <em>tool</em> font size</td></tr>"
+	                           "<tr><td>Ctrl+P</td>"                  "<td>D</td> <td> </td> <td> </td> <td>Show <em>tool</em> preferences</td></tr>"
 	                           "<tr><td>Alt+{Left,Right,Up,Down}</td>""<td>D</td> <td> </td> <td> </td> <td>Move item (vertical moves whole lines)</td></tr>"
 	                           "<tr><td>PageUp, PageDown</td>"        "<td>D</td> <td> </td> <td>E</td> <td>Previous/Next Page</td></tr>"
 	                           "<tr><td>PageUp, PageDown</td>"        "<td> </td> <td>T</td> <td> </td> <td>Up/down one table screen</td></tr>"
@@ -1019,7 +1055,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 							   "<tr><td>Shift+L-Click</td>"           "<td> </td> <td>T</td> <td> </td> <td>Group Select</td></tr>"
 							   "<tr><td>Ctrl+L-Click</td>"            "<td>D</td> <td>T</td> <td> </td> <td>Multi-Select/toggle</td></tr>"
 							   "<tr><td>Ctrl+Shift+L-Click</td>"      "<td>D</td> <td> </td> <td> </td> <td>Multi-Select/toggle Enclosing HOCR</td></tr>"
-							   "<tr><td>R-Click</td>"                 "<td> </td> <td>T</td> <td> </td> <td>Open context menu</td></tr>"
+							   "<tr><td>R-Click</td>"                 "<td>D</td> <td>T</td> <td> </td> <td>Open context menu</td></tr>"
 							   "<tr><td>M-Mouse Drag</td>"            "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"
 							   "<tr><td>L-Mouse Drag Box Edge</td>"   "<td>D</td> <td> </td> <td> </td> <td>Resize Box</td></tr>"
 							   "<tr><td>L-Mouse Drag Box Center</td>" "<td>D</td> <td> </td> <td> </td> <td>Move Box (when all-cursor shows)</td></tr>"

@@ -30,6 +30,7 @@ class FileTreeModel;
 class QMenu;
 class QPixmap;
 class UI_MainWindow;
+class FocusableMenu;
 
 class Source : public DataObject {
 public:
@@ -55,7 +56,7 @@ public:
 class SourceManager : public QObject {
 	Q_OBJECT
 public:
-	SourceManager(const UI_MainWindow& _ui);
+	SourceManager(const UI_MainWindow& _ui, FocusableMenu *keyParent);
 	~SourceManager();
 	QList<Source*> getSelectedSources() const;
 	void addSourceImage(const QImage& image);
@@ -99,7 +100,7 @@ private slots:
 	void fileChanged(const QString& filename);
 	void directoryChanged(const QString& dir);
 	void addFolder();
-	void openRecentItem();
+	void openRecentItem(QString filename);
 	void openSources();
 	void pasteClipboard();
 	void prepareRecentMenu();

@@ -7,17 +7,102 @@
     <x>0</x>
     <y>0</y>
     <width>480</width>
-    <height>540</height>
+    <height>556</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Preferences</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <item row="5" column="0" colspan="3">
+    <widget class="QCheckBox" name="checkBoxOpenAfterExport">
+     <property name="text">
+      <string>Automatically open e&amp;xported documents with default application</string>
+     </property>
+    </widget>
+   </item>
+   <item row="17" column="0" colspan="3">
+    <widget class="QWidget" name="widgetAddRemoveLang" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayoutAddRemoveLang">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="pushButtonAddLang">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>A&amp;dd</string>
+        </property>
+        <property name="icon">
+         <iconset theme="list-add">
+          <normaloff>.</normaloff>.</iconset>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButtonRemoveLang">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>&amp;Remove</string>
+        </property>
+        <property name="icon">
+         <iconset theme="list-remove">
+          <normaloff>.</normaloff>.</iconset>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
    <item row="0" column="1">
     <widget class="QCheckBox" name="checkBoxDefaultOutputFont">
      <property name="text">
-      <string>Default</string>
+      <string>&amp;Default</string>
+     </property>
+    </widget>
+   </item>
+   <item row="20" column="0" colspan="3">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Help|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>
@@ -44,56 +129,28 @@
    <item row="6" column="0" colspan="3">
     <widget class="QCheckBox" name="checkBoxUpdateCheck">
      <property name="text">
-      <string>Automatically check for new program versions</string>
+      <string>Automatically check for new program &amp;versions</string>
      </property>
     </widget>
    </item>
    <item row="0" column="0">
     <widget class="QLabel" name="labelOutputFont">
      <property name="text">
-      <string>Output pane font:</string>
+      <string>&amp;Output pane font:</string>
+     </property>
+     <property name="buddy">
+      <cstring>pushButtonOutputFont</cstring>
      </property>
     </widget>
    </item>
    <item row="8" column="0">
     <widget class="QLabel" name="labelDataLocation">
      <property name="text">
-      <string>Language data locations:</string>
+      <string>&amp;Language data locations:</string>
      </property>
-    </widget>
-   </item>
-   <item row="16" column="0" colspan="3">
-    <widget class="QTableWidget" name="tableWidgetAdditionalLang">
-     <property name="horizontalScrollBarPolicy">
-      <enum>Qt::ScrollBarAlwaysOff</enum>
+     <property name="buddy">
+      <cstring>comboBoxDataLocation</cstring>
      </property>
-     <property name="editTriggers">
-      <set>QAbstractItemView::DoubleClicked</set>
-     </property>
-     <property name="selectionBehavior">
-      <enum>QAbstractItemView::SelectRows</enum>
-     </property>
-     <attribute name="horizontalHeaderHighlightSections">
-      <bool>false</bool>
-     </attribute>
-     <attribute name="verticalHeaderVisible">
-      <bool>false</bool>
-     </attribute>
-     <column>
-      <property name="text">
-       <string>Filename prefix</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Code</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Native name</string>
-      </property>
-     </column>
     </widget>
    </item>
    <item row="8" column="1" colspan="2">
@@ -164,10 +221,13 @@
    <item row="9" column="0">
     <widget class="QLabel" name="labelTessdataLocation">
      <property name="text">
-      <string>Language definitions path:</string>
+      <string>Language de&amp;finitions path:</string>
      </property>
      <property name="indent">
       <number>10</number>
+     </property>
+     <property name="buddy">
+      <cstring>lineEditTessdataLocation</cstring>
      </property>
     </widget>
    </item>
@@ -192,99 +252,51 @@
      </item>
     </widget>
    </item>
-   <item row="17" column="0" colspan="3">
-    <widget class="QWidget" name="widgetAddRemoveLang" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayoutAddRemoveLang">
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QPushButton" name="pushButtonAddLang">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Add</string>
-        </property>
-        <property name="icon">
-         <iconset theme="list-add">
-          <normaloff>.</normaloff>.</iconset>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButtonRemoveLang">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Remove</string>
-        </property>
-        <property name="icon">
-         <iconset theme="list-remove">
-          <normaloff>.</normaloff>.</iconset>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
+   <item row="1" column="0" colspan="2">
+    <widget class="QLabel" name="labelEncoding">
+     <property name="text">
+      <string>Text file &amp;encoding:</string>
+     </property>
+     <property name="buddy">
+      <cstring>comboBoxEncoding</cstring>
+     </property>
     </widget>
    </item>
    <item row="4" column="0" colspan="3">
     <widget class="QCheckBox" name="checkBoxDictInstall">
      <property name="text">
-      <string>Query to install missing spellcheck dictionaries</string>
+      <string>Query to install missing &amp;spellcheck dictionaries</string>
      </property>
     </widget>
    </item>
-   <item row="21" column="0" colspan="3">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Help|QDialogButtonBox::Ok</set>
+   <item row="9" column="1" colspan="2">
+    <widget class="QLineEdit" name="lineEditTessdataLocation">
+     <property name="readOnly">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
-   <item row="1" column="0" colspan="2">
-    <widget class="QLabel" name="labelEncoding">
+   <item row="10" column="0">
+    <widget class="QLabel" name="labelSpellLocation">
      <property name="text">
-      <string>Text file encoding:</string>
+      <string>Spelling di&amp;ctionaries path:</string>
+     </property>
+     <property name="indent">
+      <number>10</number>
+     </property>
+     <property name="buddy">
+      <cstring>lineEditSpellLocation</cstring>
      </property>
     </widget>
    </item>
-   <item row="19" column="0" colspan="3">
+   <item row="10" column="1" colspan="2">
+    <widget class="QLineEdit" name="lineEditSpellLocation">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="18" column="0" colspan="3">
     <widget class="QWidget" name="widgetAddLang" native="true">
      <layout class="QHBoxLayout" name="horizontalLayoutAddLang">
       <property name="leftMargin">
@@ -304,6 +316,9 @@
         <property name="toolTip">
          <string>The prefix of the tesseract language data file</string>
         </property>
+        <property name="accessibleName">
+         <string>P&amp;refix</string>
+        </property>
         <property name="placeholderText">
          <string>Prefix</string>
         </property>
@@ -313,6 +328,9 @@
        <widget class="QLineEdit" name="lineEditLangCode">
         <property name="toolTip">
          <string>The ISO 639-1 language code followed by the country code</string>
+        </property>
+        <property name="accessibleName">
+         <string>&amp;ISO Code</string>
         </property>
         <property name="placeholderText">
          <string>ISO Code</string>
@@ -324,15 +342,18 @@
         <property name="toolTip">
          <string>The name of the language</string>
         </property>
+        <property name="accessibleName">
+         <string>&amp;Name</string>
+        </property>
         <property name="placeholderText">
          <string>Name</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButtonAddLangOk">
+       <widget class="QPushButton" name="pushButtonAddLangApply">
         <property name="text">
-         <string>OK</string>
+         <string>A&amp;pply</string>
         </property>
         <property name="icon">
          <iconset theme="dialog-ok">
@@ -354,39 +375,62 @@
      </layout>
     </widget>
    </item>
-   <item row="10" column="0">
-    <widget class="QLabel" name="labelSpellLocation">
-     <property name="text">
-      <string>Spelling dictionaries path:</string>
+   <item row="16" column="0" colspan="3">
+    <widget class="QTableWidget" name="tableWidgetAdditionalLang">
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarAlwaysOff</enum>
      </property>
-     <property name="indent">
-      <number>10</number>
+     <property name="editTriggers">
+      <set>QAbstractItemView::DoubleClicked</set>
      </property>
-    </widget>
-   </item>
-   <item row="9" column="1" colspan="2">
-    <widget class="QLineEdit" name="lineEditTessdataLocation">
-     <property name="readOnly">
-      <bool>true</bool>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
      </property>
-    </widget>
-   </item>
-   <item row="10" column="1" colspan="2">
-    <widget class="QLineEdit" name="lineEditSpellLocation">
-     <property name="readOnly">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0" colspan="3">
-    <widget class="QCheckBox" name="checkBoxOpenAfterExport">
-     <property name="text">
-      <string>Automatically open exported documents with default application</string>
-     </property>
+     <attribute name="horizontalHeaderHighlightSections">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <column>
+      <property name="text">
+       <string>Filename prefix</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Code</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Native name</string>
+      </property>
+     </column>
     </widget>
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>pushButtonOutputFont</tabstop>
+  <tabstop>checkBoxDefaultOutputFont</tabstop>
+  <tabstop>comboBoxEncoding</tabstop>
+  <tabstop>checkBoxDictInstall</tabstop>
+  <tabstop>checkBoxOpenAfterExport</tabstop>
+  <tabstop>checkBoxUpdateCheck</tabstop>
+  <tabstop>comboBoxDataLocation</tabstop>
+  <tabstop>lineEditTessdataLocation</tabstop>
+  <tabstop>lineEditSpellLocation</tabstop>
+  <tabstop>tableWidgetPredefLang</tabstop>
+  <tabstop>tableWidgetAdditionalLang</tabstop>
+  <tabstop>pushButtonAddLang</tabstop>
+  <tabstop>pushButtonRemoveLang</tabstop>
+  <tabstop>lineEditLangPrefix</tabstop>
+  <tabstop>lineEditLangCode</tabstop>
+  <tabstop>lineEditLangName</tabstop>
+  <tabstop>pushButtonAddLangApply</tabstop>
+  <tabstop>pushButtonAddLangCancel</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

@@ -139,13 +139,20 @@ MainWindow::MainWindow(const QStringList& files)
 
 	ui.setupUi(this);
 
-	m_config = new Config(this);
-	m_acquirer = new Acquirer(ui);
+	// For performance reasons, add a dummy window to use as a parent
+	// for dialogs that need to search their parent (and historically used MAIN), 
+	// rather than having to search all of the Main window. (Visible performance difference.)
+	m_dialogHostParent = new QWidget(this);
+	m_dialogHostParent->setObjectName("dialogHostParent");
+	m_dialogHostParent->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+	m_config = new Config(ui.menuSourcesShortcut, this);
+	m_acquirer = new Acquirer(ui, ui.menuSourcesShortcut);
 	m_displayer = new Displayer(ui);
 	m_recognitionMenu = new RecognitionMenu(this);
-	m_recognizer = new Recognizer(ui);
-	m_sourceManager = new SourceManager(ui);
-	m_keyMapManager = new KeyMapManager(this);
+	m_recognizer = new Recognizer(ui, ui.menuSourcesShortcut);
+	m_sourceManager = new SourceManager(ui, ui.menuSourcesShortcut);
+	m_keyMapManager = new KeyMapManager(ui.menuSourcesShortcut, this);
 
 	ui.centralwidget->layout()->addWidget(m_displayer);
 	ui.toolBarMain->setLayoutDirection(Qt::LeftToRight);
@@ -171,7 +178,6 @@ MainWindow::MainWindow(const QStringList& files)
 
 	connect(ui.actionRedetectLanguages, &QAction::triggered, m_recognitionMenu, &RecognitionMenu::rebuild);
 	connect(ui.actionManageLanguages, &QAction::triggered, this, &MainWindow::manageLanguages);
-	connect(ui.actionPreferences, &QAction::triggered, this, &MainWindow::showConfig);
 	connect(ui.actionHelp, &QAction::triggered, this, [this] { showHelp(); });
 	connect(ui.actionAbout, &QAction::triggered, this, &MainWindow::showAbout);
 	connect(ui.actionImageControls, &QAction::toggled, ui.widgetImageControls, &QWidget::setVisible);
@@ -186,8 +192,9 @@ MainWindow::MainWindow(const QStringList& files)
 		ui.SegMode->setText(MAIN->getRecognitionMenu()->getSegModeName());
 	 });
 	connect(ui.actionAutodetectLayout, &QAction::triggered, m_displayer, &Displayer::autodetectOCRAreas);
-	connect(ui.actionBatchExport, &QAction::triggered, this, &MainWindow::batchExport);
-	connect(ui.toolButtonEditKeyMap, &QPushButton::clicked, m_keyMapManager, &KeyMapManager::show);
+	connect(ui.actionBatchExport, &QAction::triggered, this, [this] {MAIN->batchExport(ui.menuTopLevelShortcut);} );
+	connect(ui.toolButtonEditKeyMap, &QPushButton::clicked, this, [this] {m_keyMapManager->doShow();});
+	connect(ui.controlsMenuAction, &QAction::triggered, this, [this] { ui.widgetImageControls->setVisible(true); });
 #if FOCUSDEBUG
 	connect(qApp, &QApplication::focusChanged, this, &MainWindow::focusChanged);
 #endif
@@ -423,6 +430,7 @@ void MainWindow::showConfig() {
 }
 
 bool MainWindow::setOutputMode(OutputMode mode) {
+	// N.B. clear() below can block on user input
 	if(m_outputEditor && !m_outputEditor->clear()) {
 		ui.comboBoxOCRMode->blockSignals(true);
 		if(dynamic_cast<OutputEditorText*>(m_outputEditor)) {
@@ -438,12 +446,13 @@ bool MainWindow::setOutputMode(OutputMode mode) {
 		unsetCursor();
 		if(mode == OutputModeText) {
 			m_displayerTool = new DisplayerToolSelect(m_displayer);
-			m_outputEditor = new OutputEditorText();
+			m_outputEditor = new OutputEditorText(ui.menuOutputShortcut);
 		} else { /*if(mode == OutputModeHOCR)*/
 			m_displayerTool = new DisplayerToolHOCR(m_displayer);
-			m_outputEditor = new OutputEditorHOCR(static_cast<DisplayerToolHOCR*>(m_displayerTool));
+			m_outputEditor = new OutputEditorHOCR(static_cast<DisplayerToolHOCR*>(m_displayerTool), ui.menuOutputShortcut);
 		}
 		ui.actionAutodetectLayout->setVisible(m_displayerTool->allowAutodetectOCRAreas());
+		ui.autodetectMenuAction->setVisible(m_displayerTool->allowAutodetectOCRAreas());
 		m_displayer->setTool(m_displayerTool);
 		m_outputEditor->setLanguage(m_recognitionMenu->getRecognitionLanguage());
 		connect(ui.actionToggleOutputPane, &QAction::toggled, m_outputEditor, &OutputEditor::onVisibilityChanged);
@@ -679,10 +688,15 @@ void MainWindow::dictionaryAutoinstall() {
 	}
 }
 
-void MainWindow::batchExport() {
+void MainWindow::batchExport(FocusableMenu *keyParent) {
 	if (!MAIN->setOutputMode(MainWindow::OutputModeHOCR)) {
 		return;
 	}
-	HOCRBatchExportDialog dialog(this);
-	dialog.exec();
+	FocusableMenu menu(keyParent);
+	menu.useButtons();
+	menu.mapButtonBoxDefault();
+	menu.mapMenuName(_("Input files"), _("Input files [&1]"), QKeySequence("1"));
+	menu.mapMenuName(_("Export options"), _("Export options [&2]"), QKeySequence("2"));
+	HOCRBatchExportDialog dialog(keyParent, m_dialogHostParent);
+	menu.execWithMenu(&dialog);
 }

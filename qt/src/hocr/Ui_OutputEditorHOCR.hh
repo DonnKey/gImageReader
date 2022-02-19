@@ -41,10 +41,13 @@
 #include "MainWindow.hh"
 #include "ui_OutputSettingsDialog.h"
 
+class FocusableMenu;
+
 class UI_OutputEditorHOCR {
 public:
 	QMenu* menuInsertMode;
 	QMenu* menuOpen;
+	FocusableMenu* exportMenu;
 	QToolButton* toolButtonInsertMode;
 	QToolButton* toolButtonOutputExport;
 	QToolButton* toolButtonOpen;
@@ -65,6 +68,10 @@ public:
 	QAction* actionNavigatePrev;
 	QAction* actionExpandAll;
 	QAction* actionCollapseAll;
+	QAction* menuOutputSaveHOCR;
+	QAction* menuOutputExport;
+	QAction* menuOutputNavigate;
+	QAction* menuOutputFind;
 	QComboBox* comboBoxNavigate;
 
 	QToolBar* toolBarOutput;
@@ -80,7 +87,7 @@ public:
 	QDialog* outputDialog;
 	Ui::OutputSettingsDialog outputDialogUi;
 
-	void setupUi(QWidget* widget);
+	void setupUi(QWidget* widget, FocusableMenu* keyParent);
 };
 
 #endif // UI_OUTPUTEDITORHOCR_HH

@@ -27,6 +27,7 @@
 #include "MainWindow.hh"
 #include "PaperSize.hh"
 #include "SourceManager.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
 #include <cstring>
@@ -584,8 +585,10 @@ PoDoFo::PdfFont* HOCRPoDoFoPdfPrinter::getFont(QString family, bool bold, bool i
 
 HOCRPdfExportDialog::HOCRPdfExportDialog(DisplayerToolHOCR* displayerTool, const HOCRDocument* hocrdocument, const HOCRPage* hocrpage, QWidget* parent)
 	: QDialog(parent) {
+	setModal(true);
 	setLayout(new QVBoxLayout);
 	m_widget = new HOCRPdfExportWidget(displayerTool, hocrdocument, hocrpage);
+	FocusableMenu::sequenceFocus(this, m_widget->ui.checkBoxPreview);
 	layout()->addWidget(m_widget);
 
 	QDialogButtonBox* bbox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);

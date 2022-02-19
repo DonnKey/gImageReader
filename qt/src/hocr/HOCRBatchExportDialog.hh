@@ -29,13 +29,14 @@
 
 class FileTreeModel;
 class HOCRExporterWidget;
+class FocusableMenu;
 
 class HOCRBatchExportDialog : public QDialog {
 
 	Q_OBJECT
 
 public:
-	HOCRBatchExportDialog(QWidget* parent = nullptr);
+	HOCRBatchExportDialog(FocusableMenu* keyParent, QWidget* parent = nullptr);
 
 private:
 	enum ExportMode { ExportPdf, ExportOdt, ExportTxt, ExportIndentedTxt };

@@ -37,16 +37,17 @@
 #include "Ui_OutputEditorHOCR.hh"
 #include "TreeViewHOCR.hh"
 #include "MainWindow.hh"
+#include "UiUtils.hh"
 #include "ui_OutputSettingsDialog.h"
 
-void UI_OutputEditorHOCR::setupUi(QWidget* widget) {
+void UI_OutputEditorHOCR::setupUi(QWidget* widget, FocusableMenu* keyParent) {
 	widget->setLayout(new QVBoxLayout());
 	widget->layout()->setContentsMargins(0, 0, 0, 0);
 	widget->layout()->setSpacing(0);
 
 	// Output toolbar
-	actionInsertModeAppend = new QAction(QIcon(":/icons/ins_hocr_append"), gettext("Append new output after last page"), widget);
-	actionInsertModeBefore = new QAction(QIcon(":/icons/ins_hocr_before"), gettext("Insert new output before current page"), widget);
+	actionInsertModeAppend = new QAction(QIcon(":/icons/ins_hocr_append"), gettext("&Append new output after last page"), widget);
+	actionInsertModeBefore = new QAction(QIcon(":/icons/ins_hocr_before"), gettext("&Insert new output before current page"), widget);
 
 	menuInsertMode = new QMenu(widget);
 	menuInsertMode->addAction(actionInsertModeAppend);
@@ -59,8 +60,8 @@ void UI_OutputEditorHOCR::setupUi(QWidget* widget) {
 	toolButtonInsertMode->setPopupMode(QToolButton::InstantPopup);
 	toolButtonInsertMode->setMenu(menuInsertMode);
 
-	actionOpenAppend = new QAction(gettext("Append document after last page"), widget);
-	actionOpenInsertBefore = new QAction(gettext("Insert document before current page"), widget);
+	actionOpenAppend = new QAction(gettext("&Append document after last page"), widget);
+	actionOpenInsertBefore = new QAction(gettext("&Insert document before current page"), widget);
 
 	menuOpen = new QMenu(widget);
 	menuOpen->addAction(actionOpenAppend);
@@ -69,32 +70,18 @@ void UI_OutputEditorHOCR::setupUi(QWidget* widget) {
 	toolButtonOpen = new QToolButton(widget);
 	toolButtonOpen->setIcon(QIcon::fromTheme("document-open"));
 	toolButtonOpen->setText(gettext("Open hOCR file"));
-	toolButtonOpen->setToolTip(gettext("Open hOCR file"));
+	toolButtonOpen->setToolTip(gettext("Open hOCR file (replace)"));
 	toolButtonOpen->setPopupMode(QToolButton::MenuButtonPopup);
 	toolButtonOpen->setMenu(menuOpen);
 
 	actionOutputSaveHOCR = new QAction(QIcon::fromTheme("document-save-as"), gettext("Save as hOCR text"), widget);
 	actionOutputSaveHOCR->setToolTip(gettext("Save as hOCR text"));
 	actionOutputSaveHOCR->setEnabled(false);
-	QMenu* exportMenu = new QMenu();
-	actionOutputExportText = new QAction(QIcon::fromTheme("text-plain"), gettext("Export to plain text"), widget);
-	actionOutputExportText->setToolTip(gettext("Export to plain text"));
-	exportMenu->addAction(actionOutputExportText);
-	actionOutputExportIndentedText = new QAction(QIcon::fromTheme("text-plain"), gettext("Export to plain text, preserve whitespace"), widget);
-	actionOutputExportIndentedText->setToolTip(gettext("Export to plain text, preserve whitespace"));
-	exportMenu->addAction(actionOutputExportIndentedText);
-	actionOutputExportPDF = new QAction(QIcon::fromTheme("application-pdf"), gettext("Export to PDF"), widget);
-	actionOutputExportPDF->setToolTip(gettext("Export to PDF"));
-	exportMenu->addAction(actionOutputExportPDF);
-	actionOutputExportODT = new QAction(QIcon::fromTheme("x-office-document"), gettext("Export to ODT"), widget);
-	actionOutputExportODT->setToolTip(gettext("Export to ODT"));
-	exportMenu->addAction(actionOutputExportODT);
 	toolButtonOutputExport = new QToolButton(widget);
 	toolButtonOutputExport->setIcon(QIcon::fromTheme("document-export"));
 	toolButtonOutputExport->setText(gettext("Export"));
 	toolButtonOutputExport->setToolTip(gettext("Export"));
 	toolButtonOutputExport->setEnabled(false);
-	toolButtonOutputExport->setMenu(exportMenu);
 	toolButtonOutputExport->setPopupMode(QToolButton::InstantPopup);
 	actionOutputClear = new QAction(QIcon::fromTheme("edit-clear"), gettext("Clear output"), widget);
 	actionOutputClear->setToolTip(gettext("Clear output"));
@@ -106,6 +93,8 @@ void UI_OutputEditorHOCR::setupUi(QWidget* widget) {
 	actionOutputSettings = new QAction(QIcon::fromTheme("preferences-system"), gettext("Output Window Preferences"));
 	outputDialog = new QDialog(MAIN);
 	outputDialogUi.setupUi(outputDialog);
+	outputDialog->setModal(true);
+	FocusableMenu::sequenceFocus(outputDialog, outputDialogUi.checkBox_Preview);
 
 	toolBarOutput = new QToolBar(widget);
 	toolBarOutput->setToolButtonStyle(Qt::ToolButtonIconOnly);
@@ -129,7 +118,7 @@ void UI_OutputEditorHOCR::setupUi(QWidget* widget) {
 
 	widget->layout()->addWidget(toolBarOutput);
 
-	searchFrame = new SearchReplaceFrame(widget);
+	searchFrame = new SearchReplaceFrame(keyParent, widget);
 	searchFrame->setVisible(false);
 	widget->layout()->addWidget(searchFrame);
 
@@ -174,11 +163,12 @@ void UI_OutputEditorHOCR::setupUi(QWidget* widget) {
 	tableWidgetProperties->horizontalHeader()->setVisible(false);
 	tableWidgetProperties->verticalHeader()->setVisible(false);
 	tableWidgetProperties->horizontalHeader()->setStretchLastSection(true);
-	tabWidgetProps->addTab(tableWidgetProperties, gettext("Properties"));
+	tabWidgetProps->addTab(tableWidgetProperties, gettext("P&roperties"));
 
 	plainTextEditOutput = new OutputTextEdit(widget);
 	plainTextEditOutput->setReadOnly(true);
-	tabWidgetProps->addTab(plainTextEditOutput, gettext("Source"));
+	tabWidgetProps->addTab(plainTextEditOutput, gettext("&Source"));
+
 
 	splitter->addWidget(tabWidgetProps);
 }

@@ -30,6 +30,7 @@
 #include "MainWindow.hh"
 #include "OutputTextEdit.hh"
 #include "KeyMapManager.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
 Qt::Key toKeyCode(QString codeString);
@@ -43,6 +44,7 @@ const int modifierMask = (Qt::ShiftModifier|Qt::ControlModifier|Qt::KeypadModifi
 typedef QMap<Qt::Key, KeyString*> KeyMap;
 KeyMap keyMap;
 bool KeyMapManager::m_awaitingFinish;
+ulong KeyEvent::s_sequence;
 
 static const Qt::Key Key_ERROR = Qt::Key(-1);
 static const Qt::Key Key_Delay = Qt::Key(-2); // keep at -2
@@ -218,31 +220,31 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-KeyMapManager::KeyMapManager(QWidget* parent)
+KeyMapManager::KeyMapManager(FocusableMenu* keyParent, QWidget* parent)
 	: QDialog(parent) {
 	setModal(true);
 	setWindowTitle(_("KeyMap"));
 
-	QAction* openAction = new QAction(QIcon::fromTheme("document-open"), _("Open"), this);
+	QAction* openAction = new QAction(QIcon::fromTheme("document-open"), _("&Open"), this);
 	openAction->setToolTip(_("Open"));
 
-	QAction* openAppendAction = new QAction(QIcon(":/icons/open-append"), _("Open Append"), this);
+	QAction* openAppendAction = new QAction(QIcon(":/icons/open-append"), _("Open A&ppend"), this);
 	openAppendAction->setToolTip(_("Open (append)"));
 
-	QAction* saveAction = new QAction(QIcon::fromTheme("document-save"), _("Save"), this);
+	QAction* saveAction = new QAction(QIcon::fromTheme("document-save"), _("&Save"), this);
 	saveAction->setToolTip(_("Save"));
 
-	QAction* clearAction = new QAction(QIcon::fromTheme("edit-clear"), _("Clear"), this);
+	QAction* clearAction = new QAction(QIcon::fromTheme("edit-clear"), _("&Clear"), this);
 	clearAction->setToolTip(_("Clear"));
 
-	QAction* addAction = new QAction(QIcon::fromTheme("list-add"), _("Add"), this);
+	QAction* addAction = new QAction(QIcon::fromTheme("list-add"), _("&Add"), this);
 	addAction->setToolTip(_("Add"));
 
-	m_removeAction = new QAction(QIcon::fromTheme("list-remove"), _("Remove"), this);
+	m_removeAction = new QAction(QIcon::fromTheme("list-remove"), _("&Remove"), this);
 	m_removeAction->setToolTip(_("Remove"));
 	m_removeAction->setEnabled(false);
 
-	QAction* sortAction = new QAction(QIcon::fromTheme("view-sort-ascending"), _("Sort"), this);
+	QAction* sortAction = new QAction(QIcon::fromTheme("view-sort-ascending"), _("So&rt"), this);
 	sortAction->setToolTip(_("Sort"));
 
 	QLabel* help = new QLabel(this);
@@ -296,6 +298,11 @@ KeyMapManager::KeyMapManager(QWidget* parent)
 	setLayout(layout);
 	setFixedWidth(800);
 
+	FocusableMenu::sequenceFocus(this,toolbar->widgetForAction(openAction));
+	m_menu = new FocusableMenu(keyParent);
+	m_menu->useButtons();
+	m_menu->mapButtonBoxDefault();
+
 	connect(openAction, &QAction::triggered, this, [this] () {openList(false);});
 	connect(openAppendAction, &QAction::triggered, this, [this] () {openList(true);});
 	connect(saveAction, &QAction::triggered, this, &KeyMapManager::saveList);
@@ -322,6 +329,10 @@ KeyMapManager::KeyMapManager(QWidget* parent)
 	});
 }
 
+void KeyMapManager::doShow() {
+	m_menu->execWithMenu(this);
+}
+
 void KeyMapManager::showCloseButton(bool show) {
 	m_buttonBox->setEnabled(show);
 }
@@ -330,6 +341,10 @@ void KeyMapManager::showCloseButton(bool show) {
 
 void KeyMapManager::sendOnePress() {
 	// Be sure to target the current widget!
+	if (m_currentKeys == nullptr) {
+		reset();
+		return;
+	}
 	QWidget* target = static_cast<QWidget*>(QApplication::focusWidget());
 	if (target==nullptr) {
 		QTimer::singleShot(m_interval, [this] {
@@ -389,6 +404,10 @@ void KeyMapManager::sendOnePress() {
 }
 
 void KeyMapManager::sendAlt() {
+	if (m_currentKeys == nullptr) {
+		reset();
+		return;
+	}
 	// Be sure to target the current widget!
 	QWidget* target = static_cast<QWidget*>(QApplication::focusWidget());
 
@@ -401,6 +420,10 @@ void KeyMapManager::sendAlt() {
 }
 
 void KeyMapManager::sendOneCharacter() {
+	if (m_currentKeys == nullptr) {
+		reset();
+		return;
+	}
 	// Be sure to target the current widget!
 	QWidget* target = static_cast<QWidget*>(QApplication::focusWidget());
 	Qt::Key keyCode = m_currentKeys->at(m_currentPosition);
@@ -416,6 +439,10 @@ void KeyMapManager::sendOneCharacter() {
 }
 
 void KeyMapManager::sendOneRelease() {
+	if (m_currentKeys == nullptr) {
+		reset();
+		return;
+	}
 	QWidget* target = static_cast<QWidget*>(QApplication::focusWidget());
 	if (target==nullptr) {
 		QTimer::singleShot(m_interval, [this] {
@@ -439,21 +466,29 @@ void KeyMapManager::sendOneRelease() {
 }
 
 bool KeyMapManager::advance() {
- 	m_currentPosition++;
- 	while (m_currentPosition >= m_currentKeys->length() || m_currentKeys->at(m_currentPosition) == Key_Note) {
- 		if (m_keyStack.size() == 0) {
- 			// Done!
- 			m_currentKeys = nullptr;
+	if (m_currentKeys == nullptr) {
+		reset();
+		return false;
+	}
+	m_currentPosition++;
+	while (m_currentPosition >= m_currentKeys->length() || m_currentKeys->at(m_currentPosition) == Key_Note) {
+		if (m_keyStack.size() == 0) {
+			// Done!
+			reset();
 			return false;
- 		}
- 		m_currentPosition = m_keyStack.top().m_pos;
- 		m_currentKeys = m_keyStack.top().m_string;
- 		m_keyStack.pop();
- 	}
+		}
+		m_currentPosition = m_keyStack.top().m_pos;
+		m_currentKeys = m_keyStack.top().m_string;
+		m_keyStack.pop();
+	}
 	return true;
 }
 
 void KeyMapManager::awaitOneRelease() {
+	if (m_currentKeys == nullptr) {
+		reset();
+		return;
+	}
 	if (!m_posted) {
 		QTimer::singleShot(m_interval, [this] {
 			awaitOneRelease();
@@ -470,6 +505,10 @@ void KeyMapManager::awaitOneRelease() {
 }
 
 void KeyMapManager::awaitMouseUp() {
+	if (m_currentKeys == nullptr) {
+		reset();
+		return;
+	}
 	if (!m_mousePosted) {
 		QTimer::singleShot(500, [this] {
 			awaitMouseUp();
@@ -487,6 +526,10 @@ void KeyMapManager::awaitMouseUp() {
 }
 
 void KeyMapManager::awaitWaitable() {
+	if (m_currentKeys == nullptr) {
+		reset();
+		return;
+	}
 	if (m_awaitingFinish) {
 		QTimer::singleShot(500, [this] {
 			awaitWaitable();
@@ -511,7 +554,30 @@ void KeyMapManager::waitableDone() {
 	m_awaitingFinish = false;
 }
 
+void KeyMapManager::reset() {
+	m_awaitingFinish = false;
+	m_mousePosted = true;
+	m_posted = true;
+	m_currentKeys = nullptr;
+	m_currentPosition = -100;
+	m_keyStack.clear();
+	m_interval = 0;
+	MAIN->ui.toolButtonShortcutMenu->setStyleSheet("");
+}
+
 bool KeyMapManager::eventFilter(QObject* target, QEvent* ev) {
+	// An application-wide event filter
+	if(ev->type() == QEvent::MouseButtonPress && m_currentKeys != nullptr) {
+		// Ignore most clicks while "typing", but clicks on the KeyAccess button
+		// (highlighted) cancel the process if something has gone wrong.
+		QWidget* w = MAIN->ui.toolButtonShortcutMenu;
+		QRect button(w->rect());
+		button = QRect(w->mapToGlobal(button.topLeft()), button.size());
+		if (button.contains(QCursor::pos())) {
+			reset();
+		}
+		return true;
+	}
 	if(ev->type() == QEvent::MouseButtonRelease) {
 		m_mousePosted = true;
 		return false;
@@ -554,6 +620,12 @@ bool KeyMapManager::startSending(Qt::Key keyCode) {
 		return false;
 	} 
 
+	QWidget* target = static_cast<QWidget*>(QApplication::focusWidget());
+	if (target == nullptr) {
+		MAIN->ui.toolBarMain->setFocus();
+	}
+
+	MAIN->ui.toolButtonShortcutMenu->setStyleSheet("QToolButton{background:gold}");
 	m_interval = 50;
 	m_currentKeys = found.value();
 	m_currentPosition = 0;

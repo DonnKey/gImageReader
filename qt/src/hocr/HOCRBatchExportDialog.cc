@@ -113,13 +113,13 @@ void HOCRBatchExportDialog::setExportFormat() {
 	if(mode == ExportPdf) {
 		m_exporterWidget = new HOCRPdfExportWidget(editor->getTool());
 		ui.tabOptions->layout()->addWidget(m_exporterWidget);
-		ui.tabOptions->setEnabled(true);
+		ui.tabWidget->setTabEnabled(1,true);
 	} else if(mode == ExportIndentedTxt) {
 		m_exporterWidget = new HOCRIndentedTextExportWidget(editor->getTool());
 		ui.tabOptions->layout()->addWidget(m_exporterWidget);
-		ui.tabOptions->setEnabled(true);
+		ui.tabWidget->setTabEnabled(1,true);
 	} else {
-		ui.tabOptions->setEnabled(false);
+		ui.tabWidget->setTabEnabled(1,false);
 	}
 	updateOutputTree();
 }

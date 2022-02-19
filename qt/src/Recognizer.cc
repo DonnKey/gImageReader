@@ -33,6 +33,7 @@
 #define pipe(fds) _pipe(fds, 5000, _O_BINARY)
 #endif
 
+#include <cmath>
 #include "ConfigSettings.hh"
 #include "Displayer.hh"
 #include "MainWindow.hh"
@@ -437,6 +438,11 @@ Recognizer::PageData Recognizer::setPage(int page, bool autodetectLayout) {
 		if(autodetectLayout) {
 			MAIN->getDisplayer()->autodetectOCRAreas();
 		}
+		if (MAIN->getDisplayer()->doAutoRotation()) {
+			QImage img = MAIN->getDisplayer()->getImage(MAIN->getDisplayer()->getSceneBoundingRect());
+			MAIN->getDisplayer()->applyDeskew(Recognizer::determineSkew(img));
+		}
+
 		pageData.pageInfo.filename = MAIN->getDisplayer()->getCurrentImage(pageData.pageInfo.page);
 		pageData.pageInfo.angle = MAIN->getDisplayer()->getCurrentAngle();
 		pageData.pageInfo.resolution = MAIN->getDisplayer()->getCurrentResolution();
@@ -447,4 +453,39 @@ Recognizer::PageData Recognizer::setPage(int page, bool autodetectLayout) {
 
 void Recognizer::showRecognitionErrorsDialog(const QStringList& errors) {
 	Utils::messageBox(MAIN, _("Recognition errors occurred"), _("The following errors occurred:"), errors.join("\n"), QMessageBox::Warning, QDialogButtonBox::Close);
+}
+
+double Recognizer::determineSkew(QImage img) {
+	// See also RecognizerToolSelect::autodetectLayout 
+	double avgDeskew = 0.0;
+	int nDeskew = 0;
+
+	// Perform layout analysis to get the skew angle
+	Utils::busyTask([&nDeskew, &avgDeskew, &img] {
+		QByteArray current = setlocale(LC_ALL, NULL);
+		setlocale(LC_ALL, "C");
+		tesseract::TessBaseAPI tess;
+		tess.InitForAnalysePage();
+		setlocale(LC_ALL, current.constData());
+		tess.SetPageSegMode(tesseract::PSM_AUTO_ONLY);
+		tess.SetImage(img.bits(), img.width(), img.height(), 4, img.bytesPerLine());
+		tess.SetSourceResolution(MAIN->getDisplayer()->getCurrentResolution());
+		tesseract::PageIterator* it = tess.AnalyseLayout();
+		if(it && !it->Empty(tesseract::RIL_BLOCK)) {
+			do {
+				tesseract::Orientation orient;
+				tesseract::WritingDirection wdir;
+				tesseract::TextlineOrder tlo;
+				float deskew;
+				it->Orientation(&orient, &wdir, &tlo, &deskew);
+				avgDeskew += deskew;
+				++nDeskew;
+			} while(it->Next(tesseract::RIL_BLOCK));
+		}
+		delete it;
+		return true;
+	}, _("Performing skew analysis"));
+
+	avgDeskew = (avgDeskew / nDeskew) / M_PI * 180.0;
+	return -avgDeskew;
 }

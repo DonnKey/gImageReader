@@ -16,6 +16,7 @@ public:
 	QAction* actionManageLanguages;
 	QAction* actionRotateCurrentPage;
 	QAction* actionRotateAllPages;
+	QAction* actionRotateAuto;
 	QAction* actionSourceClear;
 	QAction* actionSourceDelete;
 	QAction* actionSourcePaste;
@@ -65,10 +66,12 @@ public:
 
 		actionRotateCurrentPage = new QAction(QIcon(":/icons/rotate_page"), gettext("Rotate current page"), MainWindow);
 		actionRotateAllPages = new QAction(QIcon(":/icons/rotate_pages"), gettext("Rotate all pages"), MainWindow);
+		actionRotateAuto = new QAction(QIcon(":/icons/rotate_auto"), gettext("Auto rotate when recognizing"), MainWindow);
 
 		menuRotation = new QMenu(MainWindow);
 		menuRotation->addAction(actionRotateCurrentPage);
 		menuRotation->addAction(actionRotateAllPages);
+		menuRotation->addAction(actionRotateAuto);
 
 		toolButtonRotation = new QToolButton(MainWindow);
 		toolButtonRotation->setIcon(QIcon(":/icons/rotate_pages"));

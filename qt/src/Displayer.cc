@@ -37,6 +37,7 @@
 #include <QWheelEvent>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QtConcurrent/QtConcurrentMap>
+#include <algorithm>
 
 
 class GraphicsScene : public QGraphicsScene {
@@ -62,9 +63,12 @@ Displayer::Displayer(const UI_MainWindow& _ui, QWidget* parent)
 	setBackgroundBrush(Qt::gray);
 	setRenderHint(QPainter::Antialiasing);
 
-	m_rotateMode = RotateMode::AllPages;
 	ui.actionRotateCurrentPage->setData(static_cast<int>(RotateMode::CurrentPage));
 	ui.actionRotateAllPages->setData(static_cast<int>(RotateMode::AllPages));
+	ui.actionRotateAuto->setData(static_cast<int>(RotateMode::Auto));
+
+	m_rotateMode = static_cast<RotateMode>(QSettings().value("rotatemode", QVariant::fromValue(static_cast<int>(RotateMode::AllPages))).toInt());
+	ui.toolButtonRotation->setIcon(ui.toolButtonRotation->menu()->actions().at(static_cast<int>(m_rotateMode))->icon());
 
 	m_renderTimer.setSingleShot(true);
 	m_scaleTimer.setSingleShot(true);
@@ -148,7 +152,6 @@ bool Displayer::setSources(QList<Source*> sources) {
 	ui.checkBoxInvertColors->blockSignals(true);
 	ui.checkBoxInvertColors->setChecked(false);
 	ui.checkBoxInvertColors->blockSignals(false);
-	ui.actionBestFit->setChecked(true);
 	ui.actionOriginalSize->setChecked(false);
 	ui.actionZoomIn->setEnabled(true);
 	ui.actionZoomOut->setEnabled(true);
@@ -178,7 +181,7 @@ bool Displayer::setSources(QList<Source*> sources) {
 			if(source->resolution == -1) { source->resolution = 100; }
 		}
 		if(renderer->getNPages() >= 0) {
-			source->angle.resize(renderer->getNPages()); // getNPages can potentially return -1
+			source->angle.resize(renderer->getNPages()+1); // getNPages can potentially return -1; add element to make 1-based array
 		}
 		m_sourceRenderers[source] = renderer;
 		for(int iPage = 1, nPages = renderer->getNPages(); iPage <= nPages; ++iPage) {
@@ -219,11 +222,12 @@ bool Displayer::setup(const int* page, const int* resolution, const double* angl
 		changed |= *resolution != ui.spinBoxResolution->value();
 		Utils::setSpinBlocked(ui.spinBoxResolution, *resolution);
 	}
+	if(angle) {
+		changed |= !ui.actionBestFit->isChecked();  // if setAngle doesn't render, we must.
+		setAngle(*angle);
+	}
 	if(changed && !renderImage()) {
 		return false;
-	}
-	if(angle) {
-		setAngle(*angle);
 	}
 	return true;
 }
@@ -279,7 +283,7 @@ bool Displayer::renderImage() {
 		}
 	}
 
-	Utils::setSpinBlocked(ui.spinBoxRotation, m_currentSource->angle[m_currentSource->page - 1]);
+	Utils::setSpinBlocked(ui.spinBoxRotation, m_currentSource->angle[m_currentSource->page]);
 
 	// Render new image
 	DisplayRenderer* renderer = m_sourceRenderers[m_currentSource];
@@ -409,23 +413,29 @@ void Displayer::setZoom(Zoom action, ViewportAnchor anchor) {
 void Displayer::setAngle(double angle) {
 	if(m_imageItem) {
 		angle = angle < 0.0 ? angle + 360.0 : angle >= 360.0 ? angle - 360.0 : angle,
+		angle = std::round(angle * 10.0) / 10.0; // get rid of FP noise (several places, actually observed)
 		Utils::setSpinBlocked(ui.spinBoxRotation, angle);
 		int sourcePage = m_pageMap[getCurrentPage()].second;
-		double delta = angle - m_currentSource->angle[sourcePage - 1];
-		if(m_rotateMode == RotateMode::CurrentPage) {
-			m_currentSource->angle[sourcePage - 1] = angle;
-		} else if(delta != 0) {
-			for(int page : m_pageMap.keys()) {
-				auto pair = m_pageMap[page];
-				double newangle = pair.first->angle[pair.second - 1] + delta;
-				newangle = newangle < 0.0 ? newangle + 360.0 : newangle >= 360.0 ? newangle - 360.0 : newangle,
-				pair.first->angle[pair.second - 1] = newangle;
+		double delta = angle - m_currentSource->angle[sourcePage];
+
+		if (std::abs(delta) > 0.001) {
+			m_currentSource->angle[sourcePage] = angle; // be sure to remember the cleaned-up angle
+			if(m_rotateMode == RotateMode::AllPages) {
+				for(int page : m_pageMap.keys()) {
+					auto pair = m_pageMap[page];
+					double newangle = pair.first->angle[pair.second] + delta;
+					newangle = newangle < 0.0 ? newangle + 360.0 : newangle >= 360.0 ? newangle - 360.0 : newangle,
+					newangle = std::round(newangle * 10.0) / 10.0;
+					pair.first->angle[pair.second] = newangle;
+				}
 			}
 		}
+		// This might be a rotation for a changed m_imageItem, so update the display
 		m_imageItem->setRotation(angle);
-		if(m_tool && delta != 0) {
+		if(m_tool && std::abs(delta) > 0.001) {
 			m_tool->rotationChanged(delta);
 		}
+		// Set zoom to fit new rotation
 		m_scene->setSceneRect(m_imageItem->sceneBoundingRect());
 		if(ui.actionBestFit->isChecked()) {
 			setZoom(Zoom::Fit);
@@ -435,6 +445,14 @@ void Displayer::setAngle(double angle) {
 
 void Displayer::rotate90() {
 	setAngle(ui.spinBoxRotation->value() + qobject_cast<QAction*>(QObject::sender())->data().toDouble());
+}
+
+void Displayer::applyDeskew(double skew) {
+	if (skew == 0.0 || m_rotateMode != RotateMode::Auto) {
+		return;
+	}
+	int sourcePage = m_pageMap[getCurrentPage()].second;
+	setAngle(skew +	m_currentSource->angle[sourcePage]);
 }
 
 void Displayer::resizeEvent(QResizeEvent* event) {
@@ -519,11 +537,18 @@ QPointF Displayer::mapToSceneClamped(const QPoint& p) const {
 void Displayer::setRotateMode(QAction* action) {
 	m_rotateMode = static_cast<RotateMode>(action->data().value<int>());
 	ui.toolButtonRotation->setIcon(action->icon());
+	QSettings().setValue("rotatemode", QVariant::fromValue(static_cast<int>(m_rotateMode)));
 }
 
+// Image for analysis, not display.
 QImage Displayer::getImage(const QRectF& rect) {
+	// Get the (approximate) background color and fill with that to
+	// avoid spurious recognition along the edge of the region exposed
+	// by the expanded boundary due to the rotation.
+	QColor assumedBackground = guessBackground(m_pixmap);
+
 	QImage image(rect.width(), rect.height(), QImage::Format_RGB32);
-	image.fill(Qt::black);
+	image.fill(assumedBackground);
 	QPainter painter(&image);
 	painter.setRenderHint(QPainter::SmoothPixmapTransform);
 	QTransform t;
@@ -624,6 +649,35 @@ void Displayer::setThumbnail(int index) {
 	if(!image.isNull()) {
 		ui.listWidgetThumbnails->item(index)->setIcon(QPixmap::fromImage(image));
 	}
+}
+
+QColor Displayer::guessBackground(QPixmap& pixmap) {
+	QImage image = pixmap.toImage();
+	long long wRed = 0; long long wGreen = 0; long long wBlue = 0;
+	long wPixels = 0;
+	int nLinePixels = image.width();
+	int nLines = image.height();
+	for(int line = 0; line < std::min(nLines, 10); ++line) {
+		QRgb* rgb = reinterpret_cast<QRgb*>(image.scanLine(line));
+		for(int i = 0; i < nLinePixels; ++i) {
+			wRed += qRed(rgb[i]);
+			wGreen += qGreen(rgb[i]);
+			wBlue += qBlue(rgb[i]);
+			wPixels++;
+		}
+	}
+
+	if (wPixels > 0) {
+		wRed = wRed/wPixels;
+		wGreen = wGreen/wPixels;
+		wBlue = wBlue/wPixels;
+	}
+
+	wRed = std::min(std::max(0ll,wRed),255ll);
+	wGreen = std::min(std::max(0ll,wGreen),255ll);
+	wBlue = std::min(std::max(0ll,wBlue),255ll);
+
+	return QColor(wRed, wGreen, wBlue);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

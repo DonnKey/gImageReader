@@ -68,6 +68,8 @@ private:
 	std::unique_ptr<Utils::TesseractHandle> setupTesseract();
 	void recognize(const QList<int>& pages, bool autodetectLayout = false);
 	void showRecognitionErrorsDialog(const QStringList& errors);
+	void repaint();
+	double determineSkew(QImage);
 
 private slots:
 	void recognitionLanguageChanged(const Config::Lang& lang);

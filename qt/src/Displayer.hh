@@ -47,6 +47,9 @@ public:
 	int getNPages() const;
 	int getNSources() const { return m_sourceRenderers.size(); }
 	int getCurrentResolution() const;
+	bool doAutoRotation() {
+		return m_rotateMode == RotateMode::Auto;
+	};
 	double getCurrentAngle() const;
 	double getCurrentScale() const {
 		return m_scale;
@@ -66,6 +69,7 @@ public:
 		viewport()->unsetCursor();
 	}
 	void setBlockAutoscale(bool block);
+	void applyDeskew(double skew);
 
 signals:
 	void viewportChanged();
@@ -76,7 +80,7 @@ public slots:
 	void autodetectOCRAreas();
 
 private:
-	enum class RotateMode { CurrentPage, AllPages } m_rotateMode;
+	enum class RotateMode { CurrentPage, AllPages, Auto } m_rotateMode;
 	enum class Zoom { In, Out, Fit, Original };
 	const UI_MainWindow& ui;
 	GraphicsScene* m_scene;
@@ -91,6 +95,7 @@ private:
 	QPoint m_panPos;
 	QTimer m_renderTimer;
 	QTransform m_viewportTransform;
+	QColor guessBackground(QPixmap& image);
 
 	void keyPressEvent(QKeyEvent* event) override;
 	void mousePressEvent(QMouseEvent* event) override;

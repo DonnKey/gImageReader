@@ -78,6 +78,10 @@ class PreferenceChoice {
 		QString name = "normalizeApplySubst_" + m_instance;
 	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
 	}
+	bool getSortAll() {
+		QString name = "normalizeSort_" + m_instance;
+	    return ConfigSettings::get<SwitchSetting>(name)->getValue();
+	}
 	const QString getTitle() {
 		QString name = "normalizeTitle_" + m_instance;
 	    return ConfigSettings::get<LineEditSetting>(name)->getValue();
@@ -99,6 +103,8 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSetting("normalizeTrimHeight_0", ui.trimHeight_0, false));
 	ADD_SETTING(SwitchSetting("normalizeFontSize_0", ui.normalizeFontSize_0, false));
 	ADD_SETTING(SwitchSetting("normalizeFont_0", ui.normalizeFont_0, false));
+	ADD_SETTING(SwitchSetting("normalizeApplySubst_0", ui.applySubst_0, false));
+	ADD_SETTING(SwitchSetting("normalizeSort_0", ui.applySort_0, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_0", ui.setBold_0, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_0", ui.setItalic_0, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_0", ui.title_0));
@@ -123,6 +129,8 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSetting("normalizeTrimHeight_1", ui.trimHeight_1, false));
 	ADD_SETTING(SwitchSetting("normalizeFontSize_1", ui.normalizeFontSize_1, false));
 	ADD_SETTING(SwitchSetting("normalizeFont_1", ui.normalizeFont_1, false));
+	ADD_SETTING(SwitchSetting("normalizeApplySubst_1", ui.applySubst_1, false));
+	ADD_SETTING(SwitchSetting("normalizeSort_1", ui.applySort_1, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_1", ui.setBold_1, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_1", ui.setItalic_1, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_1", ui.title_1));
@@ -147,6 +155,8 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSetting("normalizeTrimHeight_2", ui.trimHeight_2, false));
 	ADD_SETTING(SwitchSetting("normalizeFontSize_2", ui.normalizeFontSize_2, false));
 	ADD_SETTING(SwitchSetting("normalizeFont_2", ui.normalizeFont_2, false));
+	ADD_SETTING(SwitchSetting("normalizeApplySubst_2", ui.applySubst_2, false));
+	ADD_SETTING(SwitchSetting("normalizeSort_2", ui.applySort_2, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_2", ui.setBold_2, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_2", ui.setItalic_2, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_2", ui.title_2));
@@ -171,6 +181,8 @@ HOCRNormalize::HOCRNormalizeDialog::HOCRNormalizeDialog(HOCRNormalize* parent) :
 	ADD_SETTING(SwitchSetting("normalizeTrimHeight_3", ui.trimHeight_3, false));
 	ADD_SETTING(SwitchSetting("normalizeFontSize_3", ui.normalizeFontSize_3, false));
 	ADD_SETTING(SwitchSetting("normalizeFont_3", ui.normalizeFont_3, false));
+	ADD_SETTING(SwitchSetting("normalizeApplySubst_3", ui.applySubst_3, false));
+	ADD_SETTING(SwitchSetting("normalizeSort_3", ui.applySort_3, false));
 	ADD_SETTING(SwitchSettingTri("normalizeSetBold_3", ui.setBold_3, Qt::PartiallyChecked));
 	ADD_SETTING(SwitchSettingTri("normalizeSetItalic_3", ui.setItalic_3, Qt::PartiallyChecked));
 	ADD_SETTING(LineEditSetting("normalizeTitle_3", ui.title_3));
@@ -252,12 +264,14 @@ void HOCRNormalize::normalizeSelection(PreferenceChoice *pref, bool substituteOn
 	} else {
 		pref->m_substitutions = nullptr;
 	}
+	m_doc->beginLayoutChange();
 	bool success = Utils::busyTask([this, pref, substituteOnly] {
 		for (HOCRItem* item:*m_items) {
 			normalizeItem(item, pref, substituteOnly);
 		}
 		return true;
 	}, _("Normalizing ..."));
+	m_doc->endLayoutChange();
 }
 
 void HOCRNormalize::normalizeItem(const HOCRItem* item, PreferenceChoice *pref, bool substituteOnly) {
@@ -307,7 +321,15 @@ void HOCRNormalize::normalizeItem(const HOCRItem* item, PreferenceChoice *pref, 
 			m_doc->fitToFont(index);
 		}
 		return;
-	} 
+	} else {
+		if (pref->getSortAll()) {
+			if(itemClass == "ocr_line") {
+				m_doc->raw_sortOnX(index);
+			} else {
+				m_doc->raw_sortOnY(index);
+			}
+		}
+	}
 
 	for(int i = 0, n = item->children().size(); i < n; ++i) {
 		normalizeItem(item->children()[i], pref, substituteOnly);

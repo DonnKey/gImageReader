@@ -1299,6 +1299,8 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QAction* actionMoveUp = nullptr;
 	QAction* actionMoveDown = nullptr;
 	QAction* actionFit = nullptr;
+	QAction* actionSortX = nullptr;
+	QAction* actionSortY = nullptr;
 	QAction* nonActionMultiple = nullptr;
 
 	nonActionMultiple = menu.addAction(_("Multiple Selection Menu"));
@@ -1345,6 +1347,13 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		actionMoveDown = menu.addAction(_("Move Down (D)"));
 		m_contextIndexDown = &index;
 	}
+	if((itemClass == "ocr_page" || itemClass == "ocr_carea" || itemClass == "ocr_par")
+		&& item->children().size() > 1) {
+		actionSortY = menu.addAction(_("Sort immediate children on &Y position"));
+	}
+	if(itemClass == "ocr_line") {
+		actionSortX = menu.addAction(_("Sort immediate children on &X position"));
+	}
 	menu.installEventFilter(this);
 
 	QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
@@ -1381,6 +1390,14 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		moveUpDown(index,+1);
 	} else if(clickedAction == actionFit) {
 		m_document->fitToFont(index);
+	} else if(clickedAction == actionSortX) {
+		bool oldExpanded = ui.treeViewHOCR->isExpanded(index);
+		m_document->sortOnX(index);
+		expandCollapseChildren(index, oldExpanded);
+	} else if(clickedAction == actionSortY) {
+		bool oldExpanded = ui.treeViewHOCR->isExpanded(index);
+		m_document->sortOnY(index);
+		expandCollapseChildren(index, oldExpanded);
 	}
 	menu.setAttribute(Qt::WA_DeleteOnClose, true);
 }

@@ -100,9 +100,23 @@ public:
 	bool toggleEnabledCheckbox(const QModelIndex& index);
 	void setAttributes(const QString& name, const QString& value, const QString& attrItemClass, const QModelIndex &index);
 	void fitToFont(const QModelIndex& index);
+	void sortOnX(const QModelIndex& index);
+	void sortOnY(const QModelIndex& index);
 
 signals:
 	void itemAttributeChanged(const QModelIndex& itemIndex, const QString& name, const QString& value);
+
+protected:
+	friend class HOCRNormalize;
+
+	void raw_sortOnX(const QModelIndex& index);
+	void raw_sortOnY(const QModelIndex& index);
+	void beginLayoutChange() {
+		emit layoutAboutToBeChanged();
+	}
+	void endLayoutChange() {
+		emit layoutChanged();
+	}
 
 private:
 	int m_pageIdCounter = 0;

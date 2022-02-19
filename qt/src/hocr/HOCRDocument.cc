@@ -418,6 +418,48 @@ void HOCRDocument::xlateItem(const QModelIndex& index, int u_d, int l_r, bool to
 	}
 }
 
+void HOCRDocument::sortOnX(const QModelIndex& idx) {
+	emit layoutAboutToBeChanged();
+	raw_sortOnX(idx);
+	emit layoutChanged();
+}
+
+void HOCRDocument::sortOnY(const QModelIndex& idx) {
+	emit layoutAboutToBeChanged();
+	raw_sortOnY(idx);
+	emit layoutChanged();
+}
+void HOCRDocument::raw_sortOnX(const QModelIndex& idx) {
+	HOCRItem* item = mutableItemAtIndex(idx);
+	Q_ASSERT(item->itemClass() == "ocr_line");
+    if (item->m_childItems.size() > 0) { 
+		std::sort(item->m_childItems.begin(), item->m_childItems.end(), 
+			[](HOCRItem *a, HOCRItem *b) {return a->bbox().left() < b->bbox().left();});
+		for(int i = 0; i < item->m_childItems.size(); ++i) {
+			item->m_childItems[i]->m_index = i;
+		}
+		emit dataChanged(indexAtItem(item->m_childItems.first()), indexAtItem(item->m_childItems.last()), {Qt::DisplayRole});
+    }
+}
+
+void HOCRDocument::raw_sortOnY(const QModelIndex& idx) {
+	HOCRItem* item = mutableItemAtIndex(idx);
+	if (item->m_childItems.size() > 0) { 
+		std::sort(item->m_childItems.begin(), item->m_childItems.end(), 
+			[](HOCRItem *a, HOCRItem *b) {
+				int a_top = a->bbox().top();
+				int b_top = b->bbox().top();
+				if (a_top == b_top) {
+					return a->bbox().left() < b->bbox().left();
+				}
+				return a_top < b_top;});
+		for(int i = 0; i < item->m_childItems.size(); ++i) {
+			item->m_childItems[i]->m_index = i;
+		}
+		emit dataChanged(indexAtItem(item->m_childItems.first()), indexAtItem(item->m_childItems.last()), {Qt::DisplayRole});
+	}
+}
+
 bool HOCRDocument::toggleEnabledCheckbox(const QModelIndex& index) {
 	HOCRItem* item = mutableItemAtIndex(index);
 	if(!item) {

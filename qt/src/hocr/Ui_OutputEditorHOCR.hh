@@ -36,6 +36,7 @@ public:
 	QAction* actionOutputExportPDF;
 	QAction* actionOutputExportODT;
 	QAction* actionOutputReplace;
+	QAction* actionOutputReplaceKey;
 	QAction* actionToggleWConf;
 	QAction* actionPreview;
 	QAction* actionProofread;
@@ -117,6 +118,7 @@ public:
 		actionOutputReplace = new QAction(QIcon::fromTheme("edit-find-replace"), gettext("Find and Replace"), widget);
 		actionOutputReplace->setToolTip(gettext("Find and replace"));
 		actionOutputReplace->setCheckable(true);
+		actionOutputReplaceKey = new QAction(widget);
 		actionToggleWConf = new QAction(QIcon(":/icons/wconf"), gettext("Show confidence values"), widget);
 		actionToggleWConf->setToolTip(gettext("Show confidence values"));
 		actionToggleWConf->setCheckable(true);
@@ -142,6 +144,7 @@ public:
 		toolBarOutput->addAction(actionToggleWConf);
 		toolBarOutput->addAction(actionProofread);
 		toolBarOutput->addAction(actionPreview);
+		widget->addAction(actionOutputReplaceKey); // to some harmless parent
 
 		widget->layout()->addWidget(toolBarOutput);
 

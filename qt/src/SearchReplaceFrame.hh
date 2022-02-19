@@ -38,6 +38,7 @@ public slots:
 	void clearErrorState();
 	void setErrorState();
 	void hideSubstitutionsManager();
+	void setFocus();
 
 signals:
 	void findReplace(const QString& searchstr, const QString& replacestr, bool matchCase, bool backwards, bool replace);

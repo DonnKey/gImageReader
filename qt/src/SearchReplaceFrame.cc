@@ -52,6 +52,10 @@ void SearchReplaceFrame::clearErrorState() {
 	ui.lineEditSearch->setStyleSheet("");
 }
 
+void SearchReplaceFrame::setFocus() {
+	ui.lineEditSearch->setFocus();
+}
+
 void SearchReplaceFrame::setErrorState() {
 	ui.lineEditSearch->setStyleSheet("background: #FF7777; color: #FFFFFF;");
 }

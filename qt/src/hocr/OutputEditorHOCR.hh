@@ -116,6 +116,7 @@ private:
     void removePageByPosition(int position); 
 	void moveUpDown(const QModelIndex& index, int by);
 	bool eventFilter(QObject* /*obj*/, QEvent* ev);
+	void doReplace(bool force);
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);

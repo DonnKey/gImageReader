@@ -305,7 +305,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	MAIN->getDisplayer()->scene()->addItem(m_preview);
 	m_previewTimer.setSingleShot(true);
 
-	ui.actionOutputReplace->setShortcut(Qt::CTRL | Qt::Key_F);
+	ui.actionOutputReplaceKey->setShortcut(Qt::CTRL | Qt::Key_F);
 	ui.actionOutputSaveHOCR->setShortcut(Qt::CTRL | Qt::Key_S);
 	ui.actionNavigateNext->setShortcut(Qt::Key_F3);
 	ui.actionNavigatePrev->setShortcut(Qt::SHIFT | Qt::Key_F3);
@@ -345,8 +345,8 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionOutputExportPDF, &QAction::triggered, this, &OutputEditorHOCR::exportToPDF);
 	connect(ui.actionOutputExportText, &QAction::triggered, this, &OutputEditorHOCR::exportToText);
 	connect(ui.actionOutputClear, &QAction::triggered, this, &OutputEditorHOCR::clear);
-	connect(ui.actionOutputReplace, &QAction::triggered, ui.searchFrame, &SearchReplaceFrame::setVisible);
-	connect(ui.actionOutputReplace, &QAction::triggered, ui.searchFrame, &SearchReplaceFrame::clear);
+	connect(ui.actionOutputReplace, &QAction::triggered, this, [this] { doReplace(false); });
+	connect(ui.actionOutputReplaceKey, &QAction::triggered, this, [this] { doReplace(true); });
 	connect(ui.actionToggleWConf, &QAction::triggered, this, &OutputEditorHOCR::toggleWConfColumn);
 	connect(ui.actionPreview, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.actionProofread, &QAction::toggled, m_proofReadWidget, &HOCRProofReadWidget::setProofreadEnabled);
@@ -1507,4 +1507,14 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 			drawPreview(painter, childItem);;
 		}
 	}
+}
+
+void OutputEditorHOCR::doReplace(bool force) {
+	if(!force) {
+		ui.searchFrame->clear();
+		force = !ui.searchFrame->isVisible();
+	}
+	ui.searchFrame->setVisible(force);
+	ui.searchFrame->setFocus();
+	ui.actionOutputReplace->setChecked(force); 
 }

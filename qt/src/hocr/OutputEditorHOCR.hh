@@ -66,6 +66,7 @@ public:
 	bool crashSave(const QString& filename) const override;
 
 	void keyPressEvent(QKeyEvent* event) override;
+	void setAngle(double angle) override;
 	void navigateNextPrev(bool next, const QString& target = "") override {
 		navigateNextPrev(next, target, true);
 	}

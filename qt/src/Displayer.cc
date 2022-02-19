@@ -86,6 +86,7 @@ Displayer::Displayer(const UI_MainWindow& _ui, QWidget* parent)
 	connect(ui.actionRotateLeft, &QAction::triggered, this, &Displayer::rotate90);
 	connect(ui.actionRotateRight, &QAction::triggered, this, &Displayer::rotate90);
 	connect(ui.spinBoxRotation, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &Displayer::setAngle);
+	connect(ui.spinBoxRotation, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &Displayer::setEditorAngle);
 	connect(ui.spinBoxPage, qOverload<int>(&QSpinBox::valueChanged), this, &Displayer::queueRenderImage);
 	connect(ui.spinBoxBrightness, qOverload<int>(&QSpinBox::valueChanged), this, &Displayer::queueRenderImage);
 	connect(ui.spinBoxContrast, qOverload<int>(&QSpinBox::valueChanged), this, &Displayer::queueRenderImage);
@@ -508,6 +509,10 @@ void Displayer::setAngle(double angle) {
 			setZoom(Zoom::Fit);
 		}
 	}
+}
+
+void Displayer::setEditorAngle(double angle) {
+	MAIN->getOutputEditor()->setAngle(angle);
 }
 
 void Displayer::rotate90() {

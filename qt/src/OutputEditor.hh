@@ -77,6 +77,7 @@ public:
 		return QRectF();
 	}
 	virtual void navigateNextPrev(bool next, const QString& target = "") = 0;
+	virtual void setAngle(double angle) {}
 
 public slots:
 	virtual void onVisibilityChanged(bool /*visible*/) {}

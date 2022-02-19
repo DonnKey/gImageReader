@@ -630,6 +630,12 @@ void OutputEditorHOCR::finalizeRead(ReadSessionData* data) {
 	OutputEditor::finalizeRead(data);
 }
 
+void OutputEditorHOCR::setAngle(double angle) {
+	const HOCRItem* item = m_document->itemAtIndex(ui.treeViewHOCR->currentIndex());
+	HOCRPage* page = item->page();
+	page->setAngle(angle);
+}
+
 void OutputEditorHOCR::addPage(const QString& hocrText, HOCRReadSessionData data) {
 	QDomDocument doc;
 	doc.setContent(hocrText);

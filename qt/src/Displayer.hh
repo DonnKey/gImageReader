@@ -130,6 +130,7 @@ private slots:
 	bool renderImage();
 	void rotate90();
 	void setAngle(double angle);
+	void setEditorAngle(double angle);
 	void setRotateMode(QAction* action);
 	void setScaledImage(QImage image);
 	void zoomIn() {

@@ -301,6 +301,10 @@ public:
 	const int& resolution() const {
 		return m_resolution;
 	}
+	void setAngle(double angle) {
+		setAttribute("title:rot", QString::number(angle));
+		m_angle = angle;
+	}
 	int pageId() const {
 		return m_pageId;
 	}

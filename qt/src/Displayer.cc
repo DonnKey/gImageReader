@@ -76,6 +76,9 @@ Displayer::Displayer(const UI_MainWindow& _ui, QWidget* parent)
 	ui.actionRotateLeft->setData(270.0);
 	ui.actionRotateRight->setData(90.0);
 
+	QPixmap zoomPixmap = QPixmap(":/cursors/zoom-in");
+	m_zoomCursor = QCursor(zoomPixmap, 6, 6);
+
 	connect(ui.menuRotation, &QMenu::triggered, this, &Displayer::setRotateMode);
 	connect(ui.actionRotateLeft, &QAction::triggered, this, &Displayer::rotate90);
 	connect(ui.actionRotateRight, &QAction::triggered, this, &Displayer::rotate90);
@@ -364,8 +367,40 @@ void Displayer::checkViewportChanged() {
 	}
 }
 
+bool Displayer::eventFilter(QObject* target, QEvent* ev) {
+	// This is needed when we don't have the focus but are handling zooms.
+	if (m_zoomStage != Zoom::InStage2) {
+		return false;
+	}
+	if(ev->type() == QEvent::MouseButtonPress) {
+		QMouseEvent* mev = static_cast<QMouseEvent*>(ev);
+		// if the global position isn't in this->rect, reset. Target is irrelevant.
+		if(!rect().contains(mapFromGlobal(mev->globalPos()))) {
+			zoomInClear();
+			return true;
+		}
+	}
+	if(ev->type() == QEvent::KeyPress) {
+		QKeyEvent* kev = static_cast<QKeyEvent*>(ev);
+		// Target is irrelevant.
+		if(kev->key() == Qt::Key_Escape) {
+			zoomInClear();
+			return true;
+		}
+	}
+	return false;
+}
+
+void Displayer::zoomInClear() {
+	QApplication::instance()->removeEventFilter(this);
+	QApplication::restoreOverrideCursor();
+	m_zoomStage = Zoom::Fit;
+	resetZoom();
+}
+
 void Displayer::setZoom(Zoom action, ViewportAnchor anchor) {
 	if(!m_imageItem) {
+		zoomInClear();
 		return;
 	}
 	m_scaleTimer.stop();
@@ -375,13 +410,33 @@ void Displayer::setZoom(Zoom action, ViewportAnchor anchor) {
 	QRectF bb = m_imageItem->sceneBoundingRect();
 	double fit = std::min(viewport()->width() / bb.width(), viewport()->height() / bb.height());
 
-	if(action == Zoom::Original) {
-		m_scale = 1.0;
-	} else if(action == Zoom::In) {
-		m_scale = std::min(10., m_scale * 1.25);
-	} else if(action == Zoom::Out) {
-		m_scale = std::max(0.05, m_scale * 0.8);
+	switch (action) {
+	case Zoom::In: {
+		QApplication::setOverrideCursor(m_zoomCursor);
+		QApplication::instance()->installEventFilter(this);
+		m_zoomStage = Zoom::InStage2;
+		return;
 	}
+	case Zoom::Out: {
+		m_scale = std::max(0.05, m_scale * 0.8);
+		break;
+	}
+	case Zoom::Fit: {
+		break;
+	}
+	case Zoom::Original: {
+		m_scale = 1.0;
+		break;
+	}
+	case Zoom::InStage2: {
+		zoomInClear();
+		anchor = ViewportAnchor::AnchorUnderMouse;
+		m_scale = std::min(10., m_scale * 1.25);
+		break;
+	}
+	}
+
+	m_zoomStage = Zoom::Fit;
 	ui.actionBestFit->setChecked(false);
 	if(action == Zoom::Fit || (m_scale / fit >= 0.9 && m_scale / fit <= 1.09)) {
 		m_scale = fit;
@@ -397,13 +452,20 @@ void Displayer::setZoom(Zoom action, ViewportAnchor anchor) {
 	QTransform t;
 	t.scale(m_scale, m_scale);
 	setTransform(t);
+
+	resetZoom();
+}
+
+void Displayer::resetZoom() {
 	if(m_scale < 1.0) {
 		m_scaleTimer.start(100);
 	} else {
-		m_imageItem->setPixmap(m_pixmap);
-		m_imageItem->setScale(1.);
-		m_imageItem->setTransformOriginPoint(m_imageItem->boundingRect().center());
-		m_imageItem->setPos(m_imageItem->pos() - m_imageItem->sceneBoundingRect().center());
+		if (m_imageItem != nullptr) {
+			m_imageItem->setPixmap(m_pixmap);
+			m_imageItem->setScale(1.);
+			m_imageItem->setTransformOriginPoint(m_imageItem->boundingRect().center());
+			m_imageItem->setPos(m_imageItem->pos() - m_imageItem->sceneBoundingRect().center());
+		}
 	}
 	setUpdatesEnabled(true);
 	update();
@@ -463,6 +525,23 @@ void Displayer::resizeEvent(QResizeEvent* event) {
 }
 
 void Displayer::keyPressEvent(QKeyEvent* event) {
+	if (m_zoomStage == Zoom::InStage2) {
+		// Target is irrelevant.
+		if(event->key() == Qt::Key_Escape) {
+			zoomInClear();
+			event->accept();
+			return;
+		}
+	}
+
+	event->ignore();
+    if(m_tool != nullptr) {
+		m_tool->keyPressEvent(event);
+	}
+	if(event->isAccepted()) {
+		return;
+	}
+
 	if(event->key() == Qt::Key_PageUp) {
 		ui.spinBoxPage->setValue(ui.spinBoxPage->value() - 1);
 		event->accept();
@@ -475,6 +554,10 @@ void Displayer::keyPressEvent(QKeyEvent* event) {
 }
 
 void Displayer::mousePressEvent(QMouseEvent* event) {
+	if(m_zoomStage != Zoom::Fit) {
+		setZoom(Zoom::InStage2);
+		return;
+	}
 	if(event->button() == Qt::MiddleButton) {
 		m_panPos = event->pos();
 	} else {

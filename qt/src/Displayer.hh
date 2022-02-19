@@ -32,6 +32,7 @@ class DisplayRenderer;
 class Source;
 class UI_MainWindow;
 class GraphicsScene;
+class QCursor;
 
 class Displayer : public QGraphicsView {
 	Q_OBJECT
@@ -70,6 +71,7 @@ public:
 	}
 	void setBlockAutoscale(bool block);
 	void applyDeskew(double skew);
+	bool eventFilter(QObject* /*obj*/, QEvent* ev) override;
 
 signals:
 	void viewportChanged();
@@ -81,7 +83,7 @@ public slots:
 
 private:
 	enum class RotateMode { CurrentPage, AllPages, Auto } m_rotateMode;
-	enum class Zoom { In, Out, Fit, Original };
+	enum class Zoom { In, Out, Fit, Original, InStage2 } m_zoomStage;
 	const UI_MainWindow& ui;
 	GraphicsScene* m_scene;
 	QList<Source*> m_sources;
@@ -96,6 +98,7 @@ private:
 	QTimer m_renderTimer;
 	QTransform m_viewportTransform;
 	QColor guessBackground(QPixmap& image);
+	QCursor m_zoomCursor;
 
 	void keyPressEvent(QKeyEvent* event) override;
 	void mousePressEvent(QMouseEvent* event) override;
@@ -105,6 +108,8 @@ private:
 	void wheelEvent(QWheelEvent* event) override;
 
 	void setZoom(Zoom action, QGraphicsView::ViewportAnchor anchor = QGraphicsView::AnchorViewCenter);
+	void zoomInClear();
+	void resetZoom();
 	void generateThumbnails();
 	void thumbnailsToggled(bool active);
 
@@ -146,6 +151,7 @@ public:
 	virtual void mousePressEvent(QMouseEvent* /*event*/) {}
 	virtual void mouseMoveEvent(QMouseEvent* /*event*/) {}
 	virtual void mouseReleaseEvent(QMouseEvent* /*event*/) {}
+	virtual void keyPressEvent(QKeyEvent* /*event*/) {}
 	virtual void pageChanged() {}
 	virtual void resolutionChanged(double /*factor*/) {}
 	virtual void rotationChanged(double /*delta*/) {}

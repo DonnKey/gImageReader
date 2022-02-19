@@ -36,6 +36,9 @@
         <file alias="thumbnail">../../data/icons/thumbnail.png</file>
         <file alias="proofread">../../data/icons/proofread.png</file>
     </qresource>
+    <qresource prefix="/cursors">
+        <file alias="zoom-in">../../data/cursors/zoom-in.png</file>
+    </qresource>
     <qresource prefix="/">
         <file>extra-theme-icons/application-pdf.png</file>
         <file>extra-theme-icons/applications-education-language.png</file>

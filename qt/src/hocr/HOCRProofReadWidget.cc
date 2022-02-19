@@ -32,6 +32,7 @@
 #include "OutputEditorHOCR.hh"
 
 
+static const QString classNames[] {"", "ocr_page", "ocr_carea", "ocr_par", "ocr_line", "ocrx_word"};
 class HOCRProofReadWidget::LineEdit : public QLineEdit {
 public:
 	LineEdit(HOCRProofReadWidget* proofReadWidget, const HOCRItem* wordItem, QWidget* parent = nullptr) :
@@ -130,6 +131,32 @@ private:
 				move(bottomLeft.x() - frameX, 0);
 				setFixedWidth(bottomRight.x() - bottomLeft.x() + 8); // 8: border + padding
 			}
+		}
+	}
+	typedef enum {OCR_none, OCR_page, OCR_carea, OCR_par, OCR_line, OCRX_word} ClassOrdinal;
+	ClassOrdinal classNumber(const HOCRItem* item) {
+		if (m_wordItem->itemClass() == "ocrx_word") return OCRX_word;
+		if (m_wordItem->itemClass() == "ocr_line") return OCR_line;
+		if (m_wordItem->itemClass() == "ocr_par") return OCR_par;
+		if (m_wordItem->itemClass() == "ocr_carea") return OCR_carea;
+		if (m_wordItem->itemClass() == "ocr_page") return OCR_page;
+		return OCR_none;
+	}
+	void moveToClass(ClassOrdinal target) {
+		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
+		ClassOrdinal depth = classNumber(m_wordItem);
+		if (depth > target) {
+			QModelIndex newIndex = document->indexAtItem(m_wordItem->parent());
+			for (int d = depth-1; d > target; d--) {
+				newIndex = newIndex.parent();
+			}
+			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
+			m_proofReadWidget->repositionWidget();
+		} else if (depth != target) {
+			QModelIndex index = document->indexAtItem(m_wordItem);
+			QModelIndex newIndex = document->prevOrNextIndex(true, index, classNames[target]);
+			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
+			m_proofReadWidget->repositionWidget();
 		}
 	}
 	void keyPressEvent(QKeyEvent* ev) override {
@@ -257,6 +284,19 @@ private:
 		} else if(ev->key() == Qt::Key_Delete && ev->modifiers() == Qt::ControlModifier) {
 			QModelIndex index = document->indexAtItem(m_wordItem);
 			document->toggleEnabledCheckbox(index);
+		} else if(ev->key() == Qt::Key_1 && ev->modifiers() & Qt::KeypadModifier) {
+			moveToClass(OCRX_word);
+		} else if(ev->key() == Qt::Key_2 && ev->modifiers() & Qt::KeypadModifier) {
+			moveToClass(OCR_line);
+		} else if(ev->key() == Qt::Key_3 && ev->modifiers() & Qt::KeypadModifier) {
+			moveToClass(OCR_par);
+		} else if(ev->key() == Qt::Key_4 && ev->modifiers() & Qt::KeypadModifier) {
+			moveToClass(OCR_carea);
+		} else if(ev->key() == Qt::Key_5 && ev->modifiers() & Qt::KeypadModifier) {
+			QModelIndex newIndex = document->indexAtItem(m_wordItem->page());
+			HOCRProofReadWidget* widget = m_proofReadWidget; // some ops change 'this', and we need the widget after
+			m_proofReadWidget->documentTree()->setCurrentIndex(newIndex);
+			widget->repositionWidget();
 		} else if(ev->key() == Qt::Key_Plus && ev->modifiers() & Qt::ControlModifier) {
 			m_proofReadWidget->adjustFontSize(+1);
 		} else if((ev->key() == Qt::Key_Minus || ev->key() == Qt::Key_Underscore) && ev->modifiers() & Qt::ControlModifier) {
@@ -605,6 +645,7 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 	                           "<tr><td>Ctrl+-</td>"                  "<td>D</td> <td> </td> <td>E</td> <td>Decrease <em>tool</em> font size</td></tr>"
 	                           "<tr><td>PageUp, PageDown</td>"        "<td>D</td> <td> </td> <td>E</td> <td>Previous/Next Page</td></tr>"
 	                           "<tr><td>PageUp, PageDown</td>"        "<td> </td> <td>T</td> <td> </td> <td>Up/down one table screen</td></tr>"
+	                           "<tr><td>Keypad+{1-5}</td>"            "<td> </td> <td>T</td> <td> </td> <td>Nearest word,line,para,section,page</td></tr>"
 	                           "<tr><td>Ctrl+F</td>"                  "<td>D</td> <td>T</td> <td>F</td> <td>Open/Go to Find</td></tr>"
 	                           "<tr><td>Ctrl+S</td>"                  "<td>D</td> <td>T</td> <td>F</td> <td>Open Save HOCR</td></tr>"
 	                           "<tr><td>F3, Shift+F3</td>"            "<td>D</td> <td>T</td> <td>F</td> <td>Next/Prev Page/Paragraph/Line in Tree</td></tr>"

@@ -1725,6 +1725,7 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 	QStringList failed;
 	QStringList invalid;
 	QStringList added;
+	int currentPage = -1;
 	for(const QString& filename : files) {
 		QFile file(filename);
 		if(!file.open(QIODevice::ReadOnly)) {
@@ -1733,6 +1734,20 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 		}
 		QDomDocument doc;
 		doc.setContent(&file);
+		QDomElement head = doc.firstChildElement("html").firstChildElement("head");
+		QDomNodeList metadata = head.elementsByTagName("meta");
+		for (int i=0; i<metadata.count(); i++) {
+			QDomElement data = metadata.at(i).toElement();
+			if(data.hasAttribute("name")) {
+				if (data.attribute("name") == "ocr-current-page" && data.hasAttribute("content")) {
+					QString pageString = data.attribute("content");
+					// our page numbers are 1-base, but hOCR is 0 base (page 0 is "cover")
+					currentPage = pageString.toInt() + pos - 1;
+					break;
+				}
+			}
+		}
+
 		QDomElement div = doc.firstChildElement("html").firstChildElement("body").firstChildElement("div");
 		if(div.isNull() || div.attribute("class") != "ocr_page") {
 			invalid.append(filename);
@@ -1754,6 +1769,9 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 		}
 		MAIN->setOutputPaneVisible(true);
 		ConfigSettings::get<VarSetting<QString>>("lasthocrsave")->setValue(added.front());
+		if (currentPage >= 0) {
+			selectPage(currentPage);
+		}
 	}
 	QStringList errorMsg;
 	if(!failed.isEmpty()) {
@@ -1808,6 +1826,10 @@ bool OutputEditorHOCR::save(const QString& filename) {
 	setlocale(LC_ALL, "C");
 	tesseract::TessBaseAPI tess;
 	setlocale(LC_ALL, current.constData());
+	QModelIndex currentIndex = ui.treeViewHOCR->selectionModel()->currentIndex();
+	const HOCRItem* item = m_document->itemAtIndex(currentIndex);
+	const HOCRPage* page = item ? item->page() : m_document->page(0);
+	const int pageNr = page->pageNr();
 	QString header = QString(
 	                     "<!DOCTYPE html>\n"
 	                     "<html>\n"
@@ -1816,7 +1838,8 @@ bool OutputEditorHOCR::save(const QString& filename) {
 	                     " <meta charset=\"utf-8\" /> \n"
 	                     " <meta name='ocr-system' content='tesseract %2' />\n"
 	                     " <meta name='ocr-capabilities' content='ocr_page ocr_carea ocr_par ocr_line ocrx_word'/>\n"
-	                     "</head>\n").arg(QFileInfo(outname).fileName()).arg(tess.Version());
+	                     " <meta name='ocr-current-page' content='%3'/>\n"
+	                     "</head>\n").arg(QFileInfo(outname).fileName()).arg(tess.Version()).arg(QString::number(pageNr-1));
 	file.write(header.toUtf8());
 	m_document->convertSourcePaths(QFileInfo(outname).absolutePath(), false);
 	file.write(m_document->toHTML().toUtf8());
@@ -1835,6 +1858,10 @@ bool OutputEditorHOCR::crashSave(const QString& filename) const {
 	setlocale(LC_ALL, "C");
 	tesseract::TessBaseAPI tess;
 	setlocale(LC_ALL, current.constData());
+	QModelIndex currentIndex = ui.treeViewHOCR->selectionModel()->currentIndex();
+	const HOCRItem* item = m_document->itemAtIndex(currentIndex);
+	const HOCRPage* page = item ? item->page() : m_document->page(0);
+	const int pageNr = page->pageNr();
 	if(file.open(QIODevice::WriteOnly)) {
 		QString header = QString(
 		                     "<!DOCTYPE html>\n"
@@ -1844,7 +1871,8 @@ bool OutputEditorHOCR::crashSave(const QString& filename) const {
 		                     " <meta charset=\"utf-8\" /> \n"
 							 " <meta name='ocr-system' content='tesseract %2' />\n"
 		                     " <meta name='ocr-capabilities' content='ocr_page ocr_carea ocr_par ocr_line ocrx_word'/>\n"
-							 "</head>\n").arg(QFileInfo(filename).fileName()).arg(tess.Version());
+							 " <meta name='ocr-current-page' content='%3'/>\n"
+							 "</head>\n").arg(QFileInfo(filename).fileName()).arg(tess.Version()).arg(QString::number(pageNr-1));
 		file.write(header.toUtf8());
 		m_document->convertSourcePaths(QFileInfo(filename).absolutePath(), false);
 		file.write(m_document->toHTML().toUtf8());

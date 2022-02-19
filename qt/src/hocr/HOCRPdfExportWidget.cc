@@ -173,7 +173,7 @@ HOCRPdfExportWidget::HOCRPdfExportWidget(DisplayerToolHOCR* displayerTool, const
 HOCRPdfExportWidget::~HOCRPdfExportWidget() {
 	MAIN->getDisplayer()->scene()->removeItem(m_preview);
 	delete m_preview;
-	static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::show);
+	static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::resume);
 }
 
 void HOCRPdfExportWidget::setPreviewPage(const HOCRDocument* hocrdocument, const HOCRPage* hocrpage) {
@@ -264,7 +264,7 @@ void HOCRPdfExportWidget::updatePreview() {
 	printer.printChildren(page, pdfSettings, 1.);
 	m_preview->setPixmap(QPixmap::fromImage(image));
 	m_preview->setPos(-0.5 * bbox.width(), -0.5 * bbox.height());
-	static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::suppress);
+	static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::suspend);
 }
 
 void HOCRPdfExportWidget::backendChanged() {

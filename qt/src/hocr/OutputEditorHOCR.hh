@@ -75,7 +75,9 @@ public:
 	int m_blinkCounter = 0;
 	QTimer *m_blinkTimer;
 	void addWordAtCursor();
-	enum showMode{show, suppress, invert};
+	
+	enum showMode{show, invert, suspend, resume};
+	bool m_suspended = false;
 	void showPreview(showMode mode);
 
 public slots:

@@ -1926,10 +1926,14 @@ void OutputEditorHOCR::showPreview(OutputEditorHOCR::showMode mode) {
 		break;
 	case show:
 		break;
-	case suppress:
-		suppressed = true;
+	case suspend:
+		m_suspended = true;
+		break;
+	case resume:
+		m_suspended = false;
+		break;
 	}
-	if(item != nullptr && !suppressed && (ui.actionPreview->isChecked()^inv)) {
+	if(item != nullptr && !m_suspended && (ui.actionPreview->isChecked()^inv)) {
 		updatePreview();
 		m_preview->show();
 		if (MAIN->getDisplayer()->underMouse()) {

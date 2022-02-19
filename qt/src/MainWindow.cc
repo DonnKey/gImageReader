@@ -183,6 +183,9 @@ MainWindow::MainWindow(const QStringList& files)
 	 });
 	connect(ui.actionAutodetectLayout, &QAction::triggered, m_displayer, &Displayer::autodetectOCRAreas);
 	connect(ui.actionBatchExport, &QAction::triggered, this, &MainWindow::batchExport);
+#if FOCUSDEBUG
+	connect(qApp, &QApplication::focusChanged, this, &MainWindow::focusChanged);
+#endif
 
 	ADD_SETTING(VarSetting<QByteArray>("wingeom"));
 	ADD_SETTING(VarSetting<QByteArray>("winstate"));
@@ -282,8 +285,28 @@ void MainWindow::setOutputPaneVisible(bool visible) {
 	ui.actionToggleOutputPane->setChecked(visible);
 }
 
-void MainWindow::pushState(MainWindow::State state, const QString& msg) {
+#if FOCUSDEBUG
+QString focusHistory;
+void MainWindow::focusNote(QString &msg) {
+	QWidget *fw = QApplication::focusWidget();
+	if (fw != nullptr) {
+		focusHistory += QString(" ") + fw->metaObject()->className(); 
+		focusHistory += "(" + fw->objectName() + ")";
+	} else {
+		focusHistory += QString(" QWidget(0x0)");
+	}
+	focusHistory = focusHistory.right(100);
+	msg += " " + focusHistory;
+
+}
+#endif
+
+void MainWindow::pushState(MainWindow::State state, const QString &m) {
+	QString msg = m;
 	m_stateStack.push(QPair<State, QString>(state, msg));
+#if FOCUSDEBUG
+	focusNote(msg);
+#endif
 	ui.statusbar->showMessage(msg);
 	setState(state);
 	if(state == State::Busy) {
@@ -297,9 +320,21 @@ void MainWindow::popState() {
 	}
 	m_stateStack.pop();
 	const QPair<State, QString>& pair = m_stateStack.top();
-	ui.statusbar->showMessage(pair.second);
+	QString msg = pair.second;
+#if FOCUSDEBUG
+	focusNote(msg);
+#endif
+	ui.statusbar->showMessage(msg);
 	setState(pair.first);
 }
+
+#if FOCUSDEBUG
+void MainWindow::focusChanged(QWidget* old, QWidget* now) {
+	QString msg = m_stateStack.top().second;
+	focusNote(msg);
+	ui.statusbar->showMessage(msg);
+}
+#endif
 
 void MainWindow::setState(State state) {
 	bool isIdle = state == State::Idle;

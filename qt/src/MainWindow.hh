@@ -35,6 +35,8 @@
 
 #define MAIN MainWindow::getInstance()
 
+#define FOCUSDEBUG 0
+
 class Acquirer;
 class Displayer;
 class DisplayerTool;
@@ -163,6 +165,9 @@ private:
 
 	void closeEvent(QCloseEvent* ev);
 	void setState(State state);
+#if FOCUSDEBUG
+	void focusNote(QString &msg);
+#endif
 
 private slots:
 	void checkVersion(const QString& newver);
@@ -177,6 +182,9 @@ private slots:
 	void dictionaryAutoinstall();
 	void batchExport();
 	void psmChanged(){};
+#if FOCUSDEBUG
+	void focusChanged(QWidget *old, QWidget*now);
+#endif
 };
 
 Q_DECLARE_METATYPE(MainWindow::State)

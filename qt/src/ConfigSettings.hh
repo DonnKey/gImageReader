@@ -252,6 +252,25 @@ private:
 	QSpinBox* m_spin;
 };
 
+class DoubleSpinSetting : public AbstractSetting {
+	Q_OBJECT
+public:
+	DoubleSpinSetting(const QString& key, QDoubleSpinBox* spin, double defaultValue = 0.)
+		: AbstractSetting(key), m_spin(spin) {
+		spin->setValue(QSettings().value(m_key, QVariant::fromValue(defaultValue)).toDouble());
+		connect(spin, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &DoubleSpinSetting::serialize);
+	}
+
+public slots:
+	void serialize() override {
+		QSettings().setValue(m_key, QVariant::fromValue(m_spin->value()));
+		emit changed();
+	}
+
+private:
+	QDoubleSpinBox* m_spin;
+};
+
 class TableSetting : public AbstractSetting {
 	Q_OBJECT
 public:

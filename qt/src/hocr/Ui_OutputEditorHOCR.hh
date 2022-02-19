@@ -35,6 +35,7 @@ public:
 	QAction* actionOutputClear;
 	QAction* actionOutputSaveHOCR;
 	QAction* actionOutputExportText;
+	QAction* actionOutputExportIndentedText;
 	QAction* actionOutputExportPDF;
 	QAction* actionOutputExportODT;
 	QAction* actionOutputReplace;
@@ -104,6 +105,9 @@ public:
 		actionOutputExportText = new QAction(QIcon::fromTheme("text-plain"), gettext("Export to plain text"), widget);
 		actionOutputExportText->setToolTip(gettext("Export to plain text"));
 		exportMenu->addAction(actionOutputExportText);
+		actionOutputExportIndentedText = new QAction(QIcon::fromTheme("text-plain"), gettext("Export to plain text, preserve whitespace"), widget);
+		actionOutputExportIndentedText->setToolTip(gettext("Export to plain text, preserve whitespace"));
+		exportMenu->addAction(actionOutputExportIndentedText);
 		actionOutputExportPDF = new QAction(QIcon::fromTheme("application-pdf"), gettext("Export to PDF"), widget);
 		actionOutputExportPDF->setToolTip(gettext("Export to PDF"));
 		exportMenu->addAction(actionOutputExportPDF);

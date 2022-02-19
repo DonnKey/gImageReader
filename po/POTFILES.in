@@ -97,10 +97,11 @@ gtk/src/Utils.hh
 [type: gettext/qtdesigner]qt/data/ConfigDialog.ui
 [type: gettext/qtdesigner]qt/data/CrashHandler.ui
 [type: gettext/qtdesigner]qt/data/HOCRBatchExportDialog.ui
+[type: gettext/qtdesigner]qt/data/HOCRNormalizeDialog.ui
+[type: gettext/qtdesigner]qt/data/IndentedTextExportDialog.ui
+[type: gettext/qtdesigner]qt/data/IndentedTextExportWidget.ui
 [type: gettext/qtdesigner]qt/data/MainWindow.ui
-[type: gettext/qtdesigner]qt/data/NormalizeDialog.ui
 [type: gettext/qtdesigner]qt/data/PageRangeDialog.ui
-[type: gettext/qtdesigner]qt/data/PdfExportDialog.ui
 [type: gettext/qtdesigner]qt/data/PdfExportWidget.ui
 [type: gettext/qtdesigner]qt/data/SearchReplaceFrame.ui
 qt/src/Acquirer.cc

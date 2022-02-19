@@ -51,7 +51,7 @@
 
 
 HOCRPdfExportWidget::HOCRPdfExportWidget(DisplayerToolHOCR* displayerTool, const HOCRDocument* hocrdocument, const HOCRPage* hocrpage, QWidget* parent)
-	: QWidget(parent), m_displayerTool(displayerTool), m_document(hocrdocument), m_previewPage(hocrpage) {
+	: HOCRExporterWidget(parent), m_displayerTool(displayerTool), m_document(hocrdocument), m_previewPage(hocrpage) {
 	ui.setupUi(this);
 
 	ui.comboBoxBackend->addItem("PoDoFo", HOCRPdfExporter::PDFSettings::BackendPoDoFo);
@@ -182,8 +182,8 @@ void HOCRPdfExportWidget::setPreviewPage(const HOCRDocument* hocrdocument, const
 	updatePreview();
 }
 
-HOCRPdfExporter::PDFSettings HOCRPdfExportWidget::getPdfSettings() const {
-	HOCRPdfExporter::PDFSettings pdfSettings;
+HOCRExporter::ExporterSettings& HOCRPdfExportWidget::getSettings() const {
+	HOCRPdfExporter::PDFSettings& pdfSettings = m_settings;
 	pdfSettings.colorFormat = static_cast<QImage::Format>(ui.comboBoxImageFormat->itemData(ui.comboBoxImageFormat->currentIndex()).toInt());
 	pdfSettings.conversionFlags = pdfSettings.colorFormat == QImage::Format_Mono ? static_cast<Qt::ImageConversionFlags>(ui.comboBoxDithering->itemData(ui.comboBoxDithering->currentIndex()).toInt()) : Qt::AutoColor;
 	pdfSettings.compression = static_cast<HOCRPdfExporter::PDFSettings::Compression>(ui.comboBoxImageCompression->itemData(ui.comboBoxImageCompression->currentIndex()).toInt());
@@ -238,7 +238,7 @@ void HOCRPdfExportWidget::updatePreview() {
 	QRect bbox = page->bbox();
 	int pageDpi = page->resolution();
 
-	HOCRPdfExporter::PDFSettings pdfSettings = getPdfSettings();
+	HOCRPdfExporter::PDFSettings& pdfSettings = static_cast<HOCRPdfExporter::PDFSettings&>(getSettings());
 
 	QFont defaultFont = ui.checkBoxFontFamily->isChecked() ? ui.comboBoxFontFamily->currentFont() : ui.comboBoxFallbackFontFamily->currentFont();
 

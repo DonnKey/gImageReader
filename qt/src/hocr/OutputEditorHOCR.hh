@@ -89,6 +89,7 @@ public slots:
 	bool exportToODT();
 	bool exportToPDF();
 	bool exportToText();
+	bool exportToIndentedText();
 	void removeCurrentItem();
 
 protected:

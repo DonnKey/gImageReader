@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * HOCRPdfExportWidget.hh
- * Copyright (C) 2013-2022 Sandro Mani <manisandro@gmail.com>
+ * HOCRIndentedTextExportWidget.hh
+ * Copyright (C) 2013-2020 Sandro Mani <manisandro@gmail.com>
  *
  * gImageReader is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,14 +17,14 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef HOCRPDFEXPORTWIDGET_HH
-#define HOCRPDFEXPORTWIDGET_HH
+#ifndef HOCRINDENTEDTEXTEXPORTWIDGET_HH
+#define HOCRINDENTEDTEXTEXPORTWIDGET_HH
 
 #include <QImage>
 #include <QVector>
 
-#include "HOCRPdfExporter.hh"
-#include "ui_PdfExportWidget.h"
+#include "HOCRIndentedTextExporter.hh"
+#include "ui_IndentedTextExportWidget.h"
 
 class QGraphicsPixmapItem;
 
@@ -33,35 +33,29 @@ class HOCRDocument;
 class HOCRPage;
 
 
-class HOCRPdfExportWidget : public HOCRExporterWidget {
+class HOCRIndentedTextExportWidget : public HOCRExporterWidget {
 	Q_OBJECT
 public:
-	HOCRPdfExportWidget(DisplayerToolHOCR* displayerTool, const HOCRDocument* hocrdocument = nullptr, const HOCRPage* hocrpage = nullptr, QWidget* parent = nullptr);
-	~HOCRPdfExportWidget();
+	HOCRIndentedTextExportWidget(DisplayerToolHOCR* displayerTool, const HOCRDocument* hocrdocument = nullptr, const HOCRPage* hocrpage = nullptr, QWidget* parent = nullptr);
+	~HOCRIndentedTextExportWidget();
 	void setPreviewPage(const HOCRDocument* hocrdocument, const HOCRPage* hocrpage);
-	HOCRExporter::ExporterSettings& getSettings() const override;
-
-signals:
-	void validChanged(bool valid);
+	HOCRIndentedTextExporter::ExporterSettings& getSettings() const override;
 
 private:
-	Ui::PdfExportWidget ui;
+	bool findOrigin(const HOCRItem *item);
+	void findCells(const HOCRItem *item);
+
+	Ui::IndentedTextExportWidget ui;
 	QGraphicsPixmapItem* m_preview = nullptr;
 	DisplayerToolHOCR* m_displayerTool;
 	const HOCRDocument* m_document = nullptr;
 	const HOCRPage* m_previewPage;
-	mutable HOCRPdfExporter::PDFSettings m_settings;
-
+	mutable HOCRIndentedTextExporter::IndentedTextSettings m_settings;
 
 private slots:
-	void backendChanged();
-	void toggleBackendHint();
-	void importMetadataFromSource();
-	void imageFormatChanged();
-	void imageCompressionChanged();
-	void paperSizeChanged();
 	void updatePreview();
-	void updateValid();
+	void computeOrigin();
+	void computeCell();
 };
 
-#endif // HOCRPDFEXPORTWIDGET_HH
+#endif // HOCRINDENTEDTEXTEXPORTWIDGET_HH

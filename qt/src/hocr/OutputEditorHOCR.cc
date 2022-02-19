@@ -52,6 +52,7 @@
 #include "HOCRPdfExporter.hh"
 #include "HOCRProofReadWidget.hh"
 #include "HOCRTextExporter.hh"
+#include "HOCRIndentedTextExporter.hh"
 #include "MainWindow.hh"
 #include "OutputEditorHOCR.hh"
 #include "Recognizer.hh"
@@ -444,6 +445,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionOutputExportODT, &QAction::triggered, this, &OutputEditorHOCR::exportToODT);
 	connect(ui.actionOutputExportPDF, &QAction::triggered, this, &OutputEditorHOCR::exportToPDF);
 	connect(ui.actionOutputExportText, &QAction::triggered, this, &OutputEditorHOCR::exportToText);
+	connect(ui.actionOutputExportIndentedText, &QAction::triggered, this, &OutputEditorHOCR::exportToIndentedText);
 	connect(ui.actionOutputClear, &QAction::triggered, this, &OutputEditorHOCR::clear);
 	connect(ui.actionOutputReplace, &QAction::triggered, this, [this] { doReplace(false); });
 	connect(ui.actionOutputReplaceKey, &QAction::triggered, this, [this] { doReplace(true); });
@@ -1760,7 +1762,7 @@ bool OutputEditorHOCR::exportToPDF() {
 		ui.treeViewHOCR->setCurrentIndex(current);
 		return false;
 	}
-	HOCRPdfExporter::PDFSettings settings = dialog.getPdfSettings();
+	HOCRPdfExporter::PDFSettings& settings = dialog.getPdfSettings();
 
 	QString suggestion = m_filebasename;
 	if(suggestion.isEmpty()) {
@@ -1809,6 +1811,43 @@ bool OutputEditorHOCR::exportToText() {
 	MAIN->getDisplayer()->setBlockAutoscale(true);
 	bool success = HOCRTextExporter().run(m_document, outname);
 	MAIN->getDisplayer()->setBlockAutoscale(false);
+	return success;
+}
+
+bool OutputEditorHOCR::exportToIndentedText() {
+	ui.treeViewHOCR->setFocus(); // Ensure any item editor loses focus and commits its changes
+	QModelIndex current = ui.treeViewHOCR->selectionModel()->currentIndex();
+	const HOCRItem* item = m_document->itemAtIndex(current);
+	const HOCRPage* page = item ? item->page() : m_document->page(0);
+	bool success = false;
+	if(!newPage(page)) {
+		return false;
+	}
+
+	ui.treeViewHOCR->selectionModel()->clear();
+	HOCRIndentedTextExportDialog dialog(m_tool, m_document, page, MAIN);
+	if(dialog.exec() != QDialog::Accepted) {
+		ui.treeViewHOCR->setCurrentIndex(current);
+		return false;
+	}
+	HOCRIndentedTextExporter::IndentedTextSettings& settings = dialog.getIndentedTextSettings();
+
+	QString suggestion = m_filebasename;
+	if(suggestion.isEmpty()) {
+		QList<Source*> sources = MAIN->getSourceManager()->getSelectedSources();
+		suggestion = !sources.isEmpty() ? QFileInfo(sources.first()->displayname).baseName() : _("output");
+	}
+
+	QString outname = FileDialogs::saveDialog(_("Save Indented Text Output..."), suggestion + ".txt", "outputdir", QString("%1 (*.txt)").arg(_("Text Files")));
+	if(outname.isEmpty()) {
+		ui.treeViewHOCR->setCurrentIndex(current);
+		return false;
+	}
+
+	MAIN->getDisplayer()->setBlockAutoscale(true);
+	success = HOCRIndentedTextExporter().run(m_document, outname, &settings);
+	MAIN->getDisplayer()->setBlockAutoscale(false);
+	ui.treeViewHOCR->setCurrentIndex(current);
 	return success;
 }
 
@@ -2044,6 +2083,7 @@ void OutputEditorHOCR::updatePreview() {
 	m_preview->setPixmap(QPixmap::fromImage(image));
 	m_preview->setPos(-0.5 * bbox.width(), -0.5 * bbox.height());
 	m_preview->setVisible(true);
+	m_proofReadWidget->showWidget(true);
 }
 
 static const QString *useDefaultFlag = new QString();

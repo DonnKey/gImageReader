@@ -594,6 +594,6 @@ HOCRPdfExportDialog::HOCRPdfExportDialog(DisplayerToolHOCR* displayerTool, const
 	connect(bbox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 }
 
-HOCRPdfExporter::PDFSettings HOCRPdfExportDialog::getPdfSettings() const {
-	return m_widget->getPdfSettings();
+HOCRPdfExporter::PDFSettings& HOCRPdfExportDialog::getPdfSettings() const {
+	return static_cast<HOCRPdfExporter::PDFSettings&>(m_widget->getSettings());
 }

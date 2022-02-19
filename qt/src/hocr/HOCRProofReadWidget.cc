@@ -666,6 +666,7 @@ void HOCRProofReadWidget::setProofreadEnabled(bool enabled) {
 		repositionWidget();
 	} else {
 		hide();
+		clear();
 	}
 }
 

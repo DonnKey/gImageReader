@@ -28,7 +28,7 @@
 
 
 class FileTreeModel;
-class HOCRPdfExportWidget;
+class HOCRExporterWidget;
 
 class HOCRBatchExportDialog : public QDialog {
 
@@ -38,7 +38,7 @@ public:
 	HOCRBatchExportDialog(QWidget* parent = nullptr);
 
 private:
-	enum ExportMode { ExportPdf, ExportOdt, ExportTxt };
+	enum ExportMode { ExportPdf, ExportOdt, ExportTxt, ExportIndentedTxt };
 	Ui::BatchExportDialog ui;
 
 	void blinkFiles();
@@ -48,7 +48,7 @@ private:
 	FileTreeModel* m_sourceTreeModel = nullptr;
 	FileTreeModel* m_outputTreeModel = nullptr;
 	QMap<QString, QStringList> m_outputMap;
-	HOCRPdfExportWidget* m_pdfExportWidget = nullptr;
+	HOCRExporterWidget* m_exporterWidget = nullptr;
 	QTimer m_previewTimer;
 
 private slots:

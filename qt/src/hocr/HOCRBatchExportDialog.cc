@@ -25,6 +25,8 @@
 #include "HOCRPdfExportWidget.hh"
 #include "HOCROdtExporter.hh"
 #include "HOCRTextExporter.hh"
+#include "HOCRIndentedTextExporter.hh"
+#include "HOCRIndentedTextExportWidget.hh"
 #include "MainWindow.hh"
 #include "OutputEditorHOCR.hh"
 #include "Utils.hh"
@@ -40,6 +42,7 @@ HOCRBatchExportDialog::HOCRBatchExportDialog(QWidget* parent)
 	ui.comboBoxFormat->addItem(_("PDF"), ExportPdf);
 	ui.comboBoxFormat->addItem(_("ODT"), ExportOdt);
 	ui.comboBoxFormat->addItem(_("Plain text"), ExportTxt);
+	ui.comboBoxFormat->addItem(_("Plain text (whitespace preserved)"), ExportIndentedTxt);
 	ui.comboBoxFormat->setCurrentIndex(-1);
 
 	m_sourceTreeModel = new FileTreeModel(this);
@@ -103,21 +106,21 @@ void HOCRBatchExportDialog::fillSourceFolder() {
 }
 
 void HOCRBatchExportDialog::setExportFormat() {
-	delete m_pdfExportWidget;
-	m_pdfExportWidget = nullptr;
+	delete m_exporterWidget;
+	m_exporterWidget = nullptr;
 
 	ExportMode mode = static_cast<ExportMode>(ui.comboBoxFormat->currentData().toInt());
+	OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
 	if(mode == ExportPdf) {
-		if(!m_pdfExportWidget) {
-			OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
-			m_pdfExportWidget = new HOCRPdfExportWidget(editor->getTool());
-			ui.tabOptions->layout()->addWidget(m_pdfExportWidget);
-		}
-		ui.tabWidget->setTabEnabled(1, true);
+		m_exporterWidget = new HOCRPdfExportWidget(editor->getTool());
+		ui.tabOptions->layout()->addWidget(m_exporterWidget);
+		ui.tabOptions->setEnabled(true);
+	} else if(mode == ExportIndentedTxt) {
+		m_exporterWidget = new HOCRIndentedTextExportWidget(editor->getTool());
+		ui.tabOptions->layout()->addWidget(m_exporterWidget);
+		ui.tabOptions->setEnabled(true);
 	} else {
-		delete m_pdfExportWidget;
-		m_pdfExportWidget = nullptr;
-		ui.tabWidget->setTabEnabled(1, false);
+		ui.tabOptions->setEnabled(false);
 	}
 	updateOutputTree();
 }
@@ -145,6 +148,7 @@ void HOCRBatchExportDialog::updateOutputTree() {
 		exportSuffix = ".pdf";
 		break;
 	case ExportTxt:
+	case ExportIndentedTxt:
 		exportSuffix = ".txt";
 		break;
 	}
@@ -172,7 +176,7 @@ void HOCRBatchExportDialog::updateOutputTree() {
 	}
 	ui.treeViewOutput->expandAll();
 
-	if(m_pdfExportWidget) {
+	if(m_exporterWidget) {
 		m_previewTimer.start(250);
 	}
 }
@@ -189,13 +193,13 @@ void HOCRBatchExportDialog::apply() {
 	ui.progressBar->show();
 
 	HOCRExporter* exporter = nullptr;
-	HOCRPdfExporter::PDFSettings settings;
+	HOCRExporter::ExporterSettings* settings;
 
 	ExportMode mode = static_cast<ExportMode>(ui.comboBoxFormat->currentData().toInt());
 	switch(mode) {
 	case ExportPdf:
 		exporter = new HOCRPdfExporter();
-		settings = m_pdfExportWidget->getPdfSettings();
+		settings = &m_exporterWidget->getSettings();
 		break;
 	case ExportOdt:
 		exporter = new HOCROdtExporter();
@@ -203,13 +207,17 @@ void HOCRBatchExportDialog::apply() {
 	case ExportTxt:
 		exporter = new HOCRTextExporter();
 		break;
+	case ExportIndentedTxt:
+		exporter = new HOCRIndentedTextExporter();
+		settings = &m_exporterWidget->getSettings();
+		break;
 	}
 
 	OutputEditorHOCR* editor = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
 
 	for(auto it = m_outputMap.begin(), itEnd = m_outputMap.end(); it != itEnd; ++it) {
 		editor->open(OutputEditorHOCR::InsertMode::Replace, it.value());
-		exporter->run(editor->getDocument(), it.key(), &settings);
+		exporter->run(editor->getDocument(), it.key(), settings);
 		ui.progressBar->setValue(ui.progressBar->value() + 1);
 	}
 
@@ -221,15 +229,15 @@ void HOCRBatchExportDialog::apply() {
 
 void HOCRBatchExportDialog::updateExportPreview() {
 	OutputEditorHOCR* editor = dynamic_cast<OutputEditorHOCR*>(MAIN->getOutputEditor());
-	if (m_pdfExportWidget == nullptr) {
+	if (m_exporterWidget == nullptr) {
 		// Nothing
 	} else if (editor != nullptr && !m_outputMap.isEmpty()) {
 		editor->open(OutputEditorHOCR::InsertMode::Replace, m_outputMap.first());
 		HOCRDocument* document = editor->getDocument();
 		editor->selectPage(0);
-		m_pdfExportWidget->setPreviewPage(document->pageCount() > 0 ? document : nullptr, document->pageCount() > 0 ? document->page(0) : nullptr);
+		m_exporterWidget->setPreviewPage(document->pageCount() > 0 ? document : nullptr, document->pageCount() > 0 ? document->page(0) : nullptr);
 	} else {
-		m_pdfExportWidget->setPreviewPage(nullptr, nullptr);
+		m_exporterWidget->setPreviewPage(nullptr, nullptr);
 	}
 }
 

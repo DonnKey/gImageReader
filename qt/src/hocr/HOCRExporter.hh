@@ -23,6 +23,7 @@
 #include <QObject>
 
 class HOCRDocument;
+class HOCRPage;
 
 class HOCRExporter : public QObject {
 public:
@@ -32,6 +33,17 @@ public:
 
 	virtual ~HOCRExporter() = default;
 	virtual bool run(const HOCRDocument* hocrdocument, const QString& outputname, const ExporterSettings* settings = nullptr) = 0;
+};
+
+class HOCRExporterWidget : public QWidget {
+public:
+	HOCRExporterWidget(QWidget* parent = nullptr) : QWidget(parent) {};
+
+	virtual void setPreviewPage(const HOCRDocument* hocrdocument, const HOCRPage* hocrpage) {};
+	virtual HOCRExporter::ExporterSettings& getSettings() const { return m_settings;};
+
+private:
+	mutable HOCRExporter::ExporterSettings m_settings;
 };
 
 #endif // HOCREXPORTER_HH

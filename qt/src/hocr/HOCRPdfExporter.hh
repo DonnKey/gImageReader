@@ -186,7 +186,7 @@ class HOCRPdfExportDialog : public QDialog {
 public:
 	HOCRPdfExportDialog(DisplayerToolHOCR* displayerTool, const HOCRDocument* hocrdocument, const HOCRPage* hocrpage, QWidget* parent = nullptr);
 
-	HOCRPdfExporter::PDFSettings getPdfSettings() const;
+	HOCRPdfExporter::PDFSettings& getPdfSettings() const;
 
 private:
 	HOCRPdfExportWidget* m_widget = nullptr;

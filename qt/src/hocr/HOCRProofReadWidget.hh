@@ -41,10 +41,12 @@ public:
 	void setConfidenceLabel(int wconf);
 	QString confidenceStyle(int wconf) const;
 	void adjustFontSize(int diff);
+	void showWidget(bool show);
 
 private:
 	class LineEdit;
 	friend class OutputEditorHOCR;
+	class PointerWidget;
 
 	TreeViewHOCR* m_treeView = nullptr;
 	QVBoxLayout* m_linesLayout = nullptr;
@@ -54,14 +56,22 @@ private:
 	QMap<const HOCRItem*, QWidget*> m_currentLines;
 	QSpinBox* m_spinLinesBefore = nullptr;
 	QSpinBox* m_spinLinesAfter = nullptr;
+	QSpinBox* m_gapWidth = nullptr;
 	int m_fontSizeDiff = 0;
 	bool m_enabled = false;
 	LineEdit *m_stub = nullptr;
+	PointerWidget *m_pointer;
+	int m_sceneBoxLeft;
+	int m_sceneBoxRight;
+	bool m_hidden = false;
 
 	// Disable auto tab handling
 	bool focusNextPrevChild(bool) override { return false; }
 
 	void repositionWidget();
+	void repositionPointer(int& frameY);
+	void showEvent(QShowEvent *event) override;
+	void hideEvent(QHideEvent *event) override;
 
 private slots:
 	void updateWidget(bool force = false);

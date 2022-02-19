@@ -74,6 +74,9 @@ public:
 	bool eventFilter(QObject* /*obj*/, QEvent* ev) override;
 	void keyPressEvent(QKeyEvent* event) override;
 
+	void ensureWidgetVisible(const QGraphicsItem *item, int xmargin = 50, int ymargin = 50);
+	void ensureWidgetVisible(const QRectF &rect, int xmargin = 50, int ymargin = 50);
+
 signals:
 	void viewportChanged();
 	void imageChanged();

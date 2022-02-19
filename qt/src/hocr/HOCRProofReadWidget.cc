@@ -164,7 +164,8 @@ private:
 			if(ev->isAutoRepeat()) {
 				return;
 			}
-			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(true);
+			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::invert);
+			return;
 		}
 
 		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
@@ -358,7 +359,7 @@ private:
 			if(ev->isAutoRepeat()) {
 				return;
 			}
-			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(false);
+			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::show);
 		}
 		QLineEdit::keyReleaseEvent(ev);
 	}
@@ -386,12 +387,73 @@ private:
 	}
 };
 
+class HOCRProofReadWidget::PointerWidget : public QWidget {
+public:
+	PointerWidget(QWidget* parent = nullptr) : QWidget(parent) {
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+	}
+
+	void triangle(QPointF p1, QPointF p2, QPointF at, int pageDpi) {
+		const double minimum = 10*(pageDpi/100.);
+		m_p1 = p1;
+		m_p2 = p2;
+		m_at = at;
+		if(p2.x() < p1.x()) {
+			m_p1 = p2;
+			m_p2 = p1;
+		}
+		double diff = m_p2.x()-m_p1.x();
+		if(diff < minimum) {
+			QPointF t = QPointF((minimum-diff)/2.0,0);
+			m_p1 -= t;
+			m_p2 += t;
+		}
+	}
+	void setWindow(QRectF wind) {
+		m_wind = wind;
+	}
+
+private:
+	void paintEvent(QPaintEvent* event) override {
+		QPainter painter(this);
+
+		painter.setWindow(m_wind.toRect());
+		QColor c = QPalette().highlight().color();
+		QColor c1 = QColor(c.red(), c.green(), c.blue(), 64);
+		QColor c2 = QColor(c.red(), c.green(), c.blue(), 128);
+		QLinearGradient gradient(QPoint(m_at.x(),m_p1.y()), m_at);
+		gradient.setColorAt(0, c1);
+		gradient.setColorAt(1, c2);
+		QBrush brush(gradient);
+		painter.setBrush(brush);
+		painter.setRenderHint(QPainter::Antialiasing, true);
+		QPolygonF pointer = QPolygonF({m_p1, m_p2, m_at});
+		QPainterPath path;
+		path.addPolygon(pointer);
+		painter.fillPath(path, brush);
+		painter.setRenderHint(QPainter::Antialiasing, false);
+	}
+
+	QPointF m_p1;
+	QPointF m_p2;
+	QPointF m_at;
+	QRectF m_wind;
+};
+
+// Arbitrary constants affecting layout (and used in multiple places)
+const int widgetMargins = 2;
+const int framePadding = 4;
+const int spinnerPadding = 4;
+const int cursorPadding = 4; // extra space for the cursor
+const int editBoxPadding = 2*cursorPadding;
+const int editLineSpacing = 10;
+const int clipMargin = 20;
 
 HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent)
 	: QFrame(parent), m_treeView(treeView) {
 	QVBoxLayout* layout = new QVBoxLayout;
-	layout->setContentsMargins(2, 2, 2, 2);
-	layout->setSpacing(2);
+	layout->setContentsMargins(widgetMargins, widgetMargins, widgetMargins, widgetMargins);
+	layout->setSpacing(widgetMargins);
 	setLayout(layout);
 
 	m_stub = new LineEdit(this,this);
@@ -405,7 +467,7 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 
 	m_controlsWidget = new QWidget();
 	m_controlsWidget->setLayout(new QHBoxLayout);
-	m_controlsWidget->layout()->setSpacing(2);
+	m_controlsWidget->layout()->setSpacing(widgetMargins);
 	m_controlsWidget->layout()->setContentsMargins(0, 0, 0, 0);
 	layout->addWidget(m_controlsWidget);
 
@@ -428,7 +490,7 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 
 	QWidget* numBeforeWidget = new QWidget();
 	numBeforeWidget->setLayout(new QHBoxLayout());
-	numBeforeWidget->layout()->setContentsMargins(4, 4, 4, 4);
+	numBeforeWidget->layout()->setContentsMargins(spinnerPadding, spinnerPadding, spinnerPadding, spinnerPadding);
 	numBeforeWidget->layout()->setSpacing(2);
 	numBeforeWidget->layout()->addWidget(new QLabel(_("Lines before:")));
 
@@ -442,7 +504,7 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 
 	QWidget* numAfterWidget = new QWidget();
 	numAfterWidget->setLayout(new QHBoxLayout());
-	numAfterWidget->layout()->setContentsMargins(4, 4, 4, 4);
+	numAfterWidget->layout()->setContentsMargins(spinnerPadding, spinnerPadding, spinnerPadding, spinnerPadding);
 	numAfterWidget->layout()->setSpacing(2);
 	numAfterWidget->layout()->addWidget(new QLabel(_("Lines after:")));
 
@@ -454,12 +516,29 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 	numAfterAction->setDefaultWidget(numAfterWidget);
 	settingsMenu->addAction(numAfterAction);
 
+	QWidget* gapWidget = new QWidget();
+	gapWidget->setLayout(new QHBoxLayout());
+	gapWidget->layout()->setContentsMargins(spinnerPadding, spinnerPadding, spinnerPadding, spinnerPadding);
+	gapWidget->layout()->setSpacing(2);
+	gapWidget->layout()->addWidget(new QLabel(_("Separation:")));
+
+	m_gapWidth = new QSpinBox();
+	m_gapWidth->setRange(0, 200);
+	m_gapWidth->setSingleStep(10);
+	gapWidget->layout()->addWidget(m_gapWidth);
+
+	QWidgetAction* gapAction = new QWidgetAction(settingsMenu);
+	gapAction->setDefaultWidget(gapWidget);
+	settingsMenu->addAction(gapAction);
+
 	QToolButton* settingsButton = new QToolButton();
 	settingsButton->setAutoRaise(true);
 	settingsButton->setIcon(QIcon::fromTheme("preferences-system"));
 	settingsButton->setPopupMode(QToolButton::InstantPopup);
 	settingsButton->setMenu(settingsMenu);
 	m_controlsWidget->layout()->addWidget(settingsButton);
+
+	m_pointer = new PointerWidget(parent);
 
 	setObjectName("proofReadWidget");
 	setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
@@ -482,12 +561,36 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 	connect(MAIN->getDisplayer(), &Displayer::viewportChanged, this, &HOCRProofReadWidget::repositionWidget);
 	connect(m_spinLinesBefore, qOverload<int>(&QSpinBox::valueChanged), this, [this] { updateWidget(true); });
 	connect(m_spinLinesAfter, qOverload<int>(&QSpinBox::valueChanged), this, [this] { updateWidget(true); });
+	connect(m_gapWidth, qOverload<int>(&QSpinBox::valueChanged), this, [this] { updateWidget(true); });
 
 	ADD_SETTING(SpinSetting("proofReadLinesBefore", m_spinLinesBefore, 1));
 	ADD_SETTING(SpinSetting("proofReadLinesAfter", m_spinLinesAfter, 1));
+	ADD_SETTING(SpinSetting("proofReadGapWidth", m_gapWidth, 50));
 
 	// Start hidden
 	hide();
+}
+
+void HOCRProofReadWidget::showEvent(QShowEvent *event) {
+	QFrame::showEvent(event);
+	m_pointer->show();
+}
+
+void HOCRProofReadWidget::hideEvent(QHideEvent *event) {
+	m_pointer->hide();
+	QFrame::hideEvent(event);
+}
+
+void HOCRProofReadWidget::showWidget(bool showit) {
+	if(showit) {
+		m_hidden = false;
+		updateWidget();
+		show();
+	} else {
+		m_hidden = true;
+		hide();
+		clear();
+	}
 }
 
 void HOCRProofReadWidget::setProofreadEnabled(bool enabled) {
@@ -543,7 +646,9 @@ void HOCRProofReadWidget::updateWidget(bool force) {
 			m_currentLine = item; // for reposition
 			repositionWidget();	
 			MAIN->getDisplayer()->setFocusProxy(m_stub);
-			show();
+			if (!m_hidden) {
+				show();
+			}
 			return;
 		}
 		lineItem = item;
@@ -573,6 +678,9 @@ void HOCRProofReadWidget::updateWidget(bool force) {
 		m_currentLines = newLines;
 		m_currentLine = lineItem;
 		repositionWidget();
+	} else {
+		int unused;
+		repositionPointer(unused);
 	}
 
 	LineEdit* focusLineEdit;
@@ -597,6 +705,10 @@ void HOCRProofReadWidget::repositionWidget() {
 		return;
 	}
 
+	const HOCRDocument* document = static_cast<HOCRDocument*>(m_treeView->model());
+	const QModelIndex current = m_treeView->currentIndex();
+	const HOCRItem* currentItem = document->itemAtIndex(current);
+
 	// Position frame
 	Displayer* displayer = MAIN->getDisplayer();
 	int frameXmin = std::numeric_limits<int>::max();
@@ -604,7 +716,7 @@ void HOCRProofReadWidget::repositionWidget() {
 	QPoint sceneCorner = displayer->getSceneBoundingRect().toRect().topLeft();
 	if(m_currentLines.isEmpty()) {
 		frameXmin = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomLeft()).x();
-		frameXmax = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomRight()).x() + 8;
+		frameXmax = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomRight()).x();
 	} 
 	for(QWidget* lineWidget : m_currentLines) {
 		if(lineWidget->children().isEmpty()) {
@@ -613,41 +725,58 @@ void HOCRProofReadWidget::repositionWidget() {
 		// First word
 		LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[0]);
 		QPoint bottomLeft = displayer->mapFromScene(lineEdit->item()->bbox().translated(sceneCorner).bottomLeft());
-		frameXmin = std::min(frameXmin, bottomLeft.x()-4); // 4:padding
+		frameXmin = std::min(frameXmin, bottomLeft.x());
 	}
-	QPoint bottomLeft = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).bottomLeft());
-	QPoint topLeft = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).topLeft());
-	int frameY = bottomLeft.y();
+	frameXmin -= framePadding;
 
 	// Recompute font sizes so that text matches original as closely as possible
 	QFont ft = font();
 	double avgFactor = 0.0;
 	int nFactors = 0;
+	m_sceneBoxLeft = std::numeric_limits<int>::max();
+	m_sceneBoxRight = 0;
+
 	// First pass: min scaling factor, move to correct location
 	for(QWidget* lineWidget : m_currentLines) {
 		for(int i = 0, n = lineWidget->children().count(); i < n; ++i) {
 			LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[i]);
-			QRect sceneBBox = lineEdit->item()->bbox().translated(sceneCorner);
+			QRect bbox = lineEdit->item()->bbox();
+			m_sceneBoxLeft = std::min(m_sceneBoxLeft, bbox.left());
+			m_sceneBoxRight = std::max(m_sceneBoxRight, bbox.right());
+			QRect sceneBBox = bbox.translated(sceneCorner);
 			QPoint bottomLeft = displayer->mapFromScene(sceneBBox.bottomLeft());
 			QPoint bottomRight = displayer->mapFromScene(sceneBBox.bottomRight());
 			// Factor weighted by length
+			int editWidth;
+			int lineEditEnd;
+			if (std::abs(qRound(lineEdit->item()->parent()->textangle())-1) % 90 > 45) {
+				// assuming 90 is the only other choice
+				QPoint topLeft = displayer->mapFromScene(sceneBBox.topLeft());
+				editWidth = bottomLeft.y() - topLeft.y();
+				lineEditEnd = bottomLeft.x() + editWidth;
+			} else { 
+				editWidth = bottomRight.x() - bottomLeft.x();
+				lineEditEnd = bottomRight.x();
+			}
 			QFont actualFont = lineEdit->item()->fontFamily();
 			QFontMetrics fm(actualFont);
-			double factor = (bottomRight.x() - bottomLeft.x()) / double(fm.horizontalAdvance(lineEdit->text()));
+			double factor = editWidth / double(fm.horizontalAdvance(lineEdit->text()));
 			avgFactor += lineEdit->text().length() * factor;
 			nFactors += lineEdit->text().length();
 
-			lineEdit->move(bottomLeft.x() - frameXmin - 4, 0); // 4: allow for cursor at left
-			lineEdit->setFixedWidth(bottomRight.x() - bottomLeft.x() + 8); // 8: border + padding
-			frameXmax = std::max(frameXmax, bottomRight.x() + 8);
+			lineEdit->move(bottomLeft.x() - frameXmin - cursorPadding, 0);
+			lineEdit->setFixedWidth(editWidth + editBoxPadding);
+			frameXmax = std::max(frameXmax, lineEditEnd);
 		}
 	}
 	avgFactor = avgFactor > 0 ? avgFactor / nFactors : 1.;
+	frameXmax += framePadding;
 
 	// Second pass: apply font sizes, set line heights
 	ft.setPointSizeF(ft.pointSizeF() * avgFactor);
 	ft.setPointSizeF(ft.pointSizeF() + m_fontSizeDiff);
 	QFontMetrics fm = QFontMetrics(ft);
+	int linePos = 0;
 	for(QWidget* lineWidget : m_currentLines) {
 		for(int i = 0, n = lineWidget->children().count(); i < n; ++i) {
 			LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[i]);
@@ -657,23 +786,83 @@ void HOCRProofReadWidget::repositionWidget() {
 			lineEdit->setFixedHeight(fm.height() + 5);
 		}
 		lineWidget->setFixedHeight(fm.height() + 10);
+		// Bug workaround: line positions not always correct without this, causing repositionPointer
+		// to get incorrect top/bottom. Occurs rarely but repeatably. updateGeometry() doesn't help.
+		lineWidget->move(lineWidget->x(), linePos * (fm.height() + editLineSpacing));
+		linePos++;
 	}
-	frameY += 10;
 	updateGeometry();
-	resize(frameXmax - frameXmin + 2 + 2 * layout()->spacing(), m_currentLines.size() * (fm.height() + 10) + 2 * layout()->spacing() + m_controlsWidget->sizeHint().height());
+	setMinimumWidth(2*clipMargin);
+	resize(frameXmax - frameXmin + widgetMargins + 2 * layout()->spacing(), 
+		m_currentLines.size() * (fm.height() + editLineSpacing) + 2 * layout()->spacing() + m_controlsWidget->sizeHint().height());
 
-	// Place widget above line if it overflows page
-	QModelIndex current = m_treeView->currentIndex();
-	HOCRDocument* document = static_cast<HOCRDocument*>(m_treeView->model());
-	const HOCRItem* item = document->itemAtIndex(current);
-	QRect sceneBBox = item->page()->bbox().translated(sceneCorner);
+	int frameY;
+	repositionPointer(frameY);
+	move(frameXmin - layout()->spacing(), frameY);
+	if (!m_hidden) {
+		show();
+	}
+}
+
+void HOCRProofReadWidget::repositionPointer(int &frameY) {
+	Displayer* displayer = MAIN->getDisplayer();
+	QPoint sceneCorner = displayer->getSceneBoundingRect().toRect().topLeft();
+	const HOCRDocument* document = static_cast<HOCRDocument*>(m_treeView->model());
+	const QModelIndex current = m_treeView->currentIndex();
+	const HOCRItem* currentItem = document->itemAtIndex(current);
+	QRectF bbox = currentItem->bbox();
+	int pageDpi = currentItem->page()->resolution();
+	QRect sceneBBox = currentItem->page()->bbox().translated(sceneCorner);
 	double maxy = displayer->mapFromScene(sceneBBox.bottomLeft()).y();
-	if(frameY + height() - maxy > 0) {
-		frameY = topLeft.y() - height();
+	int gap = m_gapWidth->value()*pageDpi/100;
+
+	int editLineTop = 0;
+	int editLineBottom = height() - m_controlsWidget->sizeHint().height() - 2*layout()->spacing() - widgetMargins - frameWidth();
+	if(m_currentLine->itemClass() == "ocr_line") {
+		QWidget* lineWidget = m_currentLines[m_currentLine];
+		if (!lineWidget->children().isEmpty()) {
+			LineEdit* lineEdit = static_cast<LineEdit*>(lineWidget->children()[0]);
+			editLineTop = lineEdit->mapTo(this,lineEdit->rect().topLeft()).y();
+			editLineBottom = lineEdit->mapTo(this,lineEdit->rect().bottomLeft()).y();
+		}
+	} else if(m_currentLine->itemClass() != "ocrx_word") {
+		gap = 0;
 	}
 
-	move(frameXmin - layout()->spacing(), frameY);
-	show();
+	int ptrHeight;
+	int wordY;
+	QPointF base1;
+	QPointF base2;
+	QPointF target;
+
+	frameY = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).translated(0,gap).bottomLeft()).y();
+	if(frameY + height() > maxy) {
+		// invert
+	    frameY = displayer->mapFromScene(m_currentLine->bbox().translated(sceneCorner).translated(0,-gap).topLeft()).y();
+		frameY -= height();
+		wordY = frameY + editLineBottom;
+		ptrHeight = displayer->mapFromScene(bbox.translated(sceneCorner).topLeft()).y() - wordY;
+		base1 = QPointF(bbox.bottomLeft().x(), 0);
+		base2 = QPointF(bbox.bottomRight().x(),0);
+		target = QPointF(bbox.center().x(), ptrHeight);
+	} else {
+		wordY = displayer->mapFromScene(bbox.translated(sceneCorner).bottomLeft()).y();
+		ptrHeight = (frameY-wordY) + editLineTop;
+		base1 = QPointF(bbox.bottomLeft().x(), ptrHeight);
+		base2 = QPointF(bbox.bottomRight().x(),ptrHeight);
+		target = QPointF(bbox.center().x(), 0);
+	}
+
+	m_sceneBoxLeft -= clipMargin;
+	m_sceneBoxRight += clipMargin;
+	int widgetBoxLeft = displayer->mapFromScene(QPoint(m_sceneBoxLeft+sceneCorner.x(),0)).x();
+	int widgetBoxRight = displayer->mapFromScene(QPoint(m_sceneBoxRight+sceneCorner.x(),0)).x();
+
+	m_pointer->setWindow(QRect(m_sceneBoxLeft, 0, m_sceneBoxRight-m_sceneBoxLeft, ptrHeight));
+	m_pointer->resize(widgetBoxRight - widgetBoxLeft, ptrHeight);
+	m_pointer->move(widgetBoxLeft, wordY);
+	m_pointer->triangle(base1, base2, target, pageDpi);
+	m_pointer->updateGeometry();
 }
 
 void HOCRProofReadWidget::showShortcutsDialog() {
@@ -713,7 +902,8 @@ void HOCRProofReadWidget::showShortcutsDialog() {
 							   "<tr><td>L-Click</td>"                 "<td>D</td> <td>T</td> <td>E</td> <td>Select</td></tr>"
 							   "<tr><td>L-2Click</td>"                "<td> </td> <td>T</td> <td>E</td> <td>Expand/Open for edit</td></tr>"
 							   "<tr><td>Shift+L-Click</td>"           "<td>D</td> <td> </td> <td> </td> <td>Select/toggle Enclosing HOCR</td></tr>"
-							   "<tr><td>Ctrl+L-Click</td>"            "<td>D</td> <td> </td> <td> </td> <td>Multi-Select/toggle</td></tr>"
+							   "<tr><td>Shift+L-Click</td>"           "<td> </td> <td>T</td> <td> </td> <td>Group Select</td></tr>"
+							   "<tr><td>Ctrl+L-Click</td>"            "<td>D</td> <td>T</td> <td> </td> <td>Multi-Select/toggle</td></tr>"
 							   "<tr><td>Ctrl+Shift+L-Click</td>"      "<td>D</td> <td> </td> <td> </td> <td>Multi-Select/toggle Enclosing HOCR</td></tr>"
 							   "<tr><td>R-Click</td>"                 "<td> </td> <td>T</td> <td> </td> <td>Open context menu</td></tr>"
 							   "<tr><td>M-Mouse Drag</td>"            "<td>D</td> <td> </td> <td> </td> <td>Pan (when zoomed)</td></tr>"

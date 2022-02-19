@@ -73,6 +73,9 @@ public:
 	virtual bool containsSource(const QString& source, int sourcePage) const { return false; }
 	virtual bool crashSave(const QString& filename) const = 0;
 	virtual int positionOf(const QString& source, int sourcePage) const { return -1; }
+	virtual QRectF getWidgetGeometry() {
+		return QRectF();
+	}
 
 public slots:
 	virtual void onVisibilityChanged(bool /*visible*/) {}

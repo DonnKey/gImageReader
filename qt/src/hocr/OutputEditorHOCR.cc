@@ -404,7 +404,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(ui.actionPreview, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.actionProofread, &QAction::toggled, m_proofReadWidget, &HOCRProofReadWidget::setProofreadEnabled);
 	connect(ui.actionOverheight, &QAction::toggled, this, &OutputEditorHOCR::previewToggled);
-	connect(&m_previewTimer, &QTimer::timeout, this, &OutputEditorHOCR::updatePreview);
+	connect(&m_previewTimer, &QTimer::timeout, this, [this] {showPreview(OutputEditorHOCR::showMode::show); }); 
 	connect(ui.searchFrame, &SearchReplaceFrame::findReplace, this, &OutputEditorHOCR::findReplace);
 	connect(ui.searchFrame, &SearchReplaceFrame::replaceAll, this, &OutputEditorHOCR::replaceAll);
 	connect(ui.searchFrame, &SearchReplaceFrame::applySubstitutions, this, &OutputEditorHOCR::applySubstitutions);
@@ -788,6 +788,7 @@ void OutputEditorHOCR::updateCurrentItemBBox(QRect bbox, bool affectsChildren) {
 	}
 	// Move ProofReadWidget correspndingly; note: widget content order won't change because that's in hOCR order, not graphical order.
 	emit MAIN->getDisplayer()->imageChanged();
+	m_proofReadWidget->updateWidget(true);
 }
 
 void OutputEditorHOCR::updateSourceText() {
@@ -813,6 +814,7 @@ void OutputEditorHOCR::itemAttributeChanged(const QModelIndex& itemIndex, const 
 			}
 		}
 		m_tool->setSelection(currentItem->bbox(), minBBox);
+		m_proofReadWidget->updateWidget(true);
 	}
 }
 
@@ -1114,6 +1116,7 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 	}
 	if(index.isValid()) {
 		ui.treeViewHOCR->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+		m_proofReadWidget->updateWidget(true);
 	}
 }
 
@@ -1372,12 +1375,11 @@ bool OutputEditorHOCR::eventFilter(QObject* obj, QEvent* ev) {
 	if (obj == ui.treeViewHOCR) {
 		if(ev->type() == QEvent::Enter) {
 			ui.treeViewHOCR->setFocus();
-			m_proofReadWidget->setVisible(false);
+			m_proofReadWidget->showWidget(false);
 			return true;
 		}
 		if(ev->type() == QEvent::Leave) {
-			m_proofReadWidget->setVisible(true);
-			m_proofReadWidget->updateWidget(true);
+			m_proofReadWidget->showWidget(true);
 			return true;
 		}
 		return false;
@@ -1897,26 +1899,44 @@ void OutputEditorHOCR::sourceChanged() {
 			ui.treeViewHOCR->setCurrentIndex(pageIndex);
 		}
 	}
-	updatePreview();
+	showPreview(OutputEditorHOCR::showMode::show);
+	if (MAIN->getDisplayer()->underMouse()) {
+		m_proofReadWidget->showWidget(true);
+	}
 }
 
 void OutputEditorHOCR::previewToggled() {
-	bool active = ConfigSettings::get<SwitchSetting>("displaypreview")->getValue();
-	QModelIndex index = ui.treeViewHOCR->currentIndex();
-	if(active && !index.isValid() && m_document->pageCount() > 0) {
-		ui.treeViewHOCR->setCurrentIndex(m_document->indexAtItem(m_document->page(0)));
-	} else {
+	showPreview(OutputEditorHOCR::showMode::show);
+}
+
+void OutputEditorHOCR::showPreview(OutputEditorHOCR::showMode mode) {
+	const HOCRItem* item = m_document->itemAtIndex(ui.treeViewHOCR->currentIndex());
+	bool inv = false;
+	bool suppressed = false;
+	switch(mode) {
+	case invert:
+		inv = true;
+		break;
+	case show:
+		break;
+	case suppress:
+		suppressed = true;
+	}
+	if(item != nullptr && !suppressed && (ui.actionPreview->isChecked()^inv)) {
 		updatePreview();
+		m_preview->show();
+		if (MAIN->getDisplayer()->underMouse()) {
+			m_proofReadWidget->showWidget(true);
+		}
+	} else {
+		m_preview->setVisible(false);
+		m_proofReadWidget->showWidget(false);
 	}
 }
 
 void OutputEditorHOCR::updatePreview() {
-	showPreview(false);
-}
-
-void OutputEditorHOCR::showPreview(bool invert) {
 	const HOCRItem* item = m_document->itemAtIndex(ui.treeViewHOCR->currentIndex());
-	if((!ui.actionPreview->isChecked() ^ invert) || !item) {
+	if(!item) {
 		m_preview->setVisible(false);
 		return;
 	}
@@ -1937,6 +1957,7 @@ void OutputEditorHOCR::showPreview(bool invert) {
 	m_preview->setPixmap(QPixmap::fromImage(image));
 	m_preview->setPos(-0.5 * bbox.width(), -0.5 * bbox.height());
 	m_preview->setVisible(true);
+	m_proofReadWidget->showWidget(true);
 }
 
 void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
@@ -2035,4 +2056,8 @@ void OutputEditorHOCR::doReplace(bool force) {
 	ui.searchFrame->setVisible(force);
 	ui.searchFrame->setFocus();
 	ui.actionOutputReplace->setChecked(force); 
+}
+
+QRectF OutputEditorHOCR::getWidgetGeometry() {
+	return MAIN->getDisplayer()->mapToScene(m_proofReadWidget->geometry()).boundingRect();
 }

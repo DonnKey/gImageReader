@@ -75,7 +75,8 @@ public:
 	int m_blinkCounter = 0;
 	QTimer *m_blinkTimer;
 	void addWordAtCursor();
-	void showPreview(bool invert);
+	enum showMode{show, suppress, invert};
+	void showPreview(showMode mode);
 
 public slots:
 	bool open(const QString& filename) override { return open(InsertMode::Replace, {filename}); }
@@ -133,6 +134,7 @@ private:
 	QDomElement newLine(QDomDocument &doc, const QRect& bbox, QMap<QString, QMap<QString, QSet<QString>>>& propAttrs);
 	QModelIndex pickLine(const QPoint& point);
 	void deselectChildren(QItemSelectionModel *model, QModelIndex& index);
+	QRectF getWidgetGeometry() override;
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);

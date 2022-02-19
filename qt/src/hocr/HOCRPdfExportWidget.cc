@@ -44,6 +44,7 @@
 #include "HOCRPdfExportWidget.hh"
 #include "HOCRPdfExporter.hh"
 #include "MainWindow.hh"
+#include "OutputEditorHOCR.hh"
 #include "SourceManager.hh"
 #include "PaperSize.hh"
 #include "Utils.hh"
@@ -166,12 +167,13 @@ HOCRPdfExportWidget::HOCRPdfExportWidget(DisplayerToolHOCR* displayerTool, const
 	m_preview->setTransformationMode(Qt::SmoothTransformation);
 	m_preview->setZValue(3);
 	updatePreview();
-	MAIN->getDisplayer()->scene()->addItem(m_preview);
+    MAIN->getDisplayer()->scene()->addItem(m_preview);
 }
 
 HOCRPdfExportWidget::~HOCRPdfExportWidget() {
 	MAIN->getDisplayer()->scene()->removeItem(m_preview);
 	delete m_preview;
+	static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::show);
 }
 
 void HOCRPdfExportWidget::setPreviewPage(const HOCRDocument* hocrdocument, const HOCRPage* hocrpage) {
@@ -263,6 +265,7 @@ void HOCRPdfExportWidget::updatePreview() {
 	printer.printChildren(page, pdfSettings, 1.);
 	m_preview->setPixmap(QPixmap::fromImage(image));
 	m_preview->setPos(-0.5 * bbox.width(), -0.5 * bbox.height());
+	static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::suppress);
 }
 
 void HOCRPdfExportWidget::backendChanged() {

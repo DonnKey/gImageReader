@@ -765,6 +765,23 @@ void Displayer::setThumbnail(int index) {
 		ui.listWidgetThumbnails->item(index)->setIcon(QPixmap::fromImage(image));
 	}
 }
+void Displayer::ensureWidgetVisible(const QGraphicsItem *item, int xmargin, int ymargin) {
+	QRectF rect = item->boundingRect();
+	ensureWidgetVisible(rect, xmargin, ymargin);
+}
+
+void Displayer::ensureWidgetVisible(const QRectF &itemBox, int xmargin, int ymargin) {
+	QRectF widgetBox = MAIN->getOutputEditor()->getWidgetGeometry();
+	QRectF res;
+	if (itemBox.topLeft().y() > widgetBox.topLeft().y()) {
+		// inverted
+		res = QRectF(QPointF(itemBox.left(), widgetBox.top()), itemBox.bottomRight());
+	} else {
+		res = QRectF(itemBox.topLeft(), QPointF(itemBox.right(),widgetBox.bottom()));
+	}
+	QGraphicsView::ensureVisible(res, xmargin, ymargin);
+
+}
 
 QColor Displayer::guessBackground(QPixmap& pixmap) {
 	QImage image = pixmap.toImage();

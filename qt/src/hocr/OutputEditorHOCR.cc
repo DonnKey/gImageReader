@@ -519,6 +519,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	connect(m_document, &HOCRDocument::dataChanged, this, &OutputEditorHOCR::setModified);
 	connect(m_document, &HOCRDocument::rowsInserted, this, &OutputEditorHOCR::setModified);
 	connect(m_document, &HOCRDocument::rowsRemoved, this, &OutputEditorHOCR::setModified);
+	connect(m_document, &HOCRDocument::modelReset, this, &OutputEditorHOCR::setModified);
 	connect(m_document, &HOCRDocument::itemAttributeChanged, this, &OutputEditorHOCR::setModified);
 	connect(m_document, &HOCRDocument::itemAttributeChanged, this, &OutputEditorHOCR::updateSourceText);
 	connect(m_document, &HOCRDocument::itemAttributeChanged, this, &OutputEditorHOCR::itemAttributeChanged);
@@ -1411,6 +1412,7 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QAction* actionSortX = nullptr;
 	QAction* actionSortY = nullptr;
 	QAction* actionFlatten = nullptr;
+	QAction* actionClean = nullptr;
 	QAction* nonActionMultiple = nullptr;
 
 	nonActionMultiple = menu.addAction(_("Multiple Selection Menu"));
@@ -1463,6 +1465,9 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	if(itemClass == "ocr_page" || itemClass == "ocr_carea") {
 		actionFlatten = menu.addAction(_("&Flatten"));
 	}
+	if(itemClass == "ocr_page" || itemClass == "ocr_carea" || itemClass == "ocr_par") {
+		actionClean = menu.addAction(_("&Clean empty items"));
+	}
 
 	QAction* clickedAction = menu.exec(ui.treeViewHOCR->mapToGlobal(point));
 	if(!clickedAction) {
@@ -1511,6 +1516,8 @@ void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 		expandCollapseChildren(index, oldExpanded);
 	} else if(clickedAction == actionFlatten) {
 		bulkOperation(index, [this, index]() {m_document->flatten(index);});
+	} else if(clickedAction == actionClean) {
+		bulkOperation(index, [this, index]() {m_document->cleanEmptyItems(index);});
 	}
 	menu.setAttribute(Qt::WA_DeleteOnClose, true);
 }

@@ -523,6 +523,38 @@ void HOCRDocument::flatten(const QModelIndex& idx) {
 	endResetModel();
 }
 
+void HOCRDocument::cleanEmptyItems(const QModelIndex& idx) {
+	beginResetModel();
+
+	HOCRItem* top = mutableItemAtIndex(idx);
+
+	std::function<void (HOCRItem*)> sweep = [&] (HOCRItem* source) {
+		QVector<HOCRItem*> empties;
+		for(HOCRItem* child : source->m_childItems) {
+			if (child->itemClass() == "ocrx_word") {
+				return;
+			}
+			if (child->itemClass() != "ocr_line") {
+				sweep(child);
+			}
+			if (child->m_childItems.size() == 0) {
+				empties.append(child);
+			}
+		}
+
+		for(HOCRItem* item : empties) {
+			Q_ASSERT(item->m_childItems.size() <= 0);
+			source->removeChild(item);
+		}
+		empties.clear();
+	};
+
+	sweep(top);
+	recomputeBBoxes(top);
+
+	endResetModel();
+}
+
 bool HOCRDocument::toggleEnabledCheckbox(const QModelIndex& index) {
 	HOCRItem* item = mutableItemAtIndex(index);
 	if(!item) {

@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * TreeViewHOCR.hh
- * Copyright (C) 2021 Donn Terry <aesopPlayer@gmail.com>
+ * Copyright (C) 2021-2022 Donn Terry <aesopPlayer@gmail.com>
  *
  * gImageReader is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -23,6 +23,8 @@
 
 #include <QTreeView>
 
+class HOCRItem;
+
 class TreeViewHOCR: public QTreeView {
 	//Q_OBJECT
 public:
@@ -31,23 +33,17 @@ public:
     }
     ~TreeViewHOCR() {}
 
-    void keyPressEvent(QKeyEvent *event) override {
-        // Override to make public for ProofReadWidget
-        if ((event->modifiers() & Qt::AltModifier) && (event->key() == Qt::Key_Up || event->key() == Qt::Key_Down
-                                                    || event->key() == Qt::Key_Left || event->key() == Qt::Key_Right)) {
-            // Alt-arrow is an easy and irritating accident here
-            return;
-        }
-        QTreeView::keyPressEvent(event);
-    }
-    void focusOutEvent(QFocusEvent *event) override {
-        // override to stop clearning multiple select
-    }
+    // Make public for OutputEditor.
+    void keyPressEvent(QKeyEvent *event) override;
+    void tabToNext(QKeyEvent* ev, const HOCRItem* item);
 
 private:
 	// Disable auto tab handling
 	bool focusNextPrevChild(bool next) override { 
         return false; 
+    }
+    // override to stop clearning multiple select
+    void focusOutEvent(QFocusEvent *event) override {
     }
 };
 #endif // TREEVIEWHOCR_HH

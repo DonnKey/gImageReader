@@ -183,72 +183,13 @@ private:
 		m_document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
 		HOCRProofReadWidget* widget = m_proofReadWidget; // some ops change 'this', and we need the widget after
 
-		bool atWord = m_wordItem->itemClass() == "ocrx_word";
-		enum actions {none, prevLine, prevWhole, nextLine, beginCurrent, nextWord, prevWord} action = actions::none;
-
-		if(ev->modifiers() == Qt::NoModifier && ev->key() == Qt::Key_Down) {
-			action = nextLine;
-		}
-		else if(ev->modifiers() == Qt::NoModifier && ev->key() == Qt::Key_Up) {
-		    action = atWord ? prevLine : prevWhole;
-		}
-		else if(ev->key() == Qt::Key_Tab) {
-		    if(atWord) {
-			    if(m_wordItem == m_wordItem->parent()->children().last()) {
-					action = nextLine;
-				} else {
-					action = nextWord;
-				}
-		    } else {
-				action = beginCurrent;
-		    }
-		}
-		else if(ev->key() == Qt::Key_Backtab) {
-		    if(atWord) {
-			    if(m_wordItem == m_wordItem->parent()->children().first()) {
-					action = prevLine;
-				} else {
-					action = prevWord;
-				}
-		    } else {
-				action = prevWhole;
-		    }
-		}
-
-		if (action != none) {
-			bool next = false;
-			QModelIndex index = m_document->indexAtItem(m_wordItem);
-			switch(action) {
-			case nextLine:
-				// Move to first word of next line
-				index = m_document->prevOrNextIndex(true, index, "ocr_line");
-				index = m_document->prevOrNextIndex(true, index, "ocrx_word");
-				break;
-			case prevLine:
-				// Move to last word of prev line (from a word within this line)
-				index = m_document->prevOrNextIndex(false, index, "ocr_line");
-				index = m_document->prevOrNextIndex(false, index, "ocrx_word");
-				break;
-			case prevWhole:
-				// Move to last word of prev line (from something enclosing)
-			case prevWord:
-				index = m_document->prevOrNextIndex(false, index, "ocrx_word");
-				break;
-			case nextWord:
-				index = m_document->prevOrNextIndex(true, index, "ocrx_word");
-				break;
-			case beginCurrent: {
-				// Move to first word below any parent items.
-				const HOCRItem* item = m_wordItem;
-				while (item->children().size() > 0 && item->itemClass() != "ocrx_word") {
-					item = item->children().first();
-				}
-				index = m_document->indexAtItem(item);
-				break;
-			} 
-			}
-			widget->documentTree()->setCurrentIndex(index);
-			widget->repositionWidget();
+		if( ((ev->modifiers() == Qt::NoModifier || ev->modifiers() == Qt::ShiftModifier) && ev->key() == Qt::Key_Down) ||
+		    ((ev->modifiers() == Qt::NoModifier || ev->modifiers() == Qt::ShiftModifier) && ev->key() == Qt::Key_Up) ||
+		    (ev->modifiers() == Qt::ShiftModifier && ev->key() == Qt::Key_Left) ||
+		    (ev->modifiers() == Qt::ShiftModifier && ev->key() == Qt::Key_Right) ||
+			(ev->key() == Qt::Key_Tab) ||
+			(ev->key() == Qt::Key_Backtab)) {
+				static_cast<TreeViewHOCR*>(m_proofReadWidget->documentTree())->tabToNext(ev, m_wordItem);
 		} else if(ev->key() == Qt::Key_Space && ev->modifiers() == Qt::ControlModifier) {
 			// Spelling menu
 			QModelIndex index = m_document->indexAtItem(m_wordItem);
@@ -1036,8 +977,11 @@ int HOCRProofReadWidget::repositionPointer(bool computeOnly) {
 void HOCRProofReadWidget::showShortcutsDialog() {
 	QString text = QString(_(
 	                           "<table>"
-	                           "<tr><td>Tab, Shift-Tab</td>"          "<td>D</td> <td> </td> <td>T&nbsp;&nbsp;&nbsp;</td> <td>Next/Prev field</td></tr>"
-	                           "<tr><td>Up, Down</td>"                "<td>D</td> <td>T</td> <td>E</td> <td>Previous/Next line</td></tr>"
+	                           "<tr><td>Tab, Shift-Tab</td>"          "<td>D</td> <td> </td> <td>E&nbsp;&nbsp;&nbsp;</td> <td>Next/Prev item</td></tr>"
+	                           "<tr><td>Shift-{Left, Right}</td>"     "<td>D</td> <td> </td> <td> </td> <td>Previous/Next item</td></tr>"
+	                           "<tr><td>[Shift-]{Up, Down}</td>"      "<td>D</td> <td> </td> <td> </td> <td>Previous/Next line</td></tr>"
+	                           "<tr><td>Shift-{Up, Down}</td>"        "<td> </td> <td>T</td> <td> </td> <td>Multi-select Nex/Previous item</td></tr>"
+	                           "<tr><td>Left, Right</td>"             "<td> </td> <td> </td> <td>E</td> <td>Previous/Next edit-line character</td></tr>"
 	                           "<tr><td>Ctrl+Space</td>"              "<td> </td> <td> </td> <td>E</td> <td>Spelling suggestions</td></tr>"
 	                           "<tr><td>Ctrl+Enter</td>"              "<td> </td> <td> </td> <td>E</td> <td>Add word to dictionary</td></tr>"
 	                           "<tr><td>Ctrl+B</td>"                  "<td> </td> <td> </td> <td>E</td> <td>Toggle bold</td></tr>"

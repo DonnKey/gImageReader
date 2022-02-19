@@ -2,6 +2,7 @@
 /*
  * HOCRIndentedTextExportWidget.hh
  * Copyright (C) 2013-2020 Sandro Mani <manisandro@gmail.com>
+ * Copyright (C) 2021-2022 Donn Terry <aesopPlayer@gmail.com>
  *
  * gImageReader is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -46,6 +47,7 @@ public:
 private:
 	bool findOrigin(const HOCRItem *item);
 	void findCells(const HOCRItem *item);
+	void copyEditorGrid(const HOCRPage* page);
 
 	Ui::IndentedTextExportWidget ui;
 	QGraphicsPixmapItem* m_preview = nullptr;

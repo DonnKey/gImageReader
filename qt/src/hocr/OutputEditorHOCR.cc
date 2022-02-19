@@ -545,6 +545,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	connect(ui.outputDialogUi.checkBox_Preview, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.outputDialogUi.checkBox_Overheight, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.outputDialogUi.checkBox_NonAscii, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
+	connect(ui.outputDialogUi.checkBox_InsertedSpaces, &QCheckBox::toggled, this, &OutputEditorHOCR::previewToggled);
 	connect(ui.outputDialogUi.checkBox_WConf, &QCheckBox::toggled, this, &OutputEditorHOCR::toggleWConfColumn);
 	connect(ui.outputDialogUi.doubleSpinBox_Stretch, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &OutputEditorHOCR::previewToggled);
 	connect(ui.outputDialogUi.checkBox_Grid, &QCheckBox::toggled, this, &OutputEditorHOCR::gridToggled);
@@ -559,6 +560,7 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool, FocusableMenu* keyPa
 	ADD_SETTING(SwitchSetting("displaygrid", ui.outputDialogUi.checkBox_Grid, false));
 	ADD_SETTING(SwitchSetting("displayoverheight", ui.outputDialogUi.checkBox_Overheight, true));
 	ADD_SETTING(SwitchSetting("displaynonascii", ui.outputDialogUi.checkBox_NonAscii, true));
+	ADD_SETTING(SwitchSetting("displayinsertespaces", ui.outputDialogUi.checkBox_InsertedSpaces, true));
 	ADD_SETTING(DoubleSpinSetting("previewfontstretch", ui.outputDialogUi.doubleSpinBox_Stretch, 100.0));
 	ADD_SETTING(DoubleSpinSetting("gridpitch", ui.outputDialogUi.doubleSpinBox_Pitch, 30.0));
 	ADD_SETTING(DoubleSpinSetting("gridspacing", ui.outputDialogUi.doubleSpinBox_Spacing, 50.0));
@@ -1280,7 +1282,8 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 			int x1 = bbox.left();
 			int y1 = bbox.top();
 			if (bbox.height() == 0 && QSettings().value("fitNewWord").toBool()) {
-				x1 -= len/2;
+				int chLen = qRound((fm.horizontalAdvance(" ")) * currentItem->page()->resolution()/scale);
+				x1 -= chLen/2;
 				y1 -= hei/2;
 				x2 = x1 + len;
 				y2 = y1 + hei;
@@ -2518,6 +2521,11 @@ void OutputEditorHOCR::updatePreview() {
 	const HOCRPage* page = item->page();
 	const QRect& bbox = page->bbox();
 	m_pageDpi = page->resolution();
+	if (page->grid().isValid()) {
+		m_gridStep = page->grid().width();
+	} else {
+		m_gridStep = defaultGrid(page).width();
+	}
 
 	QImage image(bbox.size(), QImage::Format_ARGB32);
 	image.fill(QColor(255, 255, 255, 63));
@@ -2545,6 +2553,8 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 		QPair<double, double> baseline = item->baseLine();
 		double textangle = item->textangle();
 		const QRect& lineRect = item->bbox();
+		QChar charToLeft = QChar(0);
+		int posToLeft = 0;
 		for(HOCRItem* wordItem : item->children()) {
 			if(!wordItem->isEnabled()) {
 				continue;
@@ -2599,6 +2609,29 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 				usingShadowText = true;
 			}
 
+			if (ui.outputDialogUi.checkBox_InsertedSpaces->isChecked()) {
+				if (charToLeft != QChar(0)) {
+					if (charToLeft.isLetterOrNumber() && 
+						wordItem->text().length() > 0 &&
+						wordItem->text().at(0).isLetterOrNumber()) {
+						// More than 1/2 cell width is sufficient (see IndentedTextExporter)
+						if (wordRect.left() < posToLeft + (m_gridStep/2.0)) {
+							painter.save();
+							painter.setBrush(QColor(192, 64, 192, 96)); // magentaish
+							painter.drawRect(QRect(posToLeft,wordItem->bbox().top(), m_gridStep, wordItem->bbox().height()));
+							painter.restore();
+						}
+					}
+				}
+
+				if (wordItem->text().length() <= 0) {
+					charToLeft = QChar(0);
+				} else {
+					charToLeft = wordItem->text().at(wordItem->text().length()-1);
+				}
+				posToLeft = wordRect.right();
+			}
+
 			painter.save();
 			QTextDocument doc;
 			if (usingShadowText) {
@@ -2642,7 +2675,7 @@ void OutputEditorHOCR::drawPreview(QPainter& painter, const HOCRItem* item) {
 	}
 }
 
-QRectF OutputEditorHOCR::defaultGrid(HOCRPage* page) {
+QRectF OutputEditorHOCR::defaultGrid(const HOCRPage* page) {
 	const double scale = 100.;
 	double h = ui.outputDialogUi.doubleSpinBox_Pitch->value();
 	double v = ui.outputDialogUi.doubleSpinBox_Spacing->value();
@@ -2664,7 +2697,7 @@ QRectF OutputEditorHOCR::defaultGrid(HOCRPage* page) {
 	QPointF firstCharCenter(bbox.x() + (fm.horizontalAdvance(' ')*(page->resolution()/scale))/2., 
 		bbox.y() + (bbox.height())/2.);
 
-	QRectF areaBbox = getVisibleText();
+	QRectF areaBbox = getVisibleText(page);
 	if (!areaBbox.isValid()) {
 		areaBbox = page->bbox();
 	}
@@ -2698,14 +2731,14 @@ void OutputEditorHOCR::updateGrid() {
 		h_step = ui.outputDialogUi.doubleSpinBox_Pitch->value();
 		v_step = ui.outputDialogUi.doubleSpinBox_Spacing->value();
 	} else {
-		HOCRPage* page = item->page();
+		const HOCRPage* page = item->page();
 		QRectF grid = page->grid();
 		if (!grid.isValid()) {
 			grid = defaultGrid(page);
 		}
 		h_step = grid.width();
 		v_step = grid.height();
-		areaBbox = getVisibleText();
+		areaBbox = getVisibleText(page);
 		areaBbox = QRectF(grid.topLeft(), areaBbox.size());
 		pageBbox = page->bbox();
 	}

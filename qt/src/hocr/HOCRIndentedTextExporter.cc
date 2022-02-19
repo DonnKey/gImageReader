@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * HOCRIndentedTextExporter.cc
- * Copyright (C) 2013-2020 Sandro Mani <manisandro@gmail.com>
+ * Copyright (C) 2021-2022 Donn Terry <aesopPlayer@gmail.com>
  *
  * gImageReader is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -122,9 +122,13 @@ QString HOCRIndentedTextPrinter::buildLine(const HOCRItem* line, double& nextY) 
 	for(int i = 0, n = line->children().size(); i < n; ++i) {
 		HOCRItem* item = line->children()[i];
 		QString text = item->text();
+		if (text.length() <= 0 ) {
+			continue;
+		}
 
-		int startChar = (item->bbox().left()-m_settings->m_originX)/pitchX;
+		int startChar = (item->bbox().left()-m_settings->m_originX+pitchX/2.0)/pitchX;
 		int padding = std::max(0, startChar - buffer.length());
+		// N.B. If there's at least 1/2 cell width, padding will be at least one here
 		if (padding == 0) {
 			if (item->bbox().left() - prevX >= pitchX) {
 				padding = 1;

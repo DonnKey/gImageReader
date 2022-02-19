@@ -86,6 +86,7 @@ public:
 	void setModified();
 	bool getModified();
 	void applyGrid(QList<HOCRItem*>items);
+	QRectF defaultGrid(const HOCRPage* page);
 
 public slots:
  	bool open(const QString& filename) { return open(InsertMode::Replace, {filename}); }
@@ -121,6 +122,7 @@ private:
 	QGraphicsPixmapItem* m_selectedItems = nullptr;
 	HOCRProofReadWidget* m_proofReadWidget = nullptr;
 	int m_pageDpi;
+	int m_gridStep;
 	QTimer m_previewTimer;
 	QTimer m_gridTimer;
 	UI_OutputEditorHOCR ui;
@@ -162,7 +164,6 @@ private:
 	void bulkOperation(QModelIndex& index, const std::function<void()>& op);
 	bool isFullyExpanded(const QModelIndex& index) const;
 	void doPreferences(FocusableMenu *keyParent);
-	QRectF defaultGrid(HOCRPage* page);
 
 signals:
     void customContextMenuRequested2(const QPoint &pos);

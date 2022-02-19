@@ -1,7 +1,7 @@
 /* -*- Mode: C++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * HOCRIndentedTextExportWidget.cc
- * Copyright (C) 2013-2020 Sandro Mani <manisandro@gmail.com>
+ * Copyright (C) 2021 Donn Terry <aesopPlayer@gmail.com>
  *
  * gImageReader is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -33,6 +33,15 @@ HOCRIndentedTextExportWidget::HOCRIndentedTextExportWidget(DisplayerToolHOCR* di
 	: HOCRExporterWidget(parent), m_displayerTool(displayerTool), m_document(hocrdocument), m_previewPage(hocrpage) {
 	ui.setupUi(this);
 
+	QRectF grid = hocrpage->grid();
+	if (grid.isValid()) {
+		ui.spinBox_OriginX->setValue(qRound(grid.x()));
+		ui.spinBox_OriginY->setValue(qRound(grid.y()));
+		ui.doubleSpinBox_CellWidth->setValue(grid.width());
+		ui.doubleSpinBox_CellHeight->setValue(grid.height());
+		getSettings();
+	}
+
 	connect(ui.checkBoxPreview, &QCheckBox::toggled, this, &HOCRIndentedTextExportWidget::updatePreview);
 	connect(ui.checkBox_GuideBars, &QCheckBox::toggled, this, &HOCRIndentedTextExportWidget::updatePreview);
 	connect(ui.spinBox_OriginX, qOverload<int>(&QSpinBox::valueChanged), this, &HOCRIndentedTextExportWidget::updatePreview);
@@ -41,9 +50,10 @@ HOCRIndentedTextExportWidget::HOCRIndentedTextExportWidget(DisplayerToolHOCR* di
 	connect(ui.doubleSpinBox_CellHeight, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &HOCRIndentedTextExportWidget::updatePreview);
 	connect(ui.pushButton_OriginCompute, &QPushButton::clicked, this, &HOCRIndentedTextExportWidget::computeOrigin);
 	connect(ui.pushButton_CellCompute, &QPushButton::clicked, this, &HOCRIndentedTextExportWidget::computeCell);
+	connect(ui.pushButton_EditorGrid, &QPushButton::clicked, this, [this] {copyEditorGrid(m_previewPage);} );
 	connect(ui.comboBox_FontFamily, &QFontComboBox::currentFontChanged, this, &HOCRIndentedTextExportWidget::updatePreview);
 	connect(ui.spinBox_FontSize, qOverload<int>(&QSpinBox::valueChanged), this, &HOCRIndentedTextExportWidget::updatePreview);
-	connect(ui.spinBox_FontStretch, qOverload<int>(&QSpinBox::valueChanged), this, &HOCRIndentedTextExportWidget::updatePreview);
+	connect(ui.spinBox_FontStretch, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &HOCRIndentedTextExportWidget::updatePreview);
 
 	ADD_SETTING(SwitchSetting("indentpreview", ui.checkBoxPreview, true));
 	ADD_SETTING(SwitchSetting("indentguidebars", ui.checkBox_GuideBars, true));
@@ -53,7 +63,7 @@ HOCRIndentedTextExportWidget::HOCRIndentedTextExportWidget(DisplayerToolHOCR* di
 	ADD_SETTING(DoubleSpinSetting("indentcellH", ui.doubleSpinBox_CellHeight, 33.0));
 	ADD_SETTING(FontComboSetting("indentfontfamily", ui.comboBox_FontFamily, QFont("Monospace")));
 	ADD_SETTING(SpinSetting("indentfontsize", ui.spinBox_FontSize, 10));
-	ADD_SETTING(SpinSetting("indentfontStretch", ui.spinBox_FontStretch, 100));
+	ADD_SETTING(DoubleSpinSetting("indentfontStretch", ui.spinBox_FontStretch, 100.0));
 
 	m_preview = new QGraphicsPixmapItem();
 	m_preview->setTransformationMode(Qt::SmoothTransformation);
@@ -122,6 +132,18 @@ void HOCRIndentedTextExportWidget::updatePreview() {
 	m_preview->setPixmap(QPixmap::fromImage(image));
 	m_preview->setPos(-0.5 * bbox.width(), -0.5 * bbox.height());
 	static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::suspend);
+}
+
+void HOCRIndentedTextExportWidget::copyEditorGrid(const HOCRPage* page) {
+	QRectF grid = page->grid();
+	if (!grid.isValid()) {
+		grid = static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->defaultGrid(page);
+	}
+	ui.spinBox_OriginX->setValue(qRound(grid.x()));
+	ui.spinBox_OriginY->setValue(qRound(grid.y()));
+	ui.doubleSpinBox_CellWidth->setValue(grid.width());
+	ui.doubleSpinBox_CellHeight->setValue(grid.height());
+	getSettings();
 }
 
 bool HOCRIndentedTextExportWidget::findOrigin(const HOCRItem *item) {

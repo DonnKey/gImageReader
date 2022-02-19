@@ -805,6 +805,7 @@ QString HOCRItem::trimmedWord(const QString& word, QString* prefix, QString* suf
 	return word;
 }
 
+static QPoint zeroPoint(0,0);
 HOCRItem::HOCRItem(const QDomElement& element, HOCRPage* page, HOCRItem* parent, int index)
 	: m_pageItem(page), m_parentItem(parent), m_index(index) {
 	// Read attrs
@@ -840,6 +841,22 @@ HOCRItem::HOCRItem(const QDomElement& element, HOCRPage* page, HOCRItem* parent,
 		m_text = element.text();
 		m_bold = !element.elementsByTagName("strong").isEmpty();
 		m_italic = !element.elementsByTagName("em").isEmpty();
+		if (m_bbox.topLeft() == zeroPoint) {
+			// tesseract has a known bug (https://github.com/tesseract-ocr/tesseract/issues/1192)
+			// that causes it to occasionally emit an entry at (0,0) with full page size. 
+			// That's very confusing visually. Create a new box for it (leave the hOCR alone)
+			// based on the parent and the font size.
+			int tl_x = 1;
+			int tl_y = 1;
+			if(parent) {
+				tl_x = parent->bbox().topLeft().x();
+				tl_y = parent->bbox().topLeft().y();
+			}
+			double dotsPerPoint = page->m_resolution/72.0;
+			double fs = m_titleAttrs["x_fsize"].toDouble();
+			fs = (fs < 4.0 ? fs : 8) * (dotsPerPoint ? dotsPerPoint : 100.0/72.0);
+			m_bbox.setCoords(tl_x, tl_y, tl_x + (m_text.length() ? m_text.length() : 1) * fs, tl_y + fs);
+		}
 	} else if(itemClass() == "ocr_line") {
 		// Depending on the locale, tesseract can use a comma instead of a dot as decimal separator in the baseline...
 		m_titleAttrs["baseline"] = m_titleAttrs["baseline"].replace(",", ".");

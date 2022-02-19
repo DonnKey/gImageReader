@@ -464,10 +464,16 @@ void SourceManager::currentSourceChanged() {
 	if(m_inCurrentSourceChanged) {
 		return;
 	}
+
+	QItemSelection selection = ui.treeViewSources->selectionModel()->selection();
+	if (selection.size() == 0) {
+		// don't do anything if click isn't on anything
+		return;
+	}
+
 	m_inCurrentSourceChanged = true;
 
 	// Merge selection of all children of selected items
-	QItemSelection selection = ui.treeViewSources->selectionModel()->selection();
 	QItemSelection extendedSel;
 	for(const QModelIndex& index : selection.indexes()) {
 		selectRecursive(extendedSel, index);

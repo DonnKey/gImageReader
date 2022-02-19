@@ -66,6 +66,9 @@ public:
 	DisplayerToolHOCR* getTool() const { return m_tool; }
 	bool open(InsertMode mode, QStringList files = QStringList());
 	bool selectPage(int nr);
+	void blinkCombo();
+	int m_blinkCounter = 0;
+	QTimer *m_blinkTimer;
 
 public slots:
 	bool open(const QString& filename) override { return open(InsertMode::Replace, {filename}); }

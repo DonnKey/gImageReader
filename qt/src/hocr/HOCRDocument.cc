@@ -247,6 +247,8 @@ QModelIndex HOCRDocument::splitItem(const QModelIndex& itemIndex, int startRow, 
 		return QModelIndex();
 	}
 	HOCRItem* item = mutableItemAtIndex(itemIndex);
+	int oldBottom = item->bbox().bottom();
+	int oldLeft = item->bbox().left();
 	if(!item) {
 		return QModelIndex();
 	}
@@ -274,6 +276,16 @@ QModelIndex HOCRDocument::splitItem(const QModelIndex& itemIndex, int startRow, 
 		HOCRItem* child = mutableItemAtIndex(childIndex);
 		Q_ASSERT(child);
 		moveItem(childIndex, newIndex, row);
+	}
+
+	if(itemClass == "ocr_line") {
+		// Try to preserve word position given existing baselines
+		int newBottom = newItem->bbox().bottom();
+		int newLeft = newItem->bbox().left();
+		QPair<double, double> baseline = item->baseLine();
+		int leftOffset = (newLeft-oldLeft)*baseline.first;
+		QString baselineStr = QString("%1 %2").arg(baseline.first).arg(baseline.second+leftOffset+(oldBottom-newBottom));
+		editItemAttribute(indexAtItem(newItem),"title:baseline", baselineStr);
 	}
 
 	return newIndex;

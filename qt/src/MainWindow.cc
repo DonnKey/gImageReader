@@ -193,6 +193,7 @@ MainWindow::MainWindow(const QStringList& files)
 	ADD_SETTING(VarSetting<QByteArray>("wingeom"));
 	ADD_SETTING(VarSetting<QByteArray>("winstate"));
 	ADD_SETTING(ActionSetting("showcontrols", ui.actionImageControls));
+	ADD_SETTING(ActionSetting("showoutputpane", ui.actionToggleOutputPane, false));
 	ADD_SETTING(ComboSetting("outputeditor", ui.comboBoxOCRMode, OutputModeText));
 
 	m_recognitionMenu->rebuild();
@@ -219,7 +220,6 @@ MainWindow::MainWindow(const QStringList& files)
 
 	restoreGeometry(ConfigSettings::get<VarSetting<QByteArray>>("wingeom")->getValue());
 	restoreState(ConfigSettings::get<VarSetting<QByteArray>>("winstate")->getValue());
-	ui.dockWidgetOutput->setVisible(false);
 
 	ui.actionSources->trigger();
 
@@ -286,7 +286,7 @@ void MainWindow::openOutput(const QString& filename) {
 }
 
 void MainWindow::setOutputPaneVisible(bool visible) {
-	ui.actionToggleOutputPane->setChecked(visible);
+	ui.dockWidgetOutput->setVisible(ui.actionToggleOutputPane->isChecked() || visible);
 }
 
 #if FOCUSDEBUG

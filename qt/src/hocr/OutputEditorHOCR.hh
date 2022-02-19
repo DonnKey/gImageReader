@@ -115,7 +115,7 @@ private:
 	void drawPreview(QPainter& painter, const HOCRItem* item);
     void removePageByPosition(int position); 
 	void moveUpDown(const QModelIndex& index, int by);
-	bool eventFilter(QObject* /*obj*/, QEvent* ev);
+	bool eventFilter(QObject* obj, QEvent* ev);
 	void doReplace(bool force);
 
 signals:

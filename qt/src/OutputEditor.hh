@@ -67,6 +67,7 @@ public:
 	virtual void finalizeRead(ReadSessionData* data) {
 		delete data;
 	}
+	virtual void keyPressEvent(QKeyEvent* event){};
 	virtual BatchProcessor* createBatchProcessor(const QMap<QString, QVariant>& options) const = 0;
 
 	virtual bool containsSource(const QString& source, int sourcePage) const { return false; }

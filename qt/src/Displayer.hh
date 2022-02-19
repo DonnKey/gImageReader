@@ -72,6 +72,7 @@ public:
 	void setBlockAutoscale(bool block);
 	void applyDeskew(double skew);
 	bool eventFilter(QObject* /*obj*/, QEvent* ev) override;
+	void keyPressEvent(QKeyEvent* event) override;
 
 signals:
 	void viewportChanged();
@@ -101,7 +102,6 @@ private:
 	QColor guessBackground(QPixmap& image);
 	QCursor m_zoomCursor;
 
-	void keyPressEvent(QKeyEvent* event) override;
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
 	void mouseReleaseEvent(QMouseEvent* event) override;

@@ -25,6 +25,7 @@
 #include "Utils.hh"
 #include "MainWindow.hh"
 #include "RecognitionMenu.hh"
+#include "OutputEditor.hh"
 
 #include <cmath>
 #include <QFileDialog>
@@ -545,12 +546,15 @@ void Displayer::keyPressEvent(QKeyEvent* event) {
 	if(event->key() == Qt::Key_PageUp) {
 		ui.spinBoxPage->setValue(ui.spinBoxPage->value() - 1);
 		event->accept();
-	} else if(event->key() == Qt::Key_PageDown) {
+		return;
+	} 
+	if(event->key() == Qt::Key_PageDown) {
 		ui.spinBoxPage->setValue(ui.spinBoxPage->value() + 1);
 		event->accept();
-	} else {
-		QGraphicsView::keyPressEvent(event);
+		return;
 	}
+	MAIN->getOutputEditor()->keyPressEvent(event);
+	QGraphicsView::keyPressEvent(event);
 }
 
 void Displayer::mousePressEvent(QMouseEvent* event) {

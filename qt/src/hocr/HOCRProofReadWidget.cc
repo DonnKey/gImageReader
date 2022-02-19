@@ -314,6 +314,11 @@ void HOCRProofReadWidget::clear() {
 	m_currentLine = nullptr;
 	m_confidenceLabel->setText("");
 	m_confidenceLabel->setStyleSheet("");
+	if (MAIN->focusWidget() == nullptr) {
+		// We might have just deleted the focus item (see end of updateWidget)
+		// so focus on the displayer. (Happens with page down key into unscanned window.)
+		MAIN->getDisplayer()->setFocus();
+	}
 	hide();
 }
 
@@ -376,6 +381,7 @@ void HOCRProofReadWidget::updateWidget(bool force) {
 	LineEdit* focusLineEdit = static_cast<LineEdit*>(children.size() > 0 ? (children[wordItem ? wordItem->index() : 0]) : m_currentLines[lineItem]);
 	if(focusLineEdit && !m_treeView->hasFocus()) {
 		focusLineEdit->setFocus();
+		MAIN->getDisplayer()->setFocusProxy(focusLineEdit);
 	}
 
 }

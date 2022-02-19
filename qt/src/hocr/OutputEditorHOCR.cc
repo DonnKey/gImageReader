@@ -318,9 +318,14 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	ui.treeViewHOCR->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 	ui.treeViewHOCR->setColumnWidth(1, 32);
 	ui.treeViewHOCR->setItemDelegateForColumn(0, new HOCRTextDelegate(ui.treeViewHOCR));
+	ui.treeViewHOCR->setCursor(Qt::PointingHandCursor);
+	ui.treeViewHOCR->installEventFilter(this);
+
 
 	m_proofReadWidget = new HOCRProofReadWidget(ui.treeViewHOCR, MAIN->getDisplayer());
 	m_proofReadWidget->hide();
+
+	MAIN->getDisplayer()->installEventFilter(this);
 
 	ui.comboBoxNavigate->addItem(_("Page"), "ocr_page");
 	ui.comboBoxNavigate->addItem(_("Block"), "ocr_carea");
@@ -638,6 +643,7 @@ void OutputEditorHOCR::showItemProperties(const QModelIndex& index, const QModel
 	}
 
 	ui.plainTextEditOutput->setPlainText(currentItem->toHtml());
+	ui.treeViewHOCR->setCurrentIndex(index);
 
 	if(newPage(page)) {
 		// Minimum bounding box
@@ -765,6 +771,7 @@ void OutputEditorHOCR::bboxDrawn(const QRect& bbox, int action) {
 	} else if(action == DisplayerToolHOCR::ACTION_DRAW_WORD_RECT) {
 		QString text = QInputDialog::getText(m_widget, _("Add Word"), _("Enter word:"));
 		if(text.isEmpty()) {
+			m_tool->clearSelection();
 			return;
 		}
 		newElement = doc.createElement("span");
@@ -806,6 +813,9 @@ void OutputEditorHOCR::showTreeWidgetContextMenu(const QPoint& point) {
 void OutputEditorHOCR::showTreeWidgetContextMenu_inner(const QPoint& point) {
 	QModelIndexList indices = ui.treeViewHOCR->selectionModel()->selectedRows();
 	int nIndices = indices.size();
+	if(nIndices == 0) {
+		return;
+	}
 	if(nIndices > 1) {
 		// Check if merging or swapping is allowed (items are valid siblings)
 		const HOCRItem* firstItem = m_document->itemAtIndex(indices.first());
@@ -1003,8 +1013,35 @@ void OutputEditorHOCR::moveUpDown(const QModelIndex& index, int by) {
 		customContextMenuRequested2(m_contextMenuLocation);} ); // not recursive!
 }
 
-bool OutputEditorHOCR::eventFilter(QObject* /*obj*/, QEvent* ev) {
-	// To be replaced in future version...
+bool OutputEditorHOCR::eventFilter(QObject* obj, QEvent* ev) {
+	// This is where we coordinate focus and keystrokes between the displayer
+	// view and the tree view of the scanned image.
+	Displayer* displayer = MAIN->getDisplayer();
+	if (obj == displayer) {
+		if(ev->type() == QEvent::Enter) {
+			if (displayer->focusProxy() != nullptr) {
+				displayer->setFocus();
+			} else {
+				ui.treeViewHOCR->setFocus();
+			}
+		}
+		return false;
+	}
+	if (obj == ui.treeViewHOCR) {
+		if(ev->type() == QEvent::Enter) {
+			ui.treeViewHOCR->setFocus();
+		}
+		if(ev->type() == QEvent::KeyPress) {
+			QKeyEvent* kev = static_cast<QKeyEvent*>(ev);
+			displayer->keyPressEvent(kev);
+			if (kev->isAccepted()) {
+			return true;
+			}
+		}
+		return false;
+	}
+	// Self
+	// To be deleted in future version...
 	if(ev->type() == QEvent::KeyPress) {
 		QKeyEvent* kev = static_cast<QKeyEvent*>(ev);
 		if (kev->key() == Qt::Key_U) {
@@ -1040,8 +1077,10 @@ void OutputEditorHOCR::pickItem(const QPoint& point) {
 	QModelIndex index = m_document->searchAtCanvasPos(pageIndex, newPoint);
 	ui.treeViewHOCR->setCurrentIndex(index);
 	const HOCRItem* item = m_document->itemAtIndex(index);
-	if(item->itemClass() != "ocrx_word" && item->itemClass() != "ocr_line") {
-		ui.treeViewHOCR->setFocus();
+	if(item->itemClass() == "ocrx_word") {
+		ui.treeViewHOCR->setCurrentIndex(index);
+	} else {
+		MAIN->getDisplayer()->setFocus();
 	}
 }
 

@@ -161,6 +161,7 @@ void DisplayerToolSelect::autodetectLayout(bool noDeskew) {
 		setlocale(LC_ALL, current.constData());
 		tess.SetPageSegMode(tesseract::PSM_AUTO_ONLY);
 		tess.SetImage(img.bits(), img.width(), img.height(), 4, img.bytesPerLine());
+		tess.SetSourceResolution(MAIN->getDisplayer()->getCurrentResolution());
 		tesseract::PageIterator* it = tess.AnalyseLayout();
 		if(it && !it->Empty(tesseract::RIL_BLOCK)) {
 			do {

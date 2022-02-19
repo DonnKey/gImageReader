@@ -305,6 +305,7 @@ void Recognizer::recognizeImage(const QImage& image, OutputDestination dest) {
 		return;
 	}
 	tess->get()->SetImage(image.bits(), image.width(), image.height(), 4, image.bytesPerLine());
+	tess->get()->SetSourceResolution(MAIN->getDisplayer()->getCurrentResolution());
 	ProgressMonitor monitor(1);
 	MAIN->showProgress(&monitor);
 	if(dest == OutputDestination::Buffer) {

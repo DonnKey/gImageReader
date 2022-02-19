@@ -1747,6 +1747,8 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 			failed.append(filename);
 			continue;
 		}
+		QFileInfo info(file.fileName());
+		m_baseNames.append(info.fileName());
 		QDomDocument doc;
 		doc.setContent(&file);
 		QDomElement head = doc.firstChildElement("html").firstChildElement("head");
@@ -1776,6 +1778,7 @@ bool OutputEditorHOCR::open(InsertMode mode, QStringList files) {
 			added.append(filename);
 		}
 	}
+	MAIN->ui.dockWidgetOutput->setWindowTitle(m_baseNames.join(" "));
 	if(added.size() > 0) {
 		m_modified = mode != InsertMode::Replace;
 		if(mode == InsertMode::Replace && m_filebasename.isEmpty()) {
@@ -1864,6 +1867,9 @@ bool OutputEditorHOCR::save(const QString& filename) {
 	m_modified = false;
 	QFileInfo finfo(outname);
 	m_filebasename = finfo.absoluteDir().absoluteFilePath(finfo.completeBaseName());
+	m_baseNames.clear();
+	m_baseNames.append(finfo.fileName());
+	MAIN->ui.dockWidgetOutput->setWindowTitle(finfo.fileName());
 	ConfigSettings::get<VarSetting<QString>>("lasthocrsave")->setValue(finfo.absoluteFilePath());
 	return true;
 }
@@ -2061,6 +2067,7 @@ bool OutputEditorHOCR::clear(bool hide) {
 	m_tool->clearSelection();
 	m_modified = false;
 	m_filebasename.clear();
+	m_baseNames.clear();
 	if(hide) {
 		MAIN->setOutputPaneVisible(false);
 	}

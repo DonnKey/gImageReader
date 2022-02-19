@@ -125,6 +125,9 @@ private:
 	InsertMode m_insertMode = InsertMode::Append;
 	QPoint m_contextMenuLocation;
 	QMenu *m_contextMenu;
+	QModelIndex* m_contextIndexUp;
+	QModelIndex* m_contextIndexDown;
+	QStringList m_baseNames;
 
 	HOCRDocument* m_document;
 	FocusableMenu* m_keyParent;

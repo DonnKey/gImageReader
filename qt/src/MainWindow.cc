@@ -494,9 +494,11 @@ bool MainWindow::setOutputMode(OutputMode mode) {
 		if(mode == OutputModeText) {
 			m_displayerTool = new DisplayerToolSelect(m_displayer);
 			m_outputEditor = new OutputEditorText(ui.menuOutputShortcut);
+			ui.dockWidgetOutput->setWindowTitle(_("Output (Text)"));
 		} else { /*if(mode == OutputModeHOCR)*/
 			m_displayerTool = new DisplayerToolHOCR(m_displayer);
 			m_outputEditor = new OutputEditorHOCR(static_cast<DisplayerToolHOCR*>(m_displayerTool), ui.menuOutputShortcut);
+			ui.dockWidgetOutput->setWindowTitle(_("Output (hOCR)"));
 		}
 		ui.actionAutodetectLayout->setVisible(m_displayerTool->allowAutodetectOCRAreas());
 		ui.autodetectMenuAction->setVisible(m_displayerTool->allowAutodetectOCRAreas());

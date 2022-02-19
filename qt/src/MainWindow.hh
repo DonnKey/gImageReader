@@ -148,6 +148,7 @@ private:
 	friend class UI_MainWindow;
 	friend class KeyMapManager;
 	friend class OutputEditorText;
+	friend class OutputEditorHOCR;
 
 	static MainWindow* s_instance;
 

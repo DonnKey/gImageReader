@@ -36,6 +36,7 @@ class HOCRProofReadWidget : public QFrame {
 public:
 	HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent = nullptr);
 	void setProofreadEnabled(bool enabled);
+	bool eventFilter(QObject* target, QEvent* ev);
 	void clear();
 	QTreeView* documentTree() const { return m_treeView; }
 	void setConfidenceLabel(int wconf);

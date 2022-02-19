@@ -160,14 +160,6 @@ private:
 		}
 	}
 	void keyPressEvent(QKeyEvent* ev) override {
-		if(ev->modifiers() == Qt::KeypadModifier && ev->key() == Qt::Key_Enter) {
-			if(ev->isAutoRepeat()) {
-				return;
-			}
-			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::invert);
-			return;
-		}
-
 		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
 
 		bool atWord = m_wordItem->itemClass() == "ocrx_word";
@@ -354,15 +346,6 @@ private:
 			}
 		}
 	}
-	void keyReleaseEvent(QKeyEvent* ev) override {
-		if(ev->modifiers() == Qt::KeypadModifier && ev->key() == Qt::Key_Enter) {
-			if(ev->isAutoRepeat()) {
-				return;
-			}
-			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(OutputEditorHOCR::showMode::show);
-		}
-		QLineEdit::keyReleaseEvent(ev);
-	}
 	void mousePressEvent(QMouseEvent* ev) override {
 		HOCRDocument* document = static_cast<HOCRDocument*>(m_proofReadWidget->documentTree()->model());
 		m_proofReadWidget->documentTree()->setCurrentIndex(document->indexAtItem(m_wordItem));
@@ -386,6 +369,23 @@ private:
 		}
 	}
 };
+
+bool HOCRProofReadWidget::eventFilter(QObject* target, QEvent* ev) {
+	if(ev->type() != QEvent::KeyPress && ev->type() != QEvent::KeyRelease) {
+		return false;
+	}
+	QKeyEvent* kev = static_cast<QKeyEvent*>(ev);
+	if(kev->modifiers() == Qt::KeypadModifier && kev->key() == Qt::Key_Enter) {
+		if(!kev->isAutoRepeat()) {
+			static_cast<OutputEditorHOCR*>(MAIN->getOutputEditor())->showPreview(
+				kev->type() == QEvent::KeyPress 
+				? OutputEditorHOCR::showMode::invert
+				: OutputEditorHOCR::showMode::show);
+		}
+		return true;
+	}
+	return false;
+}
 
 class HOCRProofReadWidget::PointerWidget : public QWidget {
 public:
@@ -568,6 +568,7 @@ HOCRProofReadWidget::HOCRProofReadWidget(TreeViewHOCR* treeView, QWidget* parent
 	ADD_SETTING(SpinSetting("proofReadLinesAfter", m_spinLinesAfter, 1));
 	ADD_SETTING(SpinSetting("proofReadGapWidth", m_gapWidth, 50));
 
+	QApplication::instance()->installEventFilter(this);
 	// Start hidden
 	hide();
 }

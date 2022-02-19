@@ -57,6 +57,7 @@
 #include "OutputEditorHOCR.hh"
 #include "Recognizer.hh"
 #include "SourceManager.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
 
@@ -428,7 +429,6 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	ui.comboBoxNavigate->addItem(_("Word"), "ocrx_word");
 	ui.comboBoxNavigate->addItem(_("Misspelled word"), "ocrx_word_bad");
 	ui.comboBoxNavigate->addItem(_("Low confidence word"), "ocrx_word_lowconf");
-	m_blinkTimer = new QTimer(this);
 
 	QShortcut* shortcut = new QShortcut(QKeySequence(Qt::Key_Delete), m_widget);
 	QObject::connect(shortcut, &QShortcut::activated, this, &OutputEditorHOCR::removeCurrentItem);
@@ -473,7 +473,6 @@ OutputEditorHOCR::OutputEditorHOCR(DisplayerToolHOCR* tool) {
 	connect(m_document, &HOCRDocument::itemAttributeChanged, this, &OutputEditorHOCR::updateSourceText);
 	connect(m_document, &HOCRDocument::itemAttributeChanged, this, &OutputEditorHOCR::itemAttributeChanged);
 	connect(ui.comboBoxNavigate, qOverload<int>(&QComboBox::currentIndexChanged), this, &OutputEditorHOCR::navigateTargetChanged);
-	connect(m_blinkTimer, &QTimer::timeout, this, &OutputEditorHOCR::blinkCombo);
 	connect(ui.actionNavigateNext, &QAction::triggered, this, &OutputEditorHOCR::navigateNext);
 	connect(ui.actionNavigatePrev, &QAction::triggered, this, &OutputEditorHOCR::navigatePrev);
 	connect(ui.actionExpandAll, &QAction::triggered, this, &OutputEditorHOCR::expandItemClass);
@@ -646,18 +645,9 @@ void OutputEditorHOCR::expandCollapseItemClass(bool expand) {
 }
 
 void OutputEditorHOCR::blinkCombo() {
-	if (m_blinkCounter == 0) {
-		m_blinkCounter = 8;
-		m_blinkTimer->start(500);
-	}
-	if (m_blinkCounter-- % 2 == 1) {
-		ui.comboBoxNavigate->setStyleSheet("");
-	} else {
-		ui.comboBoxNavigate->setStyleSheet("background-color: red");
-	}
-	if (m_blinkCounter <= 0) {
-		m_blinkTimer->stop();
-	}
+	new BlinkWidget(8,
+		[this]{ui.comboBoxNavigate->setStyleSheet("background-color: red"); },
+		[this]{ui.comboBoxNavigate->setStyleSheet("");}, this );
 }
 
 void OutputEditorHOCR::navigateNextPrev(bool next) {

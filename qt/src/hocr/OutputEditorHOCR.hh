@@ -72,8 +72,6 @@ public:
 	bool open(InsertMode mode, QStringList files = QStringList());
 	bool selectPage(int nr);
 	void blinkCombo();
-	int m_blinkCounter = 0;
-	QTimer *m_blinkTimer;
 	void addWordAtCursor();
 	
 	enum showMode{show, invert, suspend, resume};

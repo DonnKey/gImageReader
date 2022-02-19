@@ -29,6 +29,7 @@
 #include "HOCRIndentedTextExportWidget.hh"
 #include "MainWindow.hh"
 #include "OutputEditorHOCR.hh"
+#include "UiUtils.hh"
 #include "Utils.hh"
 
 #include <QDirIterator>
@@ -59,9 +60,6 @@ HOCRBatchExportDialog::HOCRBatchExportDialog(QWidget* parent)
 
 	m_previewTimer.setSingleShot(true);
 
-	m_blinkTimer = new QTimer(this);
-
-	connect(m_blinkTimer, &QTimer::timeout, this, &HOCRBatchExportDialog::blinkFiles);
 	connect(ui.toolButtonSourceFolder, &QToolButton::clicked, this, &HOCRBatchExportDialog::setSourceFolder);
 	connect(ui.comboBoxFormat, qOverload<int>(&QComboBox::currentIndexChanged), this, &HOCRBatchExportDialog::setExportFormat);
 	connect(ui.spinBoxExportLevel, qOverload<int>(&QSpinBox::valueChanged), this, &HOCRBatchExportDialog::updateOutputTree);
@@ -245,16 +243,7 @@ void HOCRBatchExportDialog::updateExportPreview() {
 }
 
 void HOCRBatchExportDialog::blinkFiles() {
-	if (m_blinkCounter == 0) {
-		m_blinkCounter = 12;
-		m_blinkTimer->start(500);
-	}
-	if (m_blinkCounter-- % 2 == 1) {
-		ui.toolButtonSourceFolder->setStyleSheet("");
-	} else {
-		ui.toolButtonSourceFolder->setStyleSheet("background-color: red");
-	}
-	if (m_blinkCounter <= 0) {
-		m_blinkTimer->stop();
-	}
+	new BlinkWidget(12,
+		[this]{ui.toolButtonSourceFolder->setStyleSheet("background-color: red"); },
+		[this]{ui.toolButtonSourceFolder->setStyleSheet("");}, this );
 }

@@ -42,8 +42,6 @@ private:
 	Ui::BatchExportDialog ui;
 
 	void blinkFiles();
-	int m_blinkCounter = 0;
-	QTimer *m_blinkTimer;
 
 	FileTreeModel* m_sourceTreeModel = nullptr;
 	FileTreeModel* m_outputTreeModel = nullptr;

@@ -782,7 +782,8 @@ void OutputEditorHOCR::updateCurrentItemBBox(QRect bbox, bool affectsChildren) {
 		// Assume rigid motion here.
 		m_document->xlateItem(current, moved.y(), moved.x());
 	} else {
-		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.right()).arg(bbox.bottom());
+		// See QRect documentation for off-by-one issue with lower right corner.
+		QString bboxstr = QString("%1 %2 %3 %4").arg(bbox.left()).arg(bbox.top()).arg(bbox.left()+bbox.width()).arg(bbox.top()+bbox.height());
 		m_document->editItemAttribute(current, "title:bbox", bboxstr);
 	}
 	// Move ProofReadWidget correspndingly; note: widget content order won't change because that's in hOCR order, not graphical order.
